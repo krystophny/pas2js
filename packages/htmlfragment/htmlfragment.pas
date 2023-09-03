@@ -279,11 +279,11 @@ Var
   aClient : IFragmentClient;
 
 begin
-  if Assigned(FOnRendered) then
-    FOnRendered(Self);
   For I:=0 to ComponentCount-1 do
     if Supports(Components[i],IFRagmentClient,aClient) then
       aClient.HTMLRendered;
+  if Assigned(FOnRendered) then
+    FOnRendered(Self);
 end;
 
 procedure TCustomHTMLFragment.DoOnUnRender;
