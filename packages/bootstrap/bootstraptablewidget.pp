@@ -10,7 +10,7 @@ type
 
   TCustomDBBootstrapTableWidget = Class;
 
-  TColumnRenderMode = (crmText, crmNumeric, crmDateTime, crmTransformedValue, crmCheckBox, crmButton, crmCustom, crmSelect);
+  TColumnRenderMode = (crmText, crmNumeric, crmDateTime, crmTransformedValue, crmCheckBox, crmButton, crmCustom, crmSelect, crmAction);
   TColumnButtonType = (cbtInfo, cbtEdit, cbtDelete, cbtCustom);
 
   TDataTablesFieldMap = Class(TObject)
@@ -65,11 +65,55 @@ type
     Property DeleteClass : String Read FDeleteClass Write FDeleteClass;
   end;
 
+  { TBSColumnAction }
+
+Type
+  TRenderButtonData = Record
+    ButtonIconClass, tagName, classnames, sIcon: string;
+    ButtonURLTarget, ButtonURL,ExtraAttributes : String;
+    ButtonType : TColumnButtonType;
+  end;
+  TRenderButtonDataArray = Array of TRenderButtonData;
+
+
+  TBSColumnAction = class(TCollectionItem)
+  private
+    FButtonIconClass: String;
+    FButtonType: TColumnButtonType;
+    FButtonURL: string;
+    FButtonURLTarget: string;
+    FExtraAttributes: String;
+  Public
+    procedure Assign(Source: TPersistent); override;
+  Published
+    property ButtonType: TColumnButtonType read FButtonType write FButtonType;
+    // When buttontype is btCustom, use the following class (in <i class="">)
+    Property ButtonIconClass: String Read FButtonIconClass Write FButtonIconClass;
+    // URL to use when the button is clicked
+    property ButtonURL: string read FButtonURL write FButtonURL;
+    // Target of button URL
+    property ButtonURLTarget: string read FButtonURLTarget write FButtonURLTarget;
+    // Add extra attributes to the contents of the column if needed
+    property ExtraAttributes: String read FExtraAttributes write FExtraAttributes;
+  end;
+
+  { TBSColumnActionList }
+
+  TBSColumnActionList = class(TCollection)
+  private
+    function GetAction(aIndex : Integer): TBSColumnAction;
+    procedure SetAction(aIndex : Integer; AValue: TBSColumnAction);
+  Public
+    Property Actions[aIndex : Integer] : TBSColumnAction Read GetAction Write SetAction; default;
+  end;
+
+
   { TBSTableColumn }
   TBSColumnClickEvent = Procedure(Sender : TObject; Event : TJSObject; aRowData : TJSObject; aRowIndex : Integer) of Object;
 
   TBSTableColumn = class(TCollectionItem)
   private
+    FActions: TBSColumnActionList;
     FFieldName: string;
     FFormatting: string;
     FOnButtonClick: TBSColumnClickEvent;
@@ -92,7 +136,11 @@ type
     FOnGetValue: TOnCustomValueEvent;
     FExtraAttributes: String;
     FWidthUnits: String;
+    function CreateActions: TBSColumnActionList;
+    destructor Destroy;
+    function GetActionsStored: Boolean;
     function GetTitle: string;
+    procedure SetActions(AValue: TBSColumnActionList);
   protected
     function GetDisplayName: String; override;
     { private declarations }
@@ -104,6 +152,8 @@ type
     property FieldName: string read FFieldName write FFieldName;
     // Title for this column
     property Title: string read GetTitle write FTitle;
+    // Action column actions
+    Property Actions : TBSColumnActionList Read FActions Write SetActions stored GetActionsStored;
     // Render mode: text, numer, checkbox, button custom render
     property RenderMode: TColumnRenderMode read FRenderMode write FRenderMode;
     // When rendermode is rmButton, what button ?
@@ -221,6 +271,7 @@ type
     FTableCreated : Boolean;
     procedure DoDoubleClickRow(aRow: TJSOBject; El: TJSHTMLElement; aField: String);
     procedure DoCheckRow(aRow: TJSOBject; El: TJSHTMLElement);
+    function DoRenderButton(Row: TJSObject; RenderData: TRenderButtonData; aActionIndex: integer=-1): string;
     function GetData: TJSArray;
     function GetDataFromDataset: TJSArray;
     function GetDataset: TDataset;
@@ -230,6 +281,7 @@ type
     function IsSearchOptionsStored: Boolean;
     function IsSortOPtionsStored: Boolean;
     function IsViewOptionsStored: Boolean;
+    procedure PrepareButtonRender(var aButton: TRenderButtonData);
     procedure SetData(const aData: TJSArray);
     procedure SetDatasource(AValue: TDataSource);
     procedure SetStylingClasses(AValue: TStylingClasses);
@@ -255,6 +307,8 @@ type
     // Create column based on fieldName;
     function CreateCol(aFieldName, aTitle: string; aWidthUnits: String=''; aWidth : Integer = 0; aVisible: Boolean= True; aClassName: String ='';
       aSearchable: Boolean = True; aSortable: Boolean = True): TBootstrapTableColumn; overload;
+    // Convert column to Button column
+    function MakeActionCol(aCol: TBootstrapTableColumn; aTableCol: TBSTableColumn): TBootstrapTableColumn;
     // Convert column to Button column
     function MakeButtonCol(aCol: TBootstrapTableColumn; aTableCol: TBSTableColumn): TBootstrapTableColumn;
     // Convert column to checkbox column
@@ -417,6 +471,34 @@ begin
   Result:=FWidget;
 end;
 
+{ TBSColumnAction }
+
+procedure TBSColumnAction.Assign(Source: TPersistent);
+var
+  aSource: TBSColumnAction absolute Source;
+begin
+  if Source is TBSColumnAction then
+  begin
+    ExtraAttributes:=aSource.ExtraAttributes;
+    ButtonURLTarget:=aSource.ButtonURLTarget;
+    ButtonURL:=aSource.ButtonURL;
+    ButtonType:=aSource.ButtonType;
+    ButtonIconClass:=aSource.ButtonIconClass;
+  end else
+    inherited Assign(Source);
+end;
+
+{ TBSColumnActionList }
+
+function TBSColumnActionList.GetAction(aIndex : Integer): TBSColumnAction;
+begin
+  Result:=Items[aIndex] as TBSColumnAction;
+end;
+
+procedure TBSColumnActionList.SetAction(aIndex : Integer; AValue: TBSColumnAction);
+begin
+  Items[aIndex]:=aValue;
+end;
 
   { TBSTableColumn }
 
@@ -457,7 +539,21 @@ begin
   FVisible := True;
   FSortable := True;
   FSearchable := True;
+  Factions:=CreateActions;
 end;
+
+destructor TBSTableColumn.Destroy;
+
+begin
+  Factions.Free;
+  Inherited;
+end;
+
+function TBSTableColumn.CreateActions:TBSColumnActionList;
+begin
+  Result:=TBSColumnActionList.Create(TBSColumnAction);
+end;
+
 
 function TBSTableColumn.GetDisplayName: String;
 begin
@@ -473,6 +569,17 @@ begin
   Result := FTitle;
   if Result='' then
     Result:=FieldName;
+end;
+
+function TBSTableColumn.GetActionsStored: Boolean;
+begin
+  Result:=(RenderMode=crmAction);
+end;
+
+procedure TBSTableColumn.SetActions(AValue: TBSColumnActionList);
+begin
+  if FActions=AValue then Exit;
+  FActions.Assign(AValue);
 end;
 
 { TBSTableColumns }
@@ -530,6 +637,11 @@ Var
   v : JSValue;
 
 begin
+  if Not (Assigned(Datasource) and Assigned(Datasource.Dataset)) then
+    begin
+      Result:=TJSArray.New;
+      exit;
+    end;
   if Datasource.Dataset is TBaseJSONDataset then
     begin
     Result:=TJSArray(TRowsDataset(Datasource.Dataset).Rows).filter(function (el : jsvalue; Index : NativeInt; aArr : TJSArray) : boolean
@@ -648,6 +760,7 @@ begin
   FinishColumn(Result, aTitle, aWidthUnits, aWidth, aVisible, aClassName, aSearchable, aSortable);
 end;
 
+
 function TCustomDBBootstrapTableWidget.MakeCustomFormatCol(aCol: TBootstrapTableColumn; aTableCol: TBSTableColumn): TBootstrapTableColumn;
 
   function renderCallBack(Data: JSValue; row: TJSObject; RowIndex : Integer; Field : string): JSValue;
@@ -744,57 +857,64 @@ begin
 end;
 
 
+procedure TCustomDBBootstrapTableWidget.PrepareButtonRender(var aButton : TRenderButtonData);
+
+begin
+  aButton.classnames:= StylingClasses.ButtonClass;
+  Case aButton.ButtonType of
+    cbtInfo:
+      aButton.sIcon := StylingClasses.InfoClass;
+    cbtEdit:
+      aButton.sIcon := IfThen(DisplayReadOnly,StylingClasses.ReadonlyEditClass,StylingClasses.EditClass);
+    cbtDelete:
+      aButton.sIcon := StylingClasses.DeleteClass;
+    cbtCustom:
+      aButton.sIcon := aButton.ButtonIconClass;
+  End;
+  if (aButton.ButtonType=cbtDelete) and DisplayReadOnly then
+    begin
+    aButton.tagName:='div';
+    aButton.classnames:=aButton.classnames+' disabled';
+    end;
+  if aButton.ButtonURL<>'' then
+    aButton.tagName:='a'
+  else
+    aButton.tagName:='span';
+end;
+
+Function TCustomDBBootstrapTableWidget.DoRenderButton(Row : TJSObject; RenderData: TRenderButtonData; aActionIndex : integer = -1): string;
+
+var
+  sUrl, sExtraAttributes: string;
+
+begin
+  sUrl:='';
+  sExtraAttributes := ReplaceMoustache(row, RenderData.ExtraAttributes);
+  if aActionIndex<>-1 then
+    sExtraAttributes:=sExtraAttributes+Format(' data-action-index="%d"',[aActionIndex]);
+  if not ((RenderData.ButtonType=cbtDelete) and DisplayReadOnly) then
+    if RenderData.ButtonURL<>'' then
+      begin
+      sUrl := ReplaceMoustache(row, RenderData.ButtonURL);
+      sUrl:=Format('href="%s"',[sUrl]);
+      if RenderData.ButtonURLTarget<>'' then
+        sExtraAttributes:=sExtraAttributes+' target="'+RenderData.ButtonURLTarget+'"';
+      end;
+  if (RenderData.TagName='a') and (sURL='') then
+    sURL:='href="javascript.void()"';
+  Result:=Format('<%s class="%s" %s %s><i class="%s"></i></%s> ',
+                 [renderData.tagName, renderData.classnames, sUrl, sExtraAttributes, renderData.sIcon, renderData.tagName])
+end;
 
 function TCustomDBBootstrapTableWidget.MakeButtonCol(aCol: TBootstrapTableColumn; aTableCol: TBSTableColumn): TBootstrapTableColumn;
 
 var
-  tagName, classnames, sIcon: string;
-
-  procedure PrepareRender;
-
-  begin
-    classnames:= StylingClasses.ButtonClass;
-    Case aTableCol.ButtonType of
-      cbtInfo:
-        sIcon := StylingClasses.InfoClass;
-      cbtEdit:
-        sIcon := IfThen(DisplayReadOnly,StylingClasses.ReadonlyEditClass,StylingClasses.EditClass);
-      cbtDelete:
-        sIcon := StylingClasses.DeleteClass;
-      cbtCustom:
-        sIcon := aTableCol.ButtonIconClass;
-    End;
-    if (aTableCol.ButtonType=cbtDelete) and DisplayReadOnly then
-      begin
-      tagName:='div';
-      classnames:=classnames+' disabled';
-      end;
-    if aTableCol.ButtonURL<>'' then
-      tagName:='a'
-    else
-      tagName:='span';
-  end;
+  RenderData : TRenderButtonData;
 
   function renderCallBack(Data: JSValue; row: TJSObject; RowIndex : Integer; Field : string): JSValue;
 
-  var
-    sUrl, sExtraAttributes: string;
-
   begin
-    sUrl:='';
-    sExtraAttributes := ReplaceMoustache(row, aTableCol.ExtraAttributes);
-    if not ((aTableCol.ButtonType=cbtDelete) and DisplayReadOnly) then
-      if aTableCol.ButtonURL<>'' then
-        begin
-        sUrl := ReplaceMoustache(row, aTableCol.ButtonURL);
-        sUrl:=Format('href="%s"',[sUrl]);
-        if aTableCol.ButtonURLTarget<>'' then
-          sExtraAttributes:=sExtraAttributes+' target="'+aTableCol.ButtonURLTarget+'"';
-        end;
-    if (tagName='a') and (sURL='') then
-      sURL:='href="javascript.void()"';
-    Result:=Format('<%s class="%s" %s %s><i class="%s"></i></%s> ',
-                   [tagName, classnames, sUrl, sExtraAttributes, sIcon, tagName])
+    Result:=DoRenderButton(Row,RenderData);
   end;
 
   function doclick(e : TJSEvent; value : JSValue; row: TJSObject; index : NativeInt) : JSValue;
@@ -805,14 +925,71 @@ var
 
 begin
   Result:=aCol;
-  PrepareRender;
+  RenderData:=Default(TRenderButtonData);
+  RenderData.ButtonIconClass:=ATableCol.ButtonIconClass;
+  RenderData.ButtonType:=ATableCol.ButtonType;
+  RenderData.ButtonURL:=aTableCol.ButtonURL;
+  RenderData.ButtonURLTarget:=aTableCol.ButtonURLTarget;
+  RenderData.ExtraAttributes:=aTableCol.ExtraAttributes;
+
+  PrepareButtonRender(RenderData);
   Result.Formatter := @renderCallBack;
   if Assigned(aTableCol.OnButtonClick) then
     begin
     Result.events:=TJSObject.new;
-    Result.events['click '+tagname]:=@DoClick;
+    Result.events['click '+RenderData.tagname]:=@DoClick;
     end;
 end;
+
+
+function TCustomDBBootstrapTableWidget.MakeActionCol(aCol: TBootstrapTableColumn; aTableCol: TBSTableColumn): TBootstrapTableColumn;
+var
+  RenderData : TRenderButtonDataArray;
+
+  function renderCallBack(Data: JSValue; row: TJSObject; RowIndex : Integer; Field : string): JSValue;
+
+  var
+    S : String;
+    I : integer;
+
+  begin
+    S:='';
+    For I:=0 to Length(RenderData)-1 do
+      S:=S+DoRenderButton(Row,RenderData[i],I);
+    Result:=S;
+  end;
+
+  function doclick(e : TJSEvent; value : JSValue; row: TJSObject; index : NativeInt) : JSValue;
+  begin
+    if assigned(aTableCol.OnButtonClick) then
+      aTableCol.OnButtonClick(aTableCol,E,row,index);
+  end;
+var
+  I : integer;
+  A : TBSColumnAction;
+
+begin
+  Result:=aCol;
+  SetLength(RenderData,aTableCol.Actions.Count);
+  For I:=0 to aTableCol.Actions.Count-1 do
+    begin
+    A:=aTableCol.Actions[i];
+    RenderData[i]:=Default(TRenderButtonData);
+    RenderData[i].ButtonIconClass:=A.ButtonIconClass;
+    RenderData[i].ButtonType:=A.ButtonType;
+    RenderData[i].ButtonURL:=A.ButtonURL;
+    RenderData[i].ButtonURLTarget:=A.ButtonURLTarget;
+    RenderData[i].ExtraAttributes:=A.ExtraAttributes;
+    PrepareButtonRender(RenderData[I]);
+    if Assigned(aTableCol.OnButtonClick) then
+      begin
+      Result.events:=TJSObject.new;
+      Result.events['click '+RenderData[i].tagname+'["data-action-index"]']:=@DoClick;
+      end;
+    end;
+  Result.Formatter := @renderCallBack;
+end;
+
 
 function TCustomDBBootstrapTableWidget.MakeCheckBoxCol(aCol: TBootstrapTableColumn; aTableCol: TBSTableColumn): TBootstrapTableColumn;
 
