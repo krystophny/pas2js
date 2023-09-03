@@ -64,6 +64,7 @@ Type
     Property PageParam;
     Property OnGetURL;
     Property OnUpdateURL;
+    Property OnSetupHTTPRequest;
   end;
 
   { TSQLDBRestDataset }
