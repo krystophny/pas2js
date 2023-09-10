@@ -151,7 +151,7 @@ Type
 
 
   { TDBCustomHTMLButtonElementAction }
-  TDBButtonAction = (baFirst,baPrior,baNext,baLast,baEdit,baAppend,baInsert,baPost,baCancel,baApplyUpdates);
+  TDBButtonAction = (baFirst,baPrior,baNext,baLast,baEdit,baAppend,baInsert,baPost,baCancel,baDelete,baApplyUpdates);
   TDBButtonActions = Set of TDBButtonAction;
 
   TDBCustomHTMLButtonElementAction = class(THTMLCustomElementAction)
@@ -201,7 +201,7 @@ Type
 
 Implementation
 
-uses strutils, rtl.HTMLUtils;
+uses rtl.HTMLUtils;
 
 { TButtonActionDataLink }
 
@@ -329,6 +329,7 @@ begin
       baInsert : Insert;
       baPost : Post;
       baCancel : Cancel;
+      baDelete : Delete;
       baApplyUpdates : ApplyUpdates;
     end;
 end;
@@ -476,6 +477,7 @@ Var
 begin
   F:=Field;
   E:=Element;
+  Writeln(Name,' FieldName : ',FieldName,' field: ',Assigned(F),' element : ',assigned(E));
   if Not (Assigned(F) and assigned(E)) then
     Exit;
   Value:=TransFormFieldText(Field,F.AsString);
@@ -629,6 +631,7 @@ Var
 begin
   F:=Field;
   E:=Element;
+  Writeln(Name,'Elementtodataset FieldName : ',FieldName,' field: ',Assigned(F),' element : ',assigned(E));
   if Not Assigned(F) then
     exit;
   if E is TJSHTMLInputElement then
@@ -655,6 +658,7 @@ Var
 begin
   F:=Field;
   E:=Element;
+  Writeln(Name,'dataset to element FieldName : ',FieldName,' field: ',Assigned(F),' element : ',assigned(E));
   if Not (Assigned(F) and Assigned(E)) then
     Exit;
   Self.Value:=TransFormFieldText(Field,F.AsString);
