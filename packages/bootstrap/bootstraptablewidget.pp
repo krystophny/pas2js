@@ -137,7 +137,6 @@ Type
     FExtraAttributes: String;
     FWidthUnits: String;
     function CreateActions: TBSColumnActionList;
-    destructor Destroy;
     function GetActionsStored: Boolean;
     function GetTitle: string;
     procedure SetActions(AValue: TBSColumnActionList);
@@ -145,6 +144,7 @@ Type
     function GetDisplayName: String; override;
     { private declarations }
   public
+    destructor Destroy; override;
     procedure Assign(Source: TPersistent); override;
     constructor Create(aOwner: TCollection); override;
   published
@@ -327,7 +327,9 @@ Type
     procedure ConfigureOptions(aOptions: TBootstrapTableOptions); virtual;
     // Defines the sorting functions (TODO: Refactoring => Move the function definitions to the table instead of the column)
     procedure DefineSortingFunctions;
-
+    // Unrender table. If table was not yet rendered, this is a No-op
+    Procedure DoUnRender(aParent : TJSHTMLElement) ; override;
+    // Our dataset
     property Dataset : TDataset Read GetDataset;
   public
     class var DefaultLanguage : TJSObject;
@@ -337,8 +339,6 @@ Type
     Destructor Destroy; override;
     // Create default columns based on the fields in Dataset.
     Procedure CreateDefaultColumns(DoClear: Boolean = True);
-    // Unrender table. If table was not yet rendered, this is a No-op
-    Procedure UnRender;
     // Render the table. If the table was already rendered, it is first unrendered.
     procedure ApplyWidgetSettings(aElement: TJSHTMLElement); override;
     // Show a spinner
@@ -359,7 +359,7 @@ Type
     // Dataset to get fields from.
     property DataSource: TDataSource read GetDatasource write SetDatasource;
     // General behaviour options
-    Property Options : TBSTableOptions Read FTableOptions Write SetTableOptions;
+    Property Options : TBSTableOptions Read FTableOptions Write SetTableOptions stored IsOptionsStored;
     // General View options
     Property ViewOptions : TBSTableViewOptions Read FTableViewOptions Write SetTableViewOptions Stored IsViewOptionsStored;
     // Pagination  options
@@ -408,7 +408,7 @@ Const
 
 implementation
 
-uses jsondataset;
+uses jsondataset, dateutils;
 
 { TTableDataLink }
 
@@ -642,7 +642,7 @@ begin
       Result:=TJSArray.New;
       exit;
     end;
-  if Datasource.Dataset is TBaseJSONDataset then
+  if (Datasource.Dataset is TBaseJSONDataset) and not DataSource.Dataset.Filtered then
     begin
     Result:=TJSArray(TRowsDataset(Datasource.Dataset).Rows).filter(function (el : jsvalue; Index : NativeInt; aArr : TJSArray) : boolean
       begin
@@ -657,6 +657,7 @@ begin
       While not EOF do
         begin
         Rec:=TJSObject.new;
+        Result.Push(Rec);
         For I:=0 to Fields.Count-1 do
           begin
           F:=Fields[i];
@@ -819,7 +820,12 @@ function TCustomDBBootstrapTableWidget.MakeDateTimeRenderCol(aCol: TBootstrapTab
         Result:=''
       else
         begin
-        Dt:=JSDateToDateTime(TJSDate(Data));
+        if Data is TJSDate then
+          Dt:=JSDateToDateTime(TJSDate(Data))
+        else if isString(Data) then
+          Dt:=ISO8601ToDate(String(Data),False)
+        else
+          Dt:=0;
         if Dt<=100 then
           Result:=''
         else  
@@ -919,6 +925,7 @@ var
 
   function doclick(e : TJSEvent; value : JSValue; row: TJSObject; index : NativeInt) : JSValue;
   begin
+    Result:=False;
     if assigned(aTableCol.OnButtonClick) then
       aTableCol.OnButtonClick(aTableCol,E,row,index);
   end;
@@ -961,6 +968,7 @@ var
 
   function doclick(e : TJSEvent; value : JSValue; row: TJSObject; index : NativeInt) : JSValue;
   begin
+    Result:=False;
     if assigned(aTableCol.OnButtonClick) then
       aTableCol.OnButtonClick(aTableCol,E,row,index);
   end;
@@ -1206,8 +1214,7 @@ end;
 
 procedure TCustomDBBootstrapTableWidget.ConfigureOptions(
   aOptions: TBootstrapTableOptions);
-Var
-  URL: String;
+
 begin
   aOptions.Columns := GetColumnArray;
   aOptions.search := FShowSearch;
@@ -1219,7 +1226,6 @@ begin
   aOptions.onPostBody:=@DoAfterBodyDraw;
   aOptions.onDblClickRow:=@DoDoubleClickRow;
   aOptions.onCheck:=@DoCheckRow;
-
 end;
 
 
@@ -1302,8 +1308,23 @@ begin
 end;
 
 procedure TCustomDBBootstrapTableWidget.ActiveChanged;
+
+var
+  isActive : boolean;
+
 begin
-  RefreshData;
+  isActive:=Assigned(DataSource) and Assigned(DataSource.Dataset) and DataSource.Dataset.Active;
+  Writeln(Name,' isActive : ',isActive);
+  if isActive then
+    begin
+    FData:=Nil;
+    if IsRendered then
+      RefreshData
+    else
+      Refresh
+    end
+  else
+    UnRender;
 end;
 
 function TCustomDBBootstrapTableWidget.HTMLTag: String;
@@ -1356,11 +1377,12 @@ begin
 end;
 
 
-procedure TCustomDBBootstrapTableWidget.UnRender;
+procedure TCustomDBBootstrapTableWidget.DoUnRender(aParent : TJSHTMLElement);
 
 begin
   JQuery('#'+ElementID).BootstrapTable('destroy');
   FTableCreated:=False;
+  Inherited ;
 end;
 
 procedure TCustomDBBootstrapTableWidget.ApplyWidgetSettings(aElement: TJSHTMLElement);
