@@ -206,7 +206,7 @@ Type
 
   TRouter = Class(TComponent)
   Private
-    Class Procedure DoneService;
+    Class Destructor DoneService;
     Class
       Var FService : TRouter;
           FServiceClass : TRouterClass;
@@ -585,7 +585,7 @@ begin
     Result:=History.Kind;
 end;
 
-class procedure TRouter.DoneService;
+class destructor TRouter.DoneService;
 begin
   FreeAndNil(FService);
 end;
