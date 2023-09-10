@@ -21,7 +21,7 @@ unit dbhtmlwidgets;
 interface
 
 uses
-  Classes, SysUtils, db, web, htmlwidgets;
+  JS, Classes, SysUtils, db, web, htmlwidgets;
 
 Type
 
@@ -132,6 +132,7 @@ Type
   
   TCustomDBSelectWidget = class(TCustomSelectWidget)
   Private
+    FItemTemplate: String;
     FLink : TSelectLink;
     FItemField: String;
     FNullIsNotValue: Boolean;
@@ -142,6 +143,7 @@ Type
     procedure SetDatasource(AValue: TDatasource);
     function GetDatasource: TDatasource;
     procedure SetItemField(AValue: String);
+    procedure SetItemTemplate(AValue: String);
     procedure SetNullIsNotValue(AValue: Boolean);
     procedure SetValue(AValue: String);
     procedure SetValueField(AValue: String);
@@ -153,6 +155,7 @@ Type
       FDS :  TDataset;
       FTextField : TField;
       FValueField : TField;
+      FItemTemplate : String;
       FCheckValue : Boolean;
       constructor Create(ASelect : TCustomSelectWidget); override;
       Function OptionText : String; override;
@@ -169,6 +172,7 @@ Type
     Property Datasource : TDatasource Read GetDatasource write SetDatasource;
     Property ItemField : String Read FItemField Write SetItemField;
     Property ValueField : String Read FValueField Write SetValueField;
+    Property ItemTemplate: String Read FItemTemplate Write SetItemTemplate;
     Property NullIsNotValue : Boolean Read FNullIsNotValue Write SetNullIsNotValue;
     Property Value : String Read GetValue Write SetValue;
   Public
@@ -190,6 +194,7 @@ Type
     Property SelectElement;
     Property ItemCount;
   Published
+    Property ItemTemplate;
     Property Datasource;
     Property ItemField;
     Property ValueField;
@@ -243,8 +248,25 @@ begin
 end;
 
 function TCustomDBSelectWidget.TDBSelectOptionEnumerator.OptionText: String;
+Var
+  E : TJSRegexp;
+  F : TField;
+
 begin
-  Result:=FTextField.DisplayText;
+  if FItemTemplate='' then
+    Result:=FTextField.DisplayText
+  else
+    begin
+    E:=TJSRegexp.New('{{([_\w]*)}}','g');
+    Result:=TJSString(FItemTemplate).Replace(E,Function (Const match,p1 : string; offset : Integer; AString : String) : string
+    begin
+      F:=FDS.FindField(P1);
+      if Assigned(F) then
+        Result:=F.DisplayText
+      else
+        Result:='';
+    end);
+    end;
 end;
 
 function TCustomDBSelectWidget.TDBSelectOptionEnumerator.HasValue: boolean;
@@ -302,6 +324,12 @@ begin
   FItemField:=AValue;
 end;
 
+procedure TCustomDBSelectWidget.SetItemTemplate(AValue: String);
+begin
+  if FItemTemplate=AValue then Exit;
+  FItemTemplate:=AValue;
+end;
+
 procedure TCustomDBSelectWidget.SetNullIsNotValue(AValue: Boolean);
 begin
   if FNullIsNotValue=AValue then Exit;
@@ -325,6 +353,7 @@ end;
 function TCustomDBSelectWidget.CreateOptionEnumerator: TSelectOptionEnumerator;
 begin
   Result:=TDBSelectOptionEnumerator.Create(Self);
+  TDBSelectOptionEnumerator(Result).FItemTemplate:=Self.FItemTemplate;
 end;
 
 procedure TCustomDBSelectWidget.ActiveChanged;
