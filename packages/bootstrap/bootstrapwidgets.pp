@@ -414,7 +414,7 @@ end;
 
 function TToastManager.BootstrapHide(Event: TJSEvent): Boolean;
 begin
-
+  Result:=False;
 end;
 
 function TToastManager.DoRenderHTML(aParent, aElement: TJSHTMLElement): TJSHTMLElement;
@@ -632,6 +632,7 @@ end;
 function TSimpleToastWidget.BootstrapHide(aEvent: TJSEvent) : Boolean;
 
 begin
+  Result:=False;
   FShowing:=False;
     // Writeln('In bootstraphide callback ', assigned(onhide));
   If Assigned(OnHide) then
@@ -655,9 +656,6 @@ begin
 end;
 
 function TSimpleToastWidget.GetTemplateHTML: String;
-
-Var
-  Head : String;
 
 begin
   Result:='<div class="toast" aria-live="assertive" aria atomic="true" style="min-width: '+IntToStr(MinWidth)+'px;">';
