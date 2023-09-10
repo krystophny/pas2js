@@ -758,7 +758,7 @@ end;
 function TSQLDBRestDataset.DoResolveRecordUpdate(anUpdate: TRecordUpdateDescriptor): Boolean;
 
 Var
-  rIdx,I : Integer;
+  rIdx : Integer;
   Fld : TField;
   rawData : JSValue;
   Data : TJSArray absolute rawData;
