@@ -720,6 +720,7 @@ function TRPCClient.ConfigRequest(Init: TJSObject): TJSObject;
 begin
   if Assigned(FOnConfigRequest) then
     FOnConfigRequest(Self,init);
+  Result:=Init;
 end;
 
 class function TRPCClient.RequestMethodProperty : string;
