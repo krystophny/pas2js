@@ -2639,7 +2639,7 @@ end;
 
 function TFileInputWidget.GetFileType(aIndex : Integer): String;
 begin
-  Result:=InputElement.files.Files[aIndex]._Type;
+  Result:=InputElement.files.Files[aIndex].Type_;
 end;
 
 function TFileInputWidget.GetFileCount: Integer;
@@ -2661,7 +2661,7 @@ begin
   F:=InputElement.files.Files[aIndex];
   Result.Name:=F.name;
   Result.Size:=F.size;
-  Result.FileType:=F._type;
+  Result.FileType:=F.type_;
   Result.TimeStamp:= JSDateToDateTime(F.lastModifiedDate);
 end;
 
