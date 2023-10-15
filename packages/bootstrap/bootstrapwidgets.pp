@@ -16,7 +16,7 @@
 unit bootstrapwidgets;
 
 {$mode objfpc}
-
+{$WARN 4501 off : }
 interface
 
 uses
