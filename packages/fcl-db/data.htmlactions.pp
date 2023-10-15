@@ -102,9 +102,10 @@ Type
   end;
 
   TDBCustomHTMLInputElementAction = class(TDBCustomHTMLElementAction)
-  Private
+  Protected
     procedure DoKeyDown(aEvent: TJSEvent); override;
     Procedure ActiveChanged; override;
+    function NeedsClick(aEl: TJSElement): Boolean;
     Procedure StartEditing; override;
     Procedure EndEditing; override;
     Procedure LayoutChanged; override;
@@ -201,7 +202,7 @@ Type
 
 Implementation
 
-uses rtl.HTMLUtils;
+uses strutils, rtl.HTMLUtils;
 
 { TButtonActionDataLink }
 
@@ -477,20 +478,28 @@ Var
 begin
   F:=Field;
   E:=Element;
-  Writeln(Name,' FieldName : ',FieldName,' field: ',Assigned(F),' element : ',assigned(E));
+//  Writeln(Name,' FieldName : ',FieldName,' field: ',Assigned(F),' element : ',assigned(E));
   if Not (Assigned(F) and assigned(E)) then
     Exit;
   Value:=TransFormFieldText(Field,F.AsString);
 end;
 
+Function TDBCustomHTMLInputElementAction.NeedsClick(aEl : TJSElement) : Boolean;
+
+begin
+  Result:=SameText(aEl.tagName,'select');
+  if (not Result) and SameText(aEl.tagName,'input') then
+    Result:=IndexText(String(aEl['type']),['date','time','number','checkbox','radio'])<>-1;
+end;
 
 procedure TDBCustomHTMLInputElementAction.BindEvents(aEl: TJSElement);
 begin
   inherited BindEvents(aEl);
   aEl.addEventListener(sEventKeyDown,@DoKeyDown);
-  if SameText(aEl.tagName,'select') then
+  if NeedsClick(aEl) then
     aEl.addEventListener(sEventClick,@DoKeyDown);
 end;
+
 
 procedure TDBCustomHTMLInputElementAction.DoKeyDown(aEvent : TJSEvent);
 
@@ -658,7 +667,7 @@ Var
 begin
   F:=Field;
   E:=Element;
-  Writeln(Name,'dataset to element FieldName : ',FieldName,' field: ',Assigned(F),' element : ',assigned(E));
+//  Writeln(Name,'dataset to element FieldName : ',FieldName,' field: ',Assigned(F),' element : ',assigned(E));
   if Not (Assigned(F) and Assigned(E)) then
     Exit;
   Self.Value:=TransFormFieldText(Field,F.AsString);
