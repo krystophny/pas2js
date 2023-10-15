@@ -696,6 +696,7 @@ function TRPCClient.DoExecuteRequest(const aClassName, aMethodName: String;
   aParams: JSValue; aOnSuccess: TRPCResultCallBack;
   aOnFailure: TRPCFailureCallBack): NativeInt;
 begin
+  //  console.debug(aParams);
   If isArray(AParams) then
     Result:=ExecuteRequest(aClassName,aMethodName,TJSArray(aParams),aOnSuccess,aOnFailure)
   else if isObject(AParams) then
@@ -704,7 +705,6 @@ begin
     Result:=ExecuteRequest(aClassName,aMethodName,TJSArray.New(aParams),aOnSuccess,aOnFailure)
   else
     Result:=ExecuteRequest(aClassName,aMethodName,TJSArray.New(),aOnSuccess,aOnFailure)
-
 end;
 
 procedure TRPCClient.GetHeaders(Headers: TStrings);
@@ -760,7 +760,12 @@ begin
       aSerialized['id']:=aRequest.ID;
     aSerialized['jsonrpc']:=JSONRPCversion;
     if Assigned(aRequest.Params) then
-      aSerialized['params']:=aRequest.Params;
+      aSerialized['params']:=aRequest.Params
+    else
+      if roParamsAsObject in FOptions then
+        aSerialized['params']:=TJSObject.New
+      else
+        aSerialized['params']:=TJSArray.New;
     N:=aRequest.MethodName;
     if roFullMethodName in FOptions then
       begin
