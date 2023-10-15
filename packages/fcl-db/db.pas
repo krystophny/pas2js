@@ -8954,68 +8954,68 @@ end;
 Procedure TParam.SetAsBlob(const AValue: TBlobData);
 begin
   FDataType:=ftBlob;
-  Value:=AValue;
+  FValue:=AValue;
 end;
 
 Procedure TParam.SetAsBoolean(AValue: Boolean);
 begin
   FDataType:=ftBoolean;
-  Value:=AValue;
+  FValue:=AValue;
 end;
 
 procedure TParam.SetAsBytes(const AValue: TBytes);
 begin
-
+  // ?
 end;
 
 Procedure TParam.SetAsDate(const AValue: TDateTime);
 begin
   FDataType:=ftDate;
-  Value:=AValue;
+  FValue:=AValue;
 end;
 
 Procedure TParam.SetAsDateTime(const AValue: TDateTime);
 begin
   FDataType:=ftDateTime;
-  Value:=AValue;
+  FValue:=AValue;
 end;
 
 Procedure TParam.SetAsFloat(const AValue: Double);
 begin
   FDataType:=ftFloat;
-  Value:=AValue;
+  FValue:=AValue;
 end;
 
 Procedure TParam.SetAsInteger(AValue: Longint);
 begin
   FDataType:=ftInteger;
-  Value:=AValue;
+  FValue:=AValue;
 end;
 
 Procedure TParam.SetAsLargeInt(AValue: NativeInt);
 begin
   FDataType:=ftLargeint;
-  Value:=AValue;
+  FValue:=AValue;
 end;
 
 Procedure TParam.SetAsMemo(const AValue: string);
 begin
   FDataType:=ftMemo;
-  Value:=AValue;
+  FValue:=AValue;
 end;
 
 Procedure TParam.SetAsString(const AValue: string);
 begin
   if FDataType <> ftFixedChar then
     FDataType := ftString;
-  Value:=AValue;
+  FValue:=AValue;
 end;
 
 
 Procedure TParam.SetAsTime(const AValue: TDateTime);
 begin
   FDataType:=ftTime;
-  Value:=AValue;
+  FValue:=AValue;
 end;
 
 Procedure TParam.SetAsJSValue(const AValue: JSValue);
@@ -9037,7 +9037,6 @@ Procedure TParam.SetDataType(AValue: TFieldType);
 
 begin
   FDataType:=AValue;
-
 end;
 
 Procedure TParam.SetText(const AValue: string);
