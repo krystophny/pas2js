@@ -21,7 +21,7 @@
 // Define this to output some debugging output
 { $DEFINE DEBUGROUTER }
 unit webrouter;
-
+{$WARN 4501 off : }
 interface
 
 uses
