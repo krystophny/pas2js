@@ -16,7 +16,7 @@
 unit webwidget;
 
 {$mode objfpc}{$H+}
-
+{$WARN 4501 off : }
 interface
 
 uses
