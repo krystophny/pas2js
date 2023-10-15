@@ -75,6 +75,7 @@ Type
   end;
   TRenderButtonDataArray = Array of TRenderButtonData;
 
+  TBSActionClickEvent = Procedure(Sender : TObject; Event : TJSObject; aRowData : TJSObject; aRowIndex : Integer) of Object;
 
   TBSColumnAction = class(TCollectionItem)
   private
@@ -83,9 +84,17 @@ Type
     FButtonURL: string;
     FButtonURLTarget: string;
     FExtraAttributes: String;
+    FName: string;
+    FOnClick: TBSActionClickEvent;
+    procedure SetExtraAttributes(AValue: String);
+  Protected
+    Function GetDisplayName: string; override;
   Public
     procedure Assign(Source: TPersistent); override;
   Published
+    // Name, for display purposes
+    Property Name : string Read FName Write FName;
+    // Button type
     property ButtonType: TColumnButtonType read FButtonType write FButtonType;
     // When buttontype is btCustom, use the following class (in <i class="">)
     Property ButtonIconClass: String Read FButtonIconClass Write FButtonIconClass;
@@ -94,7 +103,9 @@ Type
     // Target of button URL
     property ButtonURLTarget: string read FButtonURLTarget write FButtonURLTarget;
     // Add extra attributes to the contents of the column if needed
-    property ExtraAttributes: String read FExtraAttributes write FExtraAttributes;
+    property ExtraAttributes: String read FExtraAttributes write SetExtraAttributes;
+    // When clicked
+    Property OnClick : TBSActionClickEvent Read FOnClick Write FOnClick;
   end;
 
   { TBSColumnActionList }
@@ -440,7 +451,7 @@ end;
 constructor TStylingClasses.Create(aWidget: TCustomDBBootstrapTableWidget);
 begin
   FWidget:=aWidget;
-  ButtonClass:='btn btn-secondary btn-sm btn-outline';
+  ButtonClass:='btn btn-outline-secondary btn-sm';
   EditClass:='bi bi-pencil';
   DeleteClass:='bi bi-trash';
   InfoClass:='bi bi-info-circle';
@@ -473,17 +484,34 @@ end;
 
 { TBSColumnAction }
 
+procedure TBSColumnAction.SetExtraAttributes(AValue: String);
+begin
+  if FExtraAttributes=AValue then Exit;
+  Writeln('Setting extra attributes : ',aValue);
+  FExtraAttributes:=AValue;
+end;
+
+function TBSColumnAction.GetDisplayName: string;
+begin
+  Result:=Name;
+  if Result='' then
+    Result:=inherited GetDisplayName
+end;
+
 procedure TBSColumnAction.Assign(Source: TPersistent);
 var
   aSource: TBSColumnAction absolute Source;
 begin
   if Source is TBSColumnAction then
   begin
+    Name:=aSource.Name;
+    Writeln('Copying ',ExtraAttributes,':=',aSource.ExtraAttributes);
     ExtraAttributes:=aSource.ExtraAttributes;
     ButtonURLTarget:=aSource.ButtonURLTarget;
     ButtonURL:=aSource.ButtonURL;
     ButtonType:=aSource.ButtonType;
     ButtonIconClass:=aSource.ButtonIconClass;
+    OnClick:=aSource.OnClick;
   end else
     inherited Assign(Source);
 end;
@@ -527,6 +555,7 @@ begin
     OnGetSortValue := Src.OnGetSortValue;
     ExtraAttributes := Src.ExtraAttributes;
     OnButtonClick := Src.OnButtonClick;
+    Actions.Assign(Src.Actions);
   end
   else
     inherited;
@@ -907,7 +936,8 @@ begin
         sExtraAttributes:=sExtraAttributes+' target="'+RenderData.ButtonURLTarget+'"';
       end;
   if (RenderData.TagName='a') and (sURL='') then
-    sURL:='href="javascript.void()"';
+    sURL:='href="javascript.void(0)"';
+  Writeln('Attributes : ',sExtraAttributes);
   Result:=Format('<%s class="%s" %s %s><i class="%s"></i></%s> ',
                  [renderData.tagName, renderData.classnames, sUrl, sExtraAttributes, renderData.sIcon, renderData.tagName])
 end;
@@ -923,7 +953,7 @@ var
     Result:=DoRenderButton(Row,RenderData);
   end;
 
-  function doclick(e : TJSEvent; value : JSValue; row: TJSObject; index : NativeInt) : JSValue;
+  function DoColButtonClick(e : TJSEvent; value : JSValue; row: TJSObject; index : NativeInt) : JSValue;
   begin
     Result:=False;
     if assigned(aTableCol.OnButtonClick) then
@@ -944,7 +974,7 @@ begin
   if Assigned(aTableCol.OnButtonClick) then
     begin
     Result.events:=TJSObject.new;
-    Result.events['click '+RenderData.tagname]:=@DoClick;
+    Result.events['click '+RenderData.tagname]:=@DoColButtonClick;
     end;
 end;
 
@@ -963,14 +993,29 @@ var
     S:='';
     For I:=0 to Length(RenderData)-1 do
       S:=S+DoRenderButton(Row,RenderData[i],I);
-    Result:=S;
+    Result:='<div class="btn-group" role="group">'+S+'</div>';
+
   end;
 
-  function doclick(e : TJSEvent; value : JSValue; row: TJSObject; index : NativeInt) : JSValue;
+  function doactionclick(e : TJSEvent; value : JSValue; row: TJSObject; index : NativeInt) : JSValue;
+
+  var
+    sIdx : String;
+    Idx : integer;
+    A : TBSColumnAction;
+
   begin
     Result:=False;
     if assigned(aTableCol.OnButtonClick) then
       aTableCol.OnButtonClick(aTableCol,E,row,index);
+    sIdx:=TJSHTMLELement(e.CurrentTargetElement).dataset['actionIndex'];
+    Idx:=StrToIntDef(sIdx,-1);
+    if (Idx>=0) and (Idx<aTableCol.Actions.Count) then
+       begin
+       A:=aTableCol.Actions[Idx];
+       if Assigned(A.OnClick) then
+         A.OnClick(A,E,row,index);
+       end;
   end;
 var
   I : integer;
@@ -987,12 +1032,18 @@ begin
     RenderData[i].ButtonType:=A.ButtonType;
     RenderData[i].ButtonURL:=A.ButtonURL;
     RenderData[i].ButtonURLTarget:=A.ButtonURLTarget;
-    RenderData[i].ExtraAttributes:=A.ExtraAttributes;
+    RenderData[i].ExtraAttributes:=A.ExtraAttributes+Format(' data-action-index="%d"',[I]);
     PrepareButtonRender(RenderData[I]);
+    Writeln('Attributes : ',I,': ',a.Name,' -> ',A.ExtraAttributes);
     if Assigned(aTableCol.OnButtonClick) then
       begin
       Result.events:=TJSObject.new;
-      Result.events['click '+RenderData[i].tagname+'["data-action-index"]']:=@DoClick;
+      Result.events['click [data-action-index]']:=@DoActionClick;
+      end;
+    if Assigned(A.OnClick) then
+      begin
+      Result.events:=TJSObject.new;
+      Result.events['click [data-action-index]']:=@DoActionClick;
       end;
     end;
   Result.Formatter := @renderCallBack;
@@ -1129,6 +1180,8 @@ begin
         MakeCheckBoxCol(aColumn, aCol);
       crmButton:
         MakeButtonCol(aColumn, aCol);
+      crmAction:
+        MakeActionCol(aColumn, aCol);
       crmCustom:
         MakeCustomFormatCol(aColumn, aCol);
       crmTransformedValue:
