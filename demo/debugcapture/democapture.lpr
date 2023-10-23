@@ -24,14 +24,13 @@ Var
   I : integer;
 
 begin
-  With TDebugCaptureClient.Create(Nil) do
-    try
-      BufferTimeout:=100;
-      HookConsole:=True;
-      For I:=1 to 100 do
-        Writeln('This is output line '+IntToStr(I))
-    finally
-      Free;
+  With TDebugCaptureClient.Instance do
+    begin
+    URL:='/debugcapture';
+    BufferTimeout:=100;
+    HookConsole:=True;
     end;
+  For I:=1 to 100 do
+    Writeln('This is output line '+IntToStr(I))
 end.
 
