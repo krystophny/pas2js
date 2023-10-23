@@ -24,6 +24,7 @@ uses
 
 Const
   DefaultURL = '/debugcapture';
+  DefaultBufferTime = 100;
 
 Type
 
@@ -31,8 +32,11 @@ Type
 
   TDebugCaptureClient = class(TComponent)
   private
+    class var _instance : TDebugCaptureClient;
+  private
     FBufferTimeout: Integer;
     FHookConsole: Boolean;
+    FHookExceptions: Boolean;
     FURL: String;
     FCurrent : String;
     FLines : TStringDynArray;
@@ -40,6 +44,7 @@ Type
     FTimeOutID : Integer;
     procedure SetBufferTimeout(AValue: Integer);
     procedure SetHookConsole(AValue: Boolean);
+    procedure SetHookExceptions(AValue: Boolean);
   Protected
     procedure PushLine(aLine: String); virtual;
     procedure DoPush; virtual;
@@ -51,21 +56,36 @@ Type
     Constructor CustomCreate(aOwner : TComponent; aURL : String; aBufferTimeOut : Integer); overload;
     Constructor CustomCreate(aURL : String; aBufferTimeOut : Integer); overload;
     Destructor Destroy; override;
+    class constructor Init;
+    Class property Instance : TDebugCaptureClient Read _Instance;
     Procedure Capture(const aLine : String; NewLine : Boolean = True); virtual;
     Procedure SetConsoleHook;
     Procedure ClearConsoleHook;
+    Procedure SetExceptionsHook;
+    Procedure ClearExceptionsHook;
     Procedure Flush;
   Published
     Property URL : String Read FURL Write FURL;
-    Property BufferTimeout : Integer Read FBufferTimeout Write SetBufferTimeout;
+    Property BufferTimeout : Integer Read FBufferTimeout Write SetBufferTimeout default DefaultBufferTime;
     Property HookConsole : Boolean Read FHookConsole Write SetHookConsole;
+    Property HookExceptions : Boolean Read FHookExceptions Write SetHookExceptions;
   end;
 
 implementation
 
 uses web, js;
 
+var
+  OldExceptionsHook : TShowExceptionHandler;
+  FExceptionCapture : TDebugCaptureClient;
 { TDebugCaptureClient }
+
+procedure DoExceptions(const Msg: String);
+begin
+  if Assigned(OldExceptionsHook) then
+    OldExceptionsHook(Msg);
+  FExceptionCapture.Capture('Exception: '+Msg,True);
+end;
 
 procedure TDebugCaptureClient.SetBufferTimeout(AValue: Integer);
 begin
@@ -82,6 +102,15 @@ begin
     ClearConsoleHook;
 end;
 
+procedure TDebugCaptureClient.SetHookExceptions(AValue: Boolean);
+begin
+  if FHookExceptions=AValue then Exit;
+  if aValue then
+    SetExceptionsHook
+  else
+    ClearExceptionsHook;
+end;
+
 procedure TDebugCaptureClient.DoConsoleWrite(S: JSValue; NewLine: Boolean);
 begin
   Capture(String(S),NewLine);
@@ -91,15 +120,13 @@ end;
 
 constructor TDebugCaptureClient.Create(aOwner: TComponent);
 begin
-  inherited Create(aOwner);
-  FURL:=DefaultURL;
-  FBufferTimeout:=0; // no buffer
+  CustomCreate(aOwner,DefaultURL,DefaultBufferTime);
 end;
 
 constructor TDebugCaptureClient.CustomCreate(aOwner: TComponent; aURL: String;
   aBufferTimeOut: Integer);
 begin
-  Create(aOwner);
+  inherited Create(aOwner);
   URL:=aURL;
   BufferTimeout:=aBufferTimeOut;
 end;
@@ -109,10 +136,18 @@ begin
   CustomCreate(Nil,aUrl,aBufferTimeout);
 end;
 
+class constructor TDebugCaptureClient.Init;
+begin
+  _Instance:=TDebugCaptureClient.Create(Nil);
+end;
+
+
 destructor TDebugCaptureClient.Destroy;
 begin
   if HookConsole then
     ClearConsoleHook;
+  if (FExceptionCapture=Self) then
+    ClearExceptionsHook;
   Flush;
   inherited Destroy;
 end;
@@ -165,12 +200,28 @@ end;
 procedure TDebugCaptureClient.SetConsoleHook;
 begin
   FOldCallBack:=SetWriteCallBack(@DoConsoleWrite);
+  FHookConsole:=True;
 end;
 
 procedure TDebugCaptureClient.ClearConsoleHook;
 begin
   SetWriteCallBack(FOldCallBack);
   FOldCallBack:=Nil;
+  FHookConsole:=False;
+end;
+
+procedure TDebugCaptureClient.SetExceptionsHook;
+begin
+  FExceptionCapture:=Self;
+  if OnShowException<>@DoExceptions then
+    OldExceptionsHook:=OnShowException;
+  OnShowException:=@DoExceptions;
+end;
+
+procedure TDebugCaptureClient.ClearExceptionsHook;
+begin
+  FExceptionCapture:=Nil;
+  OnShowException:=OldExceptionsHook;
 end;
 
 procedure TDebugCaptureClient.Flush;
