@@ -1,8 +1,30 @@
+{
+    This file is part of the Free Pascal run time library.
+    Copyright (c) 2019 by Michael Van Canneyt, member of the
+    Free Pascal development team
+
+    Data-Aware HTML actions (ActionLists).
+
+    See the file COPYING.FPC, included in this distribution,
+    for details about the copyright.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit Data.HTMLActions;
+{$ENDIF}
 
 interface
 
-uses sysutils, classes, web, Rtl.HTMLEventNames, Rtl.HTMLActions, db;
+uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.SysUtils, System.Classes, BrowserApi.Web, HTML.EventNames, HTML.Actions, Data.Db;
+{$ELSE}
+  sysutils, classes, web, Rtl.HTMLEventNames, Rtl.HTMLActions, db;
+{$ENDIF}
 
 Type
   TDBCustomHTMLElementAction = class;
@@ -202,7 +224,12 @@ Type
 
 Implementation
 
-uses strutils, rtl.HTMLUtils;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.StrUtils, HTML.Utils;
+{$ELSE}
+  strutils, rtl.HTMLUtils;
+{$ENDIF}
 
 { TButtonActionDataLink }
 

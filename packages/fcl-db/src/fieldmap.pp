@@ -1,9 +1,33 @@
+{
+    This file is part of the Free Pascal run time library.
+    Copyright (c) 2019 by Michael Van Canneyt, member of the
+    Free Pascal development team
+
+    Fieldmap class for direct field access.
+
+    See the file COPYING.FPC, included in this distribution,
+    for details about the copyright.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit fieldmap;
+{$ENDIF}
+
 {$mode objfpc}
 {$H+}
+
 interface
 
-uses SysUtils, db;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.SysUtils, Data.Db;
+{$ELSE}
+  SysUtils, db;
+{$ENDIF}
 
 { ---------------------------------------------------------------------
   TFieldMap

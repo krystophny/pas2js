@@ -13,14 +13,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit sqldbrestdataset;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, JSApi.JS, BrowserApi.Web, Data.Db, Data.JsonDataset, Data.Rest.Connection;
+{$ELSE}
   Classes, SysUtils, JS, web, db, JSONDataset, restconnection;
+{$ENDIF}
 
 Type
 
@@ -167,7 +173,12 @@ Type
 
 implementation
 
-uses Types, StrUtils, DateUtils;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Types, System.StrUtils, System.DateUtils;
+{$ELSE}
+  Types, StrUtils, DateUtils;
+{$ENDIF}
 
 Type
 
@@ -464,8 +475,8 @@ begin
     For I:=0 to Params.Count-1 do
       AddToResult(Params[I].AsQuery);
     Sort:='';
-    DFN:=StrUtils.SplitString(ServerSortDescFields,',');
-    For S in StrUtils.SplitString(ServerSortFields,',') do
+    DFN:=SplitString(ServerSortDescFields,',');
+    For S in SplitString(ServerSortFields,',') do
       begin
       FN:=Trim(S);
       if (FN<>'') then

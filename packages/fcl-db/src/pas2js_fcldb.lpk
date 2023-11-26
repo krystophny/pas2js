@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="4">
+  <Package Version="5">
     <Name Value="pas2js_fcldb"/>
     <Type Value="RunTimeOnly"/>
     <AutoUpdate Value="Manually"/>
@@ -17,7 +17,7 @@
       </Other>
       <SkipCompiler Value="True"/>
     </CompilerOptions>
-    <Files Count="5">
+    <Files Count="9">
       <Item1>
         <Filename Value="db.pas"/>
         <UnitName Value="DB"/>
@@ -38,7 +38,21 @@
         <Filename Value="extjsdataset.pas"/>
         <UnitName Value="ExtJSDataset"/>
       </Item5>
+      <Item6>
+        <Filename Value="data.htmlactions.pp"/>
+        <UnitName Value="data.htmlactions"/>
+      </Item6>
+      <Item7>
+        <Filename Value="fieldmap.pp"/>
+      </Item7>
+      <Item8>
+        <Filename Value="localjsondataset.pas"/>
+      </Item8>
+      <Item9>
+        <Filename Value="sqldbrestdataset.pp"/>
+      </Item9>
     </Files>
+    <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="1">
       <Item1>
         <PackageName Value="pas2js_rtl"/>

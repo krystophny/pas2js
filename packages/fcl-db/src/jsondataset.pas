@@ -13,14 +13,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-{$mode objfpc}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit JSONDataset;
+{$ENDIF}
+
+{$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Types, JSApi.JS, Data.DB, System.Classes, System.SysUtils, System.Typinfo, Fcl.Expressions;
+{$ELSE}
   Types, JS, DB, Classes, SysUtils, typinfo, fpexprpars;
+{$ENDIF}
 
 type
   TBaseJSONDataset = Class;
@@ -469,7 +475,12 @@ type
   
 implementation
 
-uses DateUtils;
+uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.DateUtils;
+{$ELSE}
+  DateUtils;
+{$ENDIF}
 
 Function atob (s : String) : string; external name 'atob';
 Function btoa (s : String) : string; external name 'btoa';

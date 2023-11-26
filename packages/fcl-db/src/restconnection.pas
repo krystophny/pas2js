@@ -13,15 +13,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit RestConnection;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, BrowserApi.Web, Data.Db;
+{$ELSE}
   Classes, SysUtils, Web, DB;
+{$ENDIF}
 
 Type
   
@@ -95,7 +100,12 @@ Type
 
 implementation
 
-uses js;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS;
+{$ELSE}
+  js;
+{$ENDIF}
 
 { TRESTUpdateRequest }
 

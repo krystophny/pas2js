@@ -13,14 +13,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit ExtJSDataset;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, Data.Db, JSApi.JS, Data.JsonDataset;
+{$ELSE}
   Classes, SysUtils, db, JS, jsondataset;
+{$ENDIF}
 
 type
   { TExtJSJSONDataSet }

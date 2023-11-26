@@ -13,14 +13,21 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit DB;
+{$ENDIF}
 
 {$mode objfpc}
 
 { $define dsdebug}
 interface
 
-uses Classes, SysUtils, JS, Types, DateUtils;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, JSApi.JS, System.Types, System.DateUtils;
+{$ELSE}
+  Classes, SysUtils, JS, Types, DateUtils;
+{$ENDIF}
 
 const
   dsMaxBufferCount = MAXINT div 8;
@@ -1791,7 +1798,12 @@ Function ExtractFieldName(Const Fields: String; var Pos: Integer): String;
 
 implementation
 
-uses DBConst,TypInfo;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  Data.Consts, System.TypInfo;
+{$ELSE}
+  DBConst,TypInfo;
+{$ENDIF}
 
 { ---------------------------------------------------------------------
     Auxiliary functions
@@ -5806,7 +5818,7 @@ end;
 function TField.GetIsNull: Boolean;
 
 begin
-  Result:=js.IsNull(GetData);
+  Result:={$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.IsNull(GetData);
 end;
 
 function TField.GetParentComponent: TComponent;
@@ -5911,7 +5923,7 @@ end;
 procedure TField.SetAsJSValue(const AValue: JSValue);
 
 begin
-  if js.IsNull(AValue) then
+  if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.IsNull(AValue) then
     Clear
   else
     try
@@ -6960,7 +6972,7 @@ end;
 
 function TDateTimeField.ConvertToDateTime(aValue: JSValue; aRaiseError: Boolean): TDateTime;
 begin
-  if JS.isNull(aValue) then
+  if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.isNull(aValue) then
     Result:=0
   else if Assigned(Dataset) then
     Result:=Dataset.ConvertToDateTime(Self,aValue,aRaiseError)
@@ -8937,7 +8949,7 @@ end;
 
 Function TParam.GetIsNull: Boolean;
 begin
-  Result:= JS.IsNull(FValue);
+  Result:= {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.IsNull(FValue);
 end;
 
 Function TParam.IsEqual(AValue: TParam): Boolean;
@@ -9022,7 +9034,7 @@ Procedure TParam.SetAsJSValue(const AValue: JSValue);
 
 begin
   FValue:=AValue;
-  FBound:=not JS.IsNull(AValue);
+  FBound:=not {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.IsNull(AValue);
   if FBound then
     case GetValueType(aValue) of
       jvtBoolean : FDataType:=ftBoolean;
@@ -9142,7 +9154,7 @@ begin
       FDataType := ftString
     else
       FDataType := Field.DataType;
-    if JS.IsNull(AValue) then
+    if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.IsNull(AValue) then
       Clear
     else
       Value:=AValue;
