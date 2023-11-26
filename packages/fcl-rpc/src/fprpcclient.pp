@@ -1,4 +1,20 @@
+{
+    This file is part of the Pas2JS run time library.
+    Copyright (c) 2023 by Michael Van Canneyt
+    
+    JSON-RPC Client 
+
+    See the file COPYING.FPC, included in this distribution,
+    for details about the copyright.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit fprpcclient;
+{$ENDIF}
 
 {$mode ObjFPC}
 {$modeswitch advancedrecords}
@@ -6,7 +22,11 @@ unit fprpcclient;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, JSApi.JS;
+{$ELSE}
   Classes, SysUtils, JS;
+{$ENDIF}
 
 Const
   DefaultJSONRPCversion = '2.0';
@@ -228,7 +248,12 @@ Type
 
 implementation
 
-uses web;
+uses
+{$IFDEF FPC_DOTTEDUNITS}
+  BrowserApi.Web;
+{$ELSE}
+  web;
+{$ENDIF}
 
 { TRPCCustomService }
 
