@@ -14,14 +14,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit CustApp;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.Classes, System.SysUtils, System.Types, JSApi.JS;
+{$ELSE}
   Classes, SysUtils, Types, JS;
+{$ENDIF}
 
 Const
   SErrInvalidOption: String = 'Invalid option at position %s: "%s"';
@@ -234,7 +240,7 @@ begin
       end
       else begin
         ExceptObject:=nil;
-        ExceptObjectJS := JS.JSExceptValue;
+        ExceptObjectJS := {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.JSExceptValue;
         HandleException(Self);
       end;
     end;

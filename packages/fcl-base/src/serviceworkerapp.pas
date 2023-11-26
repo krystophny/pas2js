@@ -1,15 +1,38 @@
 {
+    This file is part of the Free Pascal run time library.
+    Copyright (c) 2003 by the Free Pascal development team
+
+    Service Worker Application class.
+
+    Port to pas2js by Mattias Gaertner mattias@freepascal.org
+
+    See the file COPYING.FPC, included in this distribution,
+    for details about the copyright.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ **********************************************************************}
+
+{
   A service worker functions like a proxy server, allowing to modify requests
   and responses, and replace them with items from its own cache, and more.
 }
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit ServiceWorkerApp;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.Classes, System.SysUtils, System.Types, JSApi.JS, BrowserApi.WebOrWorker, BrowserApi.Worker, Fcl.CustApp;
+{$ELSE}
   Classes, SysUtils, Types, JS, weborworker, webworker, CustApp;
+{$ENDIF}
 
 type
 
@@ -151,10 +174,10 @@ begin
     // when even the fallback response is not available,
     // there is nothing we can do, but we must always
     // return a Response object
-    Result:=TJSResponse.new('Network error happened', js.new([
+    Result:=TJSResponse.new('Network error happened', {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.new([
       'status', 408,
       'headers',
-        js.new(['Content-Type', 'text/plain' ])
+        {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.new(['Content-Type', 'text/plain' ])
       ]) );
   end;
 end;

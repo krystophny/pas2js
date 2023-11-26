@@ -12,15 +12,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit debugcapture;
+{$ENDIF}
 
 {$mode ObjFPC}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.Types, System.Classes, System.SysUtils;
+{$ELSE}
   Types, Classes, SysUtils;
+{$ENDIF}
 
 Const
   DefaultURL = '/debugcapture';

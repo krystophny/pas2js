@@ -13,14 +13,21 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
+unit fpexprpars;
+{$ENDIF}
+
 {$mode objfpc}
 {$h+}
-unit fpexprpars;
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.Classes, System.SysUtils, System.Contnrs;
+{$ELSE}
   Classes, SysUtils, contnrs;
+{$ENDIF}
 
 Type
   // tokens
@@ -801,7 +808,12 @@ function ArgToFloat(Arg: TFPExpressionResult): TExprFloat;
 
 implementation
 
-uses typinfo;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Typinfo;
+{$ELSE}
+  typinfo;
+{$ENDIF}
 
 { TFPExpressionParser }
 

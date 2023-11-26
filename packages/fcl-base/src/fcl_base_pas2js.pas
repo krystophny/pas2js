@@ -8,7 +8,7 @@ unit fcl_base_pas2js;
 interface
 
 uses
-  CustApp, NodeJSApp, browserapp;
+  CustApp, NodeJSApp, BrowserApp, fpexprpars, ServiceWorkerApp;
 
 implementation
 

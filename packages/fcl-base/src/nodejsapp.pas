@@ -14,14 +14,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit NodeJSApp;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFNDEF FPC_DOTTEDUNITS} 
+  NodeApi.JS, System.Classes, System.SysUtils, System.Types, JSApi.JS, Fcl.CustApp;
+{$ELSE}
   NodeJS, Classes, SysUtils, Types, JS, CustApp;
+{$ENDIF}
 
 type
   

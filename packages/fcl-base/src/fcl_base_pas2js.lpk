@@ -24,7 +24,14 @@
       <Other>
         <CustomOptions Value="-Jc"/>
         <CompilerPath Value="$(pas2js)"/>
+        <ExecuteBefore>
+          <Command Value="$MakeExe(IDE,pas2js) -O- -Jc -vbq fcl_base_pas2js.pas"/>
+          <Parsers Count="1">
+            <Item1 Value="Pas2JS"/>
+          </Parsers>
+        </ExecuteBefore>
       </Other>
+      <SkipCompiler Value="True"/>
     </CompilerOptions>
     <Description Value="Free Pascal Component Library - Base
 Port to pas2js."/>
@@ -33,15 +40,15 @@ Port to pas2js."/>
     <Files Count="5">
       <Item1>
         <Filename Value="custapp.pas"/>
-        <UnitName Value="custapp"/>
+        <UnitName Value="CustApp"/>
       </Item1>
       <Item2>
         <Filename Value="nodejsapp.pas"/>
-        <UnitName Value="nodejsapp"/>
+        <UnitName Value="NodeJSApp"/>
       </Item2>
       <Item3>
         <Filename Value="browserapp.pas"/>
-        <UnitName Value="browserapp"/>
+        <UnitName Value="BrowserApp"/>
       </Item3>
       <Item4>
         <Filename Value="fpexprpars.pas"/>

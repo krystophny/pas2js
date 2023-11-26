@@ -1,11 +1,33 @@
+{
+    This file is part of the Free Pascal run time library.
+    Copyright (c) 2003 by the Free Pascal development team
+
+    Pascal code generator class.
+
+    Port to pas2js by Mattias Gaertner mattias@freepascal.org
+
+    See the file COPYING.FPC, included in this distribution,
+    for details about the copyright.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit BrowserApp;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.Classes, System.SysUtils, System.Types, JSApi.JS, BrowserApi.Web, Fcl.CustApp;
+{$ELSE}
   Classes, SysUtils, Types, JS, web, CustApp;
+{$ENDIF}
 
 type
   TServiceWorkerRegisteredEvent = reference to procedure(Registration: TJSServiceWorkerRegistration);
