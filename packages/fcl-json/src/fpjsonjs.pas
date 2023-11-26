@@ -12,14 +12,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit fpjsonjs;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.Types, FpJson.Data;
+{$ELSE}
   Classes, Types, fpjson;
+{$ENDIF}
 
 Function JSValueToJSONData(aValue : JSValue) : TJSONData;
 Procedure HookGetJSONCallBack;
@@ -27,7 +33,12 @@ Procedure UnHookGetJSONCallBack;
 
 implementation
 
-Uses JS;
+Uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS;
+{$ELSE}
+  JS;
+{$ENDIF}
 
 function JSValueToJSONData(aValue: JSValue): TJSONData;
 

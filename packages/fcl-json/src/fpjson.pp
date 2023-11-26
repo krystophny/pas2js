@@ -12,22 +12,21 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
+unit fpjson;
+{$ENDIF}
+
 {$mode objfpc}
 {$h+}
-unit fpjson;
 
 interface
 
 uses
-  {$IFNDEF PAS2JS}
-  variants,
-  {$ENDIF}
-  {$IFDEF PAS2JS}
-  JS, RTLConsts, Types,
-  {$ENDIF}
-  SysUtils,
-  classes,
-  contnrs;
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS, System.RTLConsts, System.Types, System.SysUtils, System.Classes, System.Contnrs;
+{$ELSE}
+  JS, RTLConsts, Types, SysUtils, classes, contnrs;
+{$EnDIF}
 
 type
   TJSONtype = (jtUnknown, jtNumber, jtString, jtBoolean, jtNull, jtArray, jtObject);
@@ -798,7 +797,12 @@ Function GetJSONStringParserHandler: TJSONStringParserHandler;
 
 implementation
 
-Uses typinfo;
+Uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Typinfo;
+{$ELSE}
+  typinfo;
+{$ENDIF}
 
 Resourcestring
   SErrCannotConvertFromNull = 'Cannot convert data from Null value';
@@ -1906,7 +1910,7 @@ end;
 
 function TJSONNull.GetValue: TJSONVariant;
 begin
-  Result:={$IFDEF PAS2JS}js.Null{$else}variants.Null{$ENDIF};
+  Result:={$IFDEF PAS2JS}{$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.Null{$else}variants.Null{$ENDIF};
 end;
 
 procedure TJSONNull.SetValue(const AValue: TJSONVariant);
