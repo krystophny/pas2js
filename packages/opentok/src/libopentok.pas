@@ -14,8 +14,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit libopentok;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -23,7 +24,11 @@ unit libopentok;
 interface
 
 uses
+{$IFNDEF FPC_DOTTEDUNITS}
+  JSApi.JS, BrowserApi.Web, System.Types;
+{$ELSE}
   JS, web, types;
+{$ENDIF}
 
 Type
   TJSMediaStreamTrack = class external name 'MediaStreamTrack' (TJSObject);
