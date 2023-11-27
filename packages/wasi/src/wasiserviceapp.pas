@@ -1,11 +1,17 @@
+{$IFNDEF FPC_DOTTEDUNITS}
 unit wasiserviceapp;
+{$ENDIF}
 
 {$mode ObjFPC}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, Fcl.App.ServiceWorker, BrowserApi.WebAssembly, Wasi.Env;
+{$ELSE} 
   Classes, SysUtils, serviceworkerapp,  webassembly, wasienv;
+{$ENDIF}
 
 Type
   { TWASIServiceApplication }

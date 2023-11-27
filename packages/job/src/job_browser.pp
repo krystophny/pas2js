@@ -3,13 +3,20 @@
 
   Browser side.
 }
+{$IFNDEF FPC_DOTTEDUNITS}
 unit JOB_Browser;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
-uses sysutils, types, js, web, wasienv, JOB_Shared;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.SysUtils, System.Types, JSApi.JS, BrowserApi.Web, Wasi.Env, JOB.Shared;
+{$ELSE}
+  sysutils, types, js, web, wasienv, JOB_Shared;
+{$ENDIF}
 
 Type
   EJOBBridge = class(Exception);

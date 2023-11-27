@@ -1,4 +1,6 @@
+{$IFNDEF FPC_DOTTEDUNITS}
 unit wasithreadedapp;
+{$ENDIF}
 
 {$mode ObjFPC}
 {$modeswitch externalclass}
@@ -7,7 +9,12 @@ unit wasithreadedapp;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS, System.Classes, System.SysUtils, System.WebThreads, Wasi.Env, Fcl.App.Wasi.Host, 
+  BrowserApi.WebOrWorker;
+{$ELSE} 
   JS, Classes, SysUtils, Rtl.WebThreads, wasienv, wasihostapp, weborworker;
+{$ENDIF}
 
 Type
   { TWasmThread }

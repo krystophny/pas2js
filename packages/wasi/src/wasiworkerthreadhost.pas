@@ -1,4 +1,6 @@
+{$IFNDEF FPC_DOTTEDUNITS}
 unit wasiworkerthreadhost;
+{$ENDIF}
 
 {$mode ObjFPC}
 {$modeswitch externalclass}
@@ -6,7 +8,12 @@ unit wasiworkerthreadhost;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, JSApi.JS, Fcl.CustApp, BrowserApi.WebOrWorker, 
+  BrowserApi.Worker, BrowserApi.WebAssembly, Wasi.Env, System.WebThreads;
+{$ELSE} 
   Classes, SysUtils, JS, custapp, weborworker, webworker, webassembly, wasienv, Rtl.WebThreads;
+{$ENDIF}
 
 Type
   TWorkerThreadSupport = Class;
@@ -144,7 +151,12 @@ Type
 
 implementation
 
-uses Types;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Types;
+{$ELSE} 
+  Types;
+{$ENDIF}
 
 var
   Self_ : TJSDedicatedWorkerGlobalScope; external name 'self';
@@ -610,7 +622,7 @@ end;
 
 function TWorkerWASIHostApplication.GetLocation: String;
 begin
-  Result:=webworker.Location.pathname;
+  Result:={$IFDEF FPC_DOTTEDUNITS}BrowserApi.Worker.{$ELSE}}WebWorker.{$ENDIF}Location.pathname;
 end;
 
 constructor TWorkerWASIHostApplication.Create(aOwner: TComponent);

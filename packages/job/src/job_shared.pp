@@ -3,7 +3,9 @@
 
   These types and constants are shared between pas2js and webassembly.
 }
+{$IFNDEF FPC_DOTTEDUNITS}
 unit JOB_Shared;
+{$ENDIF}
 
 interface
 

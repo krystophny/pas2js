@@ -1,5 +1,6 @@
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit wasienv;
+{$ENDIF}
 
 {$mode ObjFPC}
 {$modeswitch externalclass}
@@ -11,7 +12,11 @@ unit wasienv;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.SysUtils, System.Classes, JSApi.JS, BrowserApi.WebAssembly, System.Types;
+{$ELSE} 
   SysUtils, Classes, JS, WebAssembly, types;
+{$ENDIF}
 
 
 Const
@@ -588,7 +593,12 @@ type
 
 implementation
 
-uses weborworker;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  BrowserApi.WebOrWorker;
+{$ELSE} 
+  WebOrWorker;
+{$ENDIF}
 
 { TWASIHost }
 

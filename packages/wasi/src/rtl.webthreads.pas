@@ -24,7 +24,7 @@ interface
 
 uses
 {$IFDEF FPC_DOTTEDUNITS}
-  JSApi.JS, System.SysUtils, System.WasiEnv, BrowserApi.WebAssembly;
+  JSApi.JS, System.SysUtils, Wasi.Env, BrowserApi.WebAssembly;
 {$ELSE}
   JS, SysUtils, wasienv, webassembly;
 {$ENDIF}  

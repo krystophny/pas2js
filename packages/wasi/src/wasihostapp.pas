@@ -1,11 +1,17 @@
+{$IFNDEF FPC_DOTTEDUNITS}
 unit wasihostapp;
+{$ENDIF}
 
 {$mode ObjFPC}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, Fcl.App.Browser, JSApi.JS, BrowserApi.WebAssembly, Wasi.Env;
+{$ELSE} 
   Classes, SysUtils, browserapp, js, webassembly, wasienv;
+{$ENDIF}
 
 Type
 
