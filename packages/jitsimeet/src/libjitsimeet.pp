@@ -13,16 +13,22 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
+unit libjitsimeet;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
 
-unit libjitsimeet;
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS, BrowserApi.Web, System.Types;
+{$ELSE}
   JS, web, types;
+{$ENDIF}  
 
 Const
   // Event names
