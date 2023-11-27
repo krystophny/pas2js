@@ -14,14 +14,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit PlainTestReport;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.Classes, System.Math, System.SysUtils, FpcUnit.Test, FpcUnit.Report;
+{$ELSE}
   Classes, Math, SysUtils, FPCUnit, FPCUnitReport;
+{$ENDIF}
 
 type
   TTestResultOption = (ttoSkipAddress,ttoSkipExceptionMessage,ttoErrorsOnly);

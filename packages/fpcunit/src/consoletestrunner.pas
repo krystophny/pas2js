@@ -21,13 +21,31 @@
     Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit ConsoleTestRunner;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  {$IFDEF NODEJS}
+  Fcl.App.NodeJS,
+  {$else}
+  Fcl.App.Browser,
+  {$endif}
+  System.Classes, System.SysUtils,
+  FpcUnit.Test, FpcUnit.Registry, FpcUnit.Decorator,
+  //testutils,
+  FpcUnit.Report,
+  //latextestreport,
+  //xmltestreport,
+  FpcUnit.Reports.Plain
+  //dom
+  ;
+{$ELSE}
   {$IFDEF NODEJS}
   NodeJSApp,
   {$else}
@@ -42,6 +60,7 @@ uses
   PlainTestReport
   //dom
   ;
+{$ENDIF}
 
 const
   Version = '0.3';

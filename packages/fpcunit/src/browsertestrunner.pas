@@ -19,14 +19,20 @@
     Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit BrowserTestRunner;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  Fcl.CustApp, Fcl.App.Browser, System.Classes, System.SysUtils, FpcUnit.Test, FpcUnit.Registry, FpcUnit.Report, FpcUnit.Reports.HTML;
+{$ELSE}
   CustApp, browserapp, Classes, SysUtils,  FPCUnit, TestRegistry,  FPCUnitReport, htmlTestReport;
+{$ENDIF}
 
 const
   Version = '0.9';

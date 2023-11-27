@@ -13,14 +13,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit TestRegistry;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  FpcUnit.Test, FpcUnit.Decorator;
+{$ELSE}
   FPCUnit, TestDecorator;
+{$ENDIF}
 
 type
   TTestDecoratorClass = class of TTestDecorator;

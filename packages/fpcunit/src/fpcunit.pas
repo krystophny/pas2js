@@ -13,14 +13,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit FPCUnit;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.Classes, System.SysUtils, JSApi.JS, System.TypInfo;
+{$ELSE}
   Classes, SysUtils, JS, TypInfo;
+{$ENDIF}
 
 type
   EAssertionFailedError = class(Exception);

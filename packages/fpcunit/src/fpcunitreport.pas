@@ -14,14 +14,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit FPCUnitReport;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.Classes, System.SysUtils, FpcUnit.Test;
+{$ELSE}
   Classes, SysUtils, FPCUnit;
+{$ENDIF}
 
 type
   TWriteTestHeaderEvent = procedure(Sender: TObject; ATest: TTest;
