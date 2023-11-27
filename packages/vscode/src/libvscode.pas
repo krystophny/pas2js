@@ -1,4 +1,18 @@
+{
+    This file is part of the Pas2JS run time library.
+    Copyright (c) 2017-2020 by the Pas2JS development team.
+
+    See the file COPYING.FPC, included in this distribution,
+    for details about the copyright.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit libvscode;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -6,7 +20,12 @@ unit libvscode;
 
 interface
 
-uses Types, JS, Web;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Types, JSApi.JS, BrowserApi.Web;
+{$ELSE}
+  Types, JS, Web;
+{$ENDIF}
 
 Type
   TUint32DynArray = array of Cardinal;

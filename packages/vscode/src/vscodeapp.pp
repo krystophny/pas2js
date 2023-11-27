@@ -10,15 +10,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit vscodeapp;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, JSApi.JS, Api.VSCode, Fcl.CustApp;
+{$ELSE}
   Classes, SysUtils, JS, libvscode, custapp;
+{$ENDIF}
 
 Type
   TVSCodeEnvironment = class (TJSObject)
