@@ -12,8 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit jsPDF;
+{$ENDIF}
 
 {$MODE OBJFPC}
 {$MODESWITCH EXTERNALCLASS}
@@ -21,9 +22,11 @@ unit jsPDF;
 interface
 
 uses
-  Types,
-  JS,
-  SysUtils;
+{$IFNDEF FPC_DOTTEDUNITS}
+  System.Types, JSApi.JS, System.SysUtils;
+{$ELSE}
+  Types, JS, SysUtils;
+{$ENDIF}
 
 type
   TjsPDF = class external name 'jsPDF'
