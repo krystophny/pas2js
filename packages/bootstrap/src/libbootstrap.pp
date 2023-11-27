@@ -12,9 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit libbootstrap;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -22,7 +22,11 @@ unit libbootstrap;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS, BrowserApi.Web, Api.JQuery;
+{$ELSE}
   JS, web, libjquery;
+{$ENDIF}
 
 Type
   TBootstrapVersion = (bv4,bv5);

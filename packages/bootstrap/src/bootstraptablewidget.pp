@@ -1,9 +1,30 @@
+{
+    This file is part of the Pas2JS run time library.
+    Copyright (C) 2019 Michael Van Canneyt
+
+    BootstrapTable widget
+
+    See the file COPYING.FPC, included in this distribution,
+    for details about the copyright.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit bootstraptablewidget;
+{$ENDIF}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  Api.JQuery, Api.BootstrapTable, Widget.Web, System.SysUtils, System.Classes, Data.DB, 
+  JSApi.JS, BrowserApi.Web, System.StrUtils;
+{$ELSE}
   libjquery, libbootstraptable, WebWidget, SysUtils, Classes, DB, JS, Web, strutils;
+{$ENDIF}
 
 type
   EBootstrapTable = class(EWidgets);
@@ -419,7 +440,12 @@ Const
 
 implementation
 
-uses jsondataset, dateutils;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  Data.JsonDataset, System.DateUtils;
+{$ELSE}
+  jsondataset, dateutils;
+{$ENDIF}
 
 { TTableDataLink }
 

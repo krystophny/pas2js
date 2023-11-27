@@ -12,15 +12,22 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit bootstrapwidgets;
+{$ENDIF}
 
 {$mode objfpc}
 {$WARN 4501 off : }
+
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, JSApi.JS, Api.JQuery, Api.Bootstrap, BrowserApi.Web, 
+  Widget.Web, Widget.HTML, Browser.TemplateLoader;
+{$ELSE}
   Classes, SysUtils, js, libjquery, libbootstrap, web, webwidget, htmlwidgets, rtl.TemplateLoader;
+{$ENDIF}
 
 Type
 

@@ -12,8 +12,10 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit libbootstraptable;
+{$ENDIF}
+
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -21,7 +23,11 @@ unit libbootstraptable;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Types, BrowserApi.Web, Api.JQuery, JSApi.JS, Api.Bootstrap;
+{$ELSE}
   types, web, libjquery, js, libbootstrap;
+{$ENDIF}
 
 Type
   TTableStyle = Class external name 'Object' (TJSObject)
@@ -277,6 +283,14 @@ Type
 
 implementation
 
+
+
+function JSNew (args : TJSValueDynArray) : TJSObject;
+
+begin
+  Result:={$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.New(Args);
+end;
+
 { TJSBootstrapTable }
 
 function TJSBootstrapTable.getOptionsUnTyped: TJSObject;
@@ -296,7 +310,7 @@ end;
 
 function TJSBootstrapTable.getData(useCurrentPage: Boolean; includeHiddenRows: Boolean): JSValue;
 begin
-  Result:=BootstrapTable('getdata',JS.New([
+  Result:=BootstrapTable('getdata',JSNew([
      'useCurrentPage',useCurrentPage,
      'includeHiddenRows',includeHiddenRows
   ]));
@@ -335,7 +349,7 @@ end;
 
 procedure TJSBootstrapTable.insertRow(Index: Integer; RowData: JSValue);
 begin
-  BootstrapTable('insertRow',JS.new([
+  BootstrapTable('insertRow',JSNew([
     'index',index,
     'row', RowData
   ]));
@@ -344,7 +358,7 @@ end;
 procedure TJSBootstrapTable.updateRow(Index: Integer; RowData: JSValue; Replace : Boolean = False);
 
 begin
-  BootstrapTable('updateRow',JS.new([
+  BootstrapTable('updateRow',JSNew([
     'index',index,
     'row', rowData,
     'replace', replace
@@ -358,7 +372,7 @@ end;
 
 procedure TJSBootstrapTable.UpdateByUniqueID(aID: NativeInt; RowData: JSValue; Replace: Boolean);
 begin
-  BootstrapTable('updateByUniqueId',JS.new([
+  BootstrapTable('updateByUniqueId',JSNew([
     'id',aId,
     'row', rowData,
     'replace', replace
@@ -372,7 +386,7 @@ end;
 
 procedure TJSBootstrapTable.UpdateCell(aIndex: NativeInt; aField, aValue: string; ReInit : Boolean = true);
 begin
-  BootstrapTable('updateCell',JS.new([
+  BootstrapTable('updateCell',JSNew([
     'index',aIndex,
     'field', aField,
     'value', aValue,
@@ -382,7 +396,7 @@ end;
 
 procedure TJSBootstrapTable.UpdateCellByUniqueID(aId: NativeInt; aField, aValue: string; ReInit: Boolean);
 begin
-  BootstrapTable('updateCellByUniqueID',JS.new([
+  BootstrapTable('updateCellByUniqueID',JSNew([
     'id',aId,
     'field', aField,
     'value', aValue,
@@ -392,12 +406,12 @@ end;
 
 procedure TJSBootstrapTable.ShowRow(aIndex: NativeInt);
 begin
-  BootstrapTable('showRow',JS.new(['id',aIndex]));
+  BootstrapTable('showRow',JSNew(['id',aIndex]));
 end;
 
 procedure TJSBootstrapTable.ShowRowByUniqueID(aId: NativeInt);
 begin
-  BootstrapTable('showRow',JS.new(['uniqueId',aId]));
+  BootstrapTable('showRow',JSNew(['uniqueId',aId]));
 end;
 
 function TJSBootstrapTable.GetHiddenRows(doShow: Boolean): TJSArray;
@@ -448,7 +462,7 @@ end;
 procedure TJSBootstrapTable.mergeCells(aIndex: integer; aField: String; RowSpan: Integer; ColSpan: Integer);
 
 begin
-  BootstrapTable('mergeCells',JS.New([
+  BootstrapTable('mergeCells',JSNew([
     'index',aIndex,
     'field',aField,
     'rowspan',rowspan,
@@ -483,12 +497,12 @@ end;
 
 procedure TJSBootstrapTable.CheckBy(Field: String; Values: TStringDynArray);
 begin
-  BootStrapTable('checkBy',JS.New(['field',Field,'values',Values]));
+  BootStrapTable('checkBy',JSNew(['field',Field,'values',Values]));
 end;
 
 procedure TJSBootstrapTable.UnCheckBy(Field: String; Values: TStringDynArray);
 begin
-  BootStrapTable('uncheckBy',JS.New(['field',Field,'values',Values]));
+  BootStrapTable('uncheckBy',JSNew(['field',Field,'values',Values]));
 end;
 
 procedure TJSBootstrapTable.RefreshTable(options: TRefreshOptions);
@@ -543,17 +557,17 @@ end;
 
 procedure TJSBootstrapTable.FilterBy(aFilter: TJSObject; aOptions: TJSObject);
 begin
-  BootStrapTable('filterBy',JS.New(['filter',aFilter,'options',aOptions]));
+  BootStrapTable('filterBy',JSNew(['filter',aFilter,'options',aOptions]));
 end;
 
 procedure TJSBootstrapTable.scrollToRow(aValue: Integer);
 begin
-  BootStrapTable('scrollTo',JS.New(['unit','rows','value',aValue]));
+  BootStrapTable('scrollTo',JSNew(['unit','rows','value',aValue]));
 end;
 
 procedure TJSBootstrapTable.scrollToPixel(aValue: Integer);
 begin
-  BootStrapTable('scrollTo',JS.New(['unit','px','value',aValue]));
+  BootStrapTable('scrollTo',JSNew(['unit','px','value',aValue]));
 end;
 
 procedure TJSBootstrapTable.scrollToBottom;
@@ -607,7 +621,7 @@ end;
 
 procedure TJSBootstrapTable.UpdateColumnTitle(const aField, aTitle: String);
 begin
-  BootStrapTable('updateColumnTitle',JS.New(['field',aField,'title',aTitle]));
+  BootStrapTable('updateColumnTitle',JSNew(['field',aField,'title',aTitle]));
 end;
 
 procedure TJSBootstrapTable.UpdateFormatText(const aFormat, aValue: String);
