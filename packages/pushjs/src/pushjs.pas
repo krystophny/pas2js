@@ -16,7 +16,9 @@
 
 { Compact and cross-browser solution for Notifications API. }
 
+{$IFNDEF FPC_DOTTEDUNITS}
 unit PushJS;
+{$ENDIF}
 
 {$MODE OBJFPC}
 {$MODESWITCH EXTERNALCLASS}
@@ -24,7 +26,11 @@ unit PushJS;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS;
+{$ELSE}
   JS;
+{$ENDIF}
 
 { TODO:
    - Plugins: https://pushjs.org/docs/plugins }
