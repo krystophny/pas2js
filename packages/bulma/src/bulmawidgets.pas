@@ -1,4 +1,20 @@
+{
+    This file is part of the Pas2JS run time library.
+    Copyright (C) 2019 Michael Van Canneyt
+
+    Bulma widgets
+
+    See the file COPYING.FPC, included in this distribution,
+    for details about the copyright.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit bulmawidgets;
+{$ENDIF}
 
 {$mode objfpc}
 {$h+}
@@ -7,12 +23,11 @@ unit bulmawidgets;
 Interface
 
 uses
-  Js,
-  web,
-  SysUtils,
-  Classes,
-  webwidget,
-  rtl.TemplateLoader;
+{$IFDEF FPC_DOTTEDUNITS}
+  System.SysUtils, System.Classes, JSApi.JS, BrowserApi.Web, Widget.Web, Browser.TemplateLoader;
+{$ELSE}
+  Js, web, SysUtils, Classes, webwidget, rtl.TemplateLoader;
+{$ENDIF}
 
 Const
   DefaultClose = 'DefaultCloseClicks';
