@@ -12,17 +12,21 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit libdatatables;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
 
 interface
 
-uses types, js, web, libjquery;
-
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Types, JSApi.JS, BrowserApi.Web, Api.JQuery;
+{$ELSE}
+  types, js, web, libjquery;
+{$ENDIF}
 
 Const
   OrderAsc = 'asc';
