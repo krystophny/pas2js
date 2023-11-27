@@ -13,14 +13,21 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit DA;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
 
 interface
 
-uses Sysutils, Types, JS, DASDK;
+uses 
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.SysUtils, System.Types, JSApi.JS, Api.DA.Server;
+{$ELSE}
+  Sysutils, Types, JS, DASDK;
+{$ENDIF}
 
 Type
   TDADataType = ( datUnknown, datString, datDateTime, datFloat, datCurrency,

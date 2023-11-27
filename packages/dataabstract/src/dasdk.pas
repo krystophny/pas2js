@@ -13,14 +13,21 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit dasdk;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
 
 interface
 
-uses JS, ROSDK;
+uses 
+{$IFDEF FPC_DOTTEDUNITS} 
+  JSApi.JS, Api.RO.Server;
+{$ELSE}
+  JS, ROSDK;
+{$ENDIF}
 
 Type
   TDAUserInfo = Class;

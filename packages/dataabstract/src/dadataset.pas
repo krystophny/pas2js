@@ -13,7 +13,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit dadataset;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -21,7 +23,13 @@ unit dadataset;
 
 interface
 
-uses Types, Classes, DB, jsonDataset, JS, rosdk, da, dasdk;
+uses 
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.Types, System.Classes, Data.DB, Data.JsonDataset, JSApi.JS, 
+  Api.RO.Server, Api.DA, Api.DA.Server;
+{$ELSE}
+  Types, Classes, DB, jsonDataset, JS, rosdk, da, dasdk;
+{$ENDIF}
 
 Type
   // Server sends data as a regular string.
@@ -277,7 +285,12 @@ Type
 
 implementation
 
-uses strutils, sysutils;
+uses 
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.StrUtils, System.SysUtils;
+{$ELSE}
+  strutils, sysutils;
+{$ENDIF}
 
 resourcestring
   SErrInvalidDate = '%s is not a valid date value for %s';

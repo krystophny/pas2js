@@ -13,7 +13,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS} 
 unit ROSDK;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -21,7 +23,11 @@ unit ROSDK;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.Types, JSApi.JS;
+{$ELSE}
   Types, JS;
+{$ENDIF}
 
 Type
   TROValue = record
@@ -220,7 +226,12 @@ Var
 
 implementation
 
-uses Sysutils;
+uses 
+{$IFDEF FPC_DOTTEDUNITS} 
+  System.SysUtils;
+{$ELSE}
+  Sysutils;
+{$ENDIF}
 
 Resourcestring
   SDefaultUnexpectedErrorMsg = 'An unexpected error occurred';
