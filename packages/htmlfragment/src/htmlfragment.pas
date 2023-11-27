@@ -1,4 +1,6 @@
+{$IFNDEF FPC_DOTTEDUNITS}
 unit htmlfragment;
+{$ENDIF}
 
 {$mode ObjFPC}
 {$INTERFACES CORBA}
@@ -6,14 +8,21 @@ unit htmlfragment;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  {$ifdef pas2js} BrowserApi.Web,{$endif} System.Classes, System.SysUtils, HTML.Utils;
+{$ELSE}
   {$ifdef pas2js} web,{$endif} Classes, SysUtils, Rtl.HTMLUtils;
+{$ENDIF}
 
 Type
   TCustomHTMLFragment = class;
 
   { TFragmentHandler }
+{$IFDEF FPC_DOTTEDUNITS}
+  IFragmentClient = HTML.Utils.IHTMLClient;
+{$ELSE FPC_DOTTEDUNITS}
   IFragmentClient = Rtl.HTMLUtils.IHTMLClient;
-
+{$ENDIF FPC_DOTTEDUNITS}
 
   TFragmentHandler = Class(TObject)
   Private
@@ -112,7 +121,12 @@ Type
 
 implementation
 
-uses rtl.TemplateLoader;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  Browser.TemplateLoader;
+{$ELSE}  
+  rtl.TemplateLoader;
+{$ENDIF}
 
 Resourcestring
   SErrCannotPerformOperation = 'Cannot perform operation "%s" when HTML is rendered';
