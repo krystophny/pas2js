@@ -13,14 +13,21 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit webwidget;
+{$ENDIF}
 
 {$mode objfpc}{$H+}
 {$WARN 4501 off : }
+
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Types, System.Classes, System.SysUtils, JSApi.JS, BrowserApi.Web, BrowserApi.WebOrWorker;
+{$ELSE}
   Types, Classes, SysUtils, JS, Web, weborworker;
+{$ENDIF}
 
 Const
 
@@ -988,7 +995,12 @@ Type
 
 implementation
 
-uses Strutils, TypInfo;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Strutils, System.TypInfo;
+{$ELSE}
+  Strutils, TypInfo;
+{$ENDIF}
 
 ResourceString
    SErrCannotSetParentAndElementID = 'ElementID and ParentID cannot be set at the same time.';

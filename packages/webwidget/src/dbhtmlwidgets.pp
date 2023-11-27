@@ -13,7 +13,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit dbhtmlwidgets;
+{$ENDIF}
 
 {$mode objfpc}
 {$h+}
@@ -21,7 +23,11 @@ unit dbhtmlwidgets;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS, System.Classes, System.SysUtils, Data.DB, BrowserApi.Web, Widget.HTML;
+{$ELSE}
   JS, Classes, SysUtils, db, web, htmlwidgets;
+{$ENDIF}
 
 Type
 

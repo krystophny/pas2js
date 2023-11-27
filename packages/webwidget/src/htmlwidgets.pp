@@ -13,7 +13,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit htmlwidgets;
+{$ENDIF}
 
 {$mode objfpc}
 {$h+}
@@ -21,7 +23,11 @@ unit htmlwidgets;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, Widget.Web, JSApi.JS, BrowserApi.Web;
+{$ELSE}
   Classes, SysUtils, webwidget, js, web;
+{$ENDIF}
 
 Type
   TTextMode = (tmText,tmHTML);
@@ -1037,7 +1043,12 @@ Const
 
 implementation
 
-uses DateUtils;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.DateUtils;
+{$ELSE}
+  DateUtils;
+{$ENDIF}
 
 resourcestring
   SErrInvalidIndex = 'Index %d not in valid range of [0..%d]';

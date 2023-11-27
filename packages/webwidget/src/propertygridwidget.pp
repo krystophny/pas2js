@@ -1,11 +1,17 @@
+{$IFNDEF FPC_DOTTEDUNITS}
 unit propertygridwidget;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, System.Types, BrowserApi.Web, Widget.Web, Widget.HTML, System.TypInfo, System.Contnrs;
+{$ELSE}
   Classes, SysUtils, types, web, webwidget, htmlwidgets, typinfo, contnrs;
+{$ENDIF}
 
 Type
 

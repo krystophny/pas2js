@@ -13,8 +13,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit dbwebwidget;
-
+{$ENDIF}
 
 {$mode objfpc}
 {$h+}
@@ -24,7 +25,11 @@ unit dbwebwidget;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.SysUtils, System.Classes, Widget.Web, Data.DB;
+{$ELSE}
   SysUtils, Classes, webwidget, db;
+{$ENDIF}
 
 Type
   TCustomDBLoopTemplateWidget = class;
