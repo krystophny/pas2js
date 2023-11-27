@@ -12,8 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 Unit libelectron;
+{$ENDIF}
 
 {$MODE ObjFPC}
 {$H+}
@@ -21,7 +22,12 @@ Unit libelectron;
 
 interface
 
-uses SysUtils, JS, Web, nodejs, node.events;
+uses 
+{$IFDEF FPC_DOTTEDUNITS}
+  System.SysUtils, JSApi.JS, BrowserApi.Web, NodeApi.JS, NodeApi.Events, BrowserApi.WebOrWorker;
+{$ELSE}
+  SysUtils, JS, Web, nodejs, node.events, WebOrWorker;
+{$ENDIF}
 
 {$INTERFACES CORBA}
 
@@ -1828,33 +1834,33 @@ Type
     TWebSource : TWebSourceClass;
 
   Var
-    app: libelectron.TApp;
-    autoUpdater: libelectron.TAutoUpdater;
-    clipboard: libelectron.TClipboard;
-    contentTracing: libelectron.TContentTracing;
-    contextBridge: libelectron.TContextBridge;
-    crashReporter: libelectron.TCrashReporter;
-    desktopCapturer: libelectron.TDesktopCapturer;
-    dialog: libelectron.TDialog;
-    globalShortcut: libelectron.TGlobalShortcut;
-    inAppPurchase: libelectron.TInAppPurchase;
-    ipcMain: libelectron.TIpcMain;
-    ipcRenderer: libelectron.TIpcRenderer;
-    nativeImage: libelectron.TNativeImage;
-    nativeTheme: libelectron.TNativeTheme;
-    net: libelectron.TNet;
-    netLog: libelectron.TNetLog;
-    powerMonitor: libelectron.TPowerMonitor;
-    powerSaveBlocker: libelectron.TPowerSaveBlocker;
-    protocol: libelectron.TProtocol;
-    safeStorage: libelectron.TSafeStorage;
-    screen: libelectron.TScreen;
-    session: libelectron.TSession;
-    shell: libelectron.TShell;
-    systemPreferences: libelectron.TSystemPreferences;
-    webContents: libelectron.TWebContents;
-    webFrame: libelectron.TWebFrame;
-    webFrameMain: libelectron.TWebFrameMain;
+    app: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TApp;
+    autoUpdater: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TAutoUpdater;
+    clipboard: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TClipboard;
+    contentTracing: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TContentTracing;
+    contextBridge: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TContextBridge;
+    crashReporter: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TCrashReporter;
+    desktopCapturer: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TDesktopCapturer;
+    dialog: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TDialog;
+    globalShortcut: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TGlobalShortcut;
+    inAppPurchase: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TInAppPurchase;
+    ipcMain: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TIpcMain;
+    ipcRenderer: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TIpcRenderer;
+    nativeImage: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNativeImage;
+    nativeTheme: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNativeTheme;
+    net: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNet;
+    netLog: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNetLog;
+    powerMonitor: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TPowerMonitor;
+    powerSaveBlocker: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TPowerSaveBlocker;
+    protocol: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TProtocol;
+    safeStorage: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TSafeStorage;
+    screen: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TScreen;
+    session: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TSession;
+    shell: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TShell;
+    systemPreferences: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TSystemPreferences;
+    webContents: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TWebContents;
+    webFrame: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TWebFrame;
+    webFrameMain: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TWebFrameMain;
   end;
 
 
@@ -1863,26 +1869,26 @@ Type
   TMainExports = class external name 'Object' (TJSObject)
   Public
   var
-    app : libelectron.TApp;
-    autoUpdater : libelectron.TAutoUpdater;
-    contentTracing : libelectron.TContentTracing;
-    desktopCapturer : libelectron.TDesktopCapturer;
-    dialog : libelectron.TDialog;
-    globalShortcut : libelectron.TGlobalShortcut;
-    inAppPurchase : libelectron.TInAppPurchase;
-    ipcMain : libelectron.TIpcMain;
-    nativeTheme : libelectron.TNativeTheme;
-    net : libelectron.TNet;
-    netLog : libelectron.TNetLog;
-    powerMonitor : libelectron.TPowerMonitor;
-    powerSaveBlocker : libelectron.TPowerSaveBlocker;
-    protocol : libelectron.TProtocol;
-    safeStorage : libelectron.TSafeStorage;
-    screen : libelectron.TScreen;
-    session : libelectron.TSession;
-    systemPreferences : libelectron.TSystemPreferences;
-    webContents : libelectron.TWebContents;
-    webFrameMain : libelectron.TWebFrameMain;
+    app : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TApp;
+    autoUpdater : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TAutoUpdater;
+    contentTracing : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TContentTracing;
+    desktopCapturer : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TDesktopCapturer;
+    dialog : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TDialog;
+    globalShortcut : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TGlobalShortcut;
+    inAppPurchase : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TInAppPurchase;
+    ipcMain : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TIpcMain;
+    nativeTheme : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNativeTheme;
+    net : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNet;
+    netLog : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNetLog;
+    powerMonitor : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TPowerMonitor;
+    powerSaveBlocker : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TPowerSaveBlocker;
+    protocol : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TProtocol;
+    safeStorage : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TSafeStorage;
+    screen : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TScreen;
+    session : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TSession;
+    systemPreferences : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TSystemPreferences;
+    webContents : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TWebContents;
+    webFrameMain : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TWebFrameMain;
 
     TBrowserView : TBrowserViewClass; external name 'BrowserView';
     TBrowserWindow : TBrowserWindowClass; external name 'BrowserWindow';
@@ -1907,12 +1913,12 @@ Type
     TIpcRenderer : TIpcRendererClass;
     TWebFrame : TWebFrameClass;
 
-    contextBridge: libelectron.TContextBridge;
-    ipcRenderer: libelectron.TIpcRenderer;
-    webFrame: libelectron.TWebFrame;
-    shell: libelectron.TShell;
-    nativeImage : libelectron.TNativeImage;
-    crashReporter : libelectron.TCrashReporter;
+    contextBridge: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TContextBridge;
+    ipcRenderer: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TIpcRenderer;
+    webFrame: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TWebFrame;
+    shell: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TShell;
+    nativeImage : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNativeImage;
+    crashReporter : {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TCrashReporter;
   end;
 
   TPreloadExports = class external name 'Object' (TJSObject)
@@ -2211,29 +2217,29 @@ Type
     TWebRequestFilter : TWebRequestFilterClass; external name 'WebRequestFilter';
     TWebSource : TWebSourceClass; external name 'WebSource';
 
-    app: libelectron.TApp;
-    autoUpdater: libelectron.TAutoUpdater;
-    clipboard: libelectron.TClipboard;
-    contentTracing: libelectron.TContentTracing;
-    contextBridge: libelectron.TContextBridge;
-    crashReporter: libelectron.TCrashReporter;
-    desktopCapturer: libelectron.TDesktopCapturer;
-    dialog: libelectron.TDialog;
-    globalShortcut: libelectron.TGlobalShortcut;
-    inAppPurchase: libelectron.TInAppPurchase;
-    ipcMain: libelectron.TIpcMain;
-    ipcRenderer: libelectron.TIpcRenderer;
-    nativeTheme: libelectron.TNativeTheme;
-    net: libelectron.TNet;
-    netLog: libelectron.TNetLog;
-    powerMonitor: libelectron.TPowerMonitor;
-    powerSaveBlocker: libelectron.TPowerSaveBlocker;
-    protocol: libelectron.TProtocol;
-    safeStorage: libelectron.TSafeStorage;
-    screen: libelectron.TScreen;
-    shell: libelectron.TShell;
-    systemPreferences: libelectron.TSystemPreferences;
-    webFrame: libelectron.TWebFrame;
+    app: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TApp;
+    autoUpdater: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TAutoUpdater;
+    clipboard: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TClipboard;
+    contentTracing: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TContentTracing;
+    contextBridge: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TContextBridge;
+    crashReporter: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TCrashReporter;
+    desktopCapturer: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TDesktopCapturer;
+    dialog: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TDialog;
+    globalShortcut: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TGlobalShortcut;
+    inAppPurchase: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TInAppPurchase;
+    ipcMain: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TIpcMain;
+    ipcRenderer: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TIpcRenderer;
+    nativeTheme: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNativeTheme;
+    net: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNet;
+    netLog: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TNetLog;
+    powerMonitor: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TPowerMonitor;
+    powerSaveBlocker: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TPowerSaveBlocker;
+    protocol: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TProtocol;
+    safeStorage: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TSafeStorage;
+    screen: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TScreen;
+    shell: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TShell;
+    systemPreferences: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TSystemPreferences;
+    webFrame: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TWebFrame;
   end;
 
   TApp_on_listener = Procedure (event : TEvent; accessibilitySupportEnabled : boolean);
@@ -4777,13 +4783,13 @@ Type
     Function &on(event : String; listener : TJSFunction): TProcess;
     Function addListener(event : String; listener : TJSFunction): TProcess;
     Procedure crash;
-    Function getBlinkMemoryInfo: libelectron.TBlinkMemoryInfo;
-    Function getCPUUsage: libelectron.TCPUUsage;
+    Function getBlinkMemoryInfo: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TBlinkMemoryInfo;
+    Function getCPUUsage: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TCPUUsage;
     Function getCreationTime: jsvalue;
-    Function getHeapStatistics: libelectron.THeapStatistics;
-    Function getIOCounters: libelectron.TIOCounters;
+    Function getHeapStatistics: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}THeapStatistics;
+    Function getIOCounters: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TIOCounters;
     Function getProcessMemoryInfo: TJSPromise;
-    Function getSystemMemoryInfo: libelectron.TSystemMemoryInfo;
+    Function getSystemMemoryInfo: {$IFDEF FPC_DOTTEDUNITS}Api.Electron.{$ELSE}libelectron.{$ENDIF}TSystemMemoryInfo;
     Function getSystemVersion: string;
     Procedure hang;
     Function once(event : String; listener : TJSFunction): TProcess;
