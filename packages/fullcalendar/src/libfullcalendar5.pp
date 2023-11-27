@@ -12,8 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit libfullcalendar5;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -21,7 +22,11 @@ unit libfullcalendar5;
 interface
 
 uses
- sysutils, types, js, web;
+{$IFNDEF FPC_DOTTEDUNITS}
+  System.SysUtils, System.Types, JSApi.JS, BrowserApi.Web;
+{$ELSE}
+  sysutils, types, js, web;
+{$ENDIF}
 
 Const
   fcViewMonth = 'dayGridMonth';
