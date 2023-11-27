@@ -12,8 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 Unit pdfjs;
+{$ENDIF}
 
 {$MODE ObjFPC}
 {$H+}
@@ -21,7 +22,12 @@ Unit pdfjs;
 
 interface
 
-uses SysUtils, JS,web;
+uses
+{$IFNDEF FPC_DOTTEDUNITS}
+  System.SysUtils, JSApi.JS, BrowserApi.Web;
+{$ELSE}
+  SysUtils, JS,web;
+{$ENDIF}
 
 {$INTERFACES CORBA}
 Type
