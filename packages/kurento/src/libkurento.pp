@@ -12,8 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
- 
+{$IFNDEF FPC_DOTTEDUNITS}
 unit libkurento;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -21,8 +22,11 @@ unit libkurento;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Types, JSApi.JS, BrowserApi.Web, NodeApi.Events;
+{$ELSE}
   Types, JS, Web, node.events;
-
+{$ENDIF}
 Type
 
 { ---------------------------------------------------------------------
