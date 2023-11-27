@@ -10,15 +10,20 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit atomapp;
+{$ENDIF}
 
 {$mode objfpc}
 
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, JSApi.JS, Api.Atom, Fcl.CustApp;
+{$ELSE}
   Classes, SysUtils, JS, libatom, custapp;
+{$ENDIF}
 
 Type
   TAtomEnvironment = class (TJSObject)

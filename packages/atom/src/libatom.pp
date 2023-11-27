@@ -10,8 +10,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit libatom;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -19,7 +20,11 @@ unit libatom;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS, System.Types, BrowserApi.Web;
+{$ELSE}
   JS, types, web;
+{$ENDIF}
 
 Type
   TAtomHandler = reference to procedure;
