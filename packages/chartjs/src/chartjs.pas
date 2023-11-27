@@ -12,8 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit ChartJS;
+{$ENDIF}
 
 {$MODE OBJFPC}
 {$MODESWITCH EXTERNALCLASS}
@@ -21,8 +22,11 @@ unit ChartJS;
 interface
 
 uses
-  JS,
-  Web;
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS, BrowserApi.Web;
+{$ELSE}
+  JS, Web;
+{$ENDIF}
 
 type
   TChart = class;
