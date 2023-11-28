@@ -12,8 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit node.onoff;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -21,7 +22,11 @@ unit node.onoff;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS, NodeApi.JS;
+{$ELSE} 
   JS,nodejs;
+{$ENDIF}
 
 Type
   TGPIOReadCallBack = reference to procedure(err : TJSError; aValue : Byte);

@@ -12,7 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit node.http;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -20,7 +22,11 @@ unit node.http;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Types, JSApi.JS,NodeApi.JS, NodeApi.Net;
+{$ELSE} 
   js, nodejs, types, node.net;
+{$ENDIF}
 
 Type
 { TNJSHTTPIncomingMessage }

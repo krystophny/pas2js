@@ -12,8 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
-
+{$IFNDEF FPC_DOTTEDUNITS}
 unit node.url;
+{$ENDIF}
 
 {$mode objfpc}
 {$ModeSwitch externalclass}
@@ -21,7 +22,11 @@ unit node.url;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Types, JSApi.JS, NodeApi.JS;
+{$ELSE} 
   Types, JS, nodeJS;
+{$ENDIF}
 
 Type
   TNJSURLSearchParams = Class external name 'URLSearchParams' (TJSObject)

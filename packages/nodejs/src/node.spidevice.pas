@@ -12,7 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit node.spidevice;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -20,7 +22,11 @@ unit node.spidevice;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS, NodeApi.JS;
+{$ELSE} 
   JS,NodeJS;
+{$ENDIF}
 
 
 Type

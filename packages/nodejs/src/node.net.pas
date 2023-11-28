@@ -12,7 +12,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit node.net;
+{$ENDIF}
 
 {$mode objfpc}
 {$modeswitch externalclass}
@@ -20,7 +22,11 @@ unit node.net;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  System.Classes, System.SysUtils, JSApi.JS, NodeApi.JS;
+{$ELSE} 
   Classes, SysUtils, js, nodejs;
+{$ENDIF}
 
 type
   TNJSStreamDuplex = class external name 'stream.Duplex' (TJSObject);

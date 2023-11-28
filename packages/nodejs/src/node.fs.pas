@@ -10,7 +10,9 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+{$IFNDEF FPC_DOTTEDUNITS}
 unit node.fs;
+{$ENDIF}
 
 {$mode objfpc}
 {$ModeSwitch externalclass}
@@ -18,7 +20,11 @@ unit node.fs;
 interface
 
 uses
+{$IFDEF FPC_DOTTEDUNITS}
+  JSApi.JS,NodeApi.JS,  System.Types, System.SysUtils;
+{$ELSE} 
   JS, NodeJS, Types, SysUtils;
+{$ENDIF}
 
 var
   DirectorySeparator: char = '/';
