@@ -23,9 +23,9 @@ unit p2jsres;
 interface
 
 {$IFDEF FPC_DOTTEDUNITS}
-uses types;
-{$ELSE}
 uses System.Types;
+{$ELSE}
+uses types;
 {$ENDIF}
 
 Type
