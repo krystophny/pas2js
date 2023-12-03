@@ -1,6 +1,10 @@
 program democlasstopas;
 
+{$IFDEF FPC_DOTTEDUNITS}
+uses System.SysUtils, System.Types, BrowserApi.Web, System.Classes, JSApi.JS, Browser.Console, System.Class2Pas;
+{$ELSE FPC_DOTTEDUNITS}
 uses Sysutils, Types, Web, Classes, JS, browserconsole, class2pas;
+{$ENDIF FPC_DOTTEDUNITS}
 
 Type
 

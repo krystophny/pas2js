@@ -1,6 +1,6 @@
 program democanvas2d;
 
-uses Web, Classes, JS, SysUtils;
+uses BrowserApi.Web, System.Classes, JSApi.JS, System.SysUtils;
 
 Type
   TForm = Class
