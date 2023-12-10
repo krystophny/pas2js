@@ -23,10 +23,10 @@ Unit pdfjs;
 interface
 
 uses
-{$IFNDEF FPC_DOTTEDUNITS}
-  System.SysUtils, JSApi.JS, BrowserApi.Web;
+{$IFDEF FPC_DOTTEDUNITS}
+  System.SysUtils, JSApi.JS, BrowserApi.Web, System.Types;
 {$ELSE}
-  SysUtils, JS,web;
+  SysUtils, JS, web, Types;
 {$ENDIF}
 
 {$INTERFACES CORBA}
@@ -315,7 +315,11 @@ Type
   TPDFRenderTask = class external name 'Object' (TPDFLoadingTask)
       Procedure cancel;
   end;
-  
+
+  TPDFTextLayerRenderTask = class external name 'Object' (TPDFLoadingTask)
+      Procedure cancel;
+  end;
+
   TPDFPageProxy_view = array of Double;
   TPDFPageProxy = class external name 'Object' (TJSObject)
       Procedure destroy;
@@ -360,10 +364,29 @@ Type
   TPDFJSUtilStatic = class external name 'Object' (TJSObject)
       Function normalizeRect(rect : array of Double): TPDFJSUtilStatic_normalizeRect_Result;
   end;
-  
+
+  TPDFJSRenderTextLayerParameters = class external name 'Object' (TJSObject)
+    textContentSourceStream : TJSReadableStream; external name 'textContentSource';
+    textContentSourceItems: TTextContent; external name 'textContentSource';
+    container: TJSHTMLElement;
+    viewport : TPDFPageViewport;
+    textDivs : TJSHTMLElementArray;
+    textDivProperties : TJSMap;
+    textContentItemsStr : TStringDynArray;
+    isOffscreenCanvasSupported : Boolean;
+  end;
+
+  TPDFJSUpdateTextLayerParameters = class external name 'Object' (TJSObject)
+    container: TJSHTMLElement;
+    viewport : TPDFPageViewport;
+    textDivs : TJSHTMLElementArray;
+    textDivProperties : TJSMap;
+    isOffscreenCanvasSupported : Boolean;
+    mustRotate : Boolean;
+    mustRescale : Boolean;
+  end;
+
   TPDFJSStatic = class external name 'Object' (TJSObject)
-      Procedure PDFSinglePageViewer(params : TPDFViewerParams);
-      Procedure PDFViewer(params : TPDFViewerParams);
       maxImageSize : Double;
       cMapUrl : string;
       cMapPacked : boolean;
@@ -398,6 +421,10 @@ Type
       Function getDocument(source : TPDFSource): TPDFLoadingTask; external name 'getDocument'; overload;
       Function getDocument(source : TPDFSource; pdfDataRangeTransport : TPDFDataRangeTransport): TPDFLoadingTask; external name 'getDocument'; overload;
       Function getDocument(source : TPDFSource; pdfDataRangeTransport : TPDFDataRangeTransport; passwordCallback : TgetDocument_passwordCallback): TPDFLoadingTask; external name 'getDocument'; overload;
+      Procedure PDFSinglePageViewer(params : TPDFViewerParams);
+      Procedure PDFViewer(params : TPDFViewerParams);
+      function renderTextLayer(params : TPDFJSRenderTextLayerParameters) : TPDFTextLayerRenderTask;
+      function updateTextLayer(params : TPDFJSUpdateTextLayerParameters) : TPDFTextLayerRenderTask;
   end;
   
 
