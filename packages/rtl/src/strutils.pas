@@ -22,7 +22,7 @@ unit strutils;
 interface
 
 uses
-{$IFDEF FPC_DOTTEDUNITS}
+{$IFNDEF FPC_DOTTEDUNITS}
   SysUtils, Types;
 {$ELSE}  
   System.SysUtils, System.Types;
