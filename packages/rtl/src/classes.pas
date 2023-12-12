@@ -6570,6 +6570,7 @@ Var
 begin
   // This must be improved, but needs some asm or TJSFunction.call() to implement answers in
   // https://stackoverflow.com/questions/29676635/convert-uint8array-to-array-in-javascript
+  SetLength(Result, Mem.Length);
   for i:=0 to mem.length-1 do
     Result[i]:=Mem[i];
 end;
