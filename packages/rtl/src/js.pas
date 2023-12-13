@@ -973,6 +973,28 @@ type
     Property Encoding : string Read FEncoding;
   end;
 
+  generic TGGenerator<T> = class external name 'Generator' (TJSObject)
+  private type
+    TGGeneratorValue = class external name 'Generator' (TJSObject)
+    public
+      done: Boolean;
+      value: T;
+    end;
+  public
+    function next: TGGeneratorValue; overload;
+    function next(Value: T): TGGeneratorValue; overload;
+    function return: TGGeneratorValue; overload;
+    function return(Value: T): TGGeneratorValue; overload;
+    function throw(Error: TJSError): TGGeneratorValue;
+  end;
+  
+  TJSGenerator = specialize TGGenerator<JSValue>;
+
+  TJSProxy = class external name 'Proxy' (TJSObject)
+  public
+    constructor New(Target, Handler: TJSObject);
+  end;
+
 
 var
   // JSArguments can be used in procedures/functions to provide access to the 'arguments' array.
