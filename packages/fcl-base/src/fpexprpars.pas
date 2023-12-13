@@ -24,9 +24,9 @@ interface
 
 uses
 {$IFDEF FPC_DOTTEDUNITS} 
-  System.Classes, System.SysUtils, System.Contnrs;
+  System.Classes, System.SysUtils, System.Contnrs, JSApi.JS;
 {$ELSE}
-  Classes, SysUtils, contnrs;
+  Classes, SysUtils, contnrs, js;
 {$ENDIF}
 
 Type
@@ -35,7 +35,7 @@ Type
                 ttMod, ttMul, ttLeft, ttRight, ttLessThanEqual,
                 ttLargerThanEqual, ttunequal, ttNumber, ttString, ttIdentifier,
                 ttComma, ttAnd, ttOr, ttXor, ttTrue, ttFalse, ttNot, ttif,
-                ttCase, ttPower, ttEOF); // keep ttEOF last
+                ttCase, ttPower, ttLike, ttEOF); // keep ttEOF last
 
   TExprFloat = Double;
 
@@ -45,7 +45,7 @@ Const
                   ttunequal, ttPower];
   ttComparisons = [ttLargerThan,ttLessthan,
                    ttLargerThanEqual,ttLessthanEqual,
-                   ttEqual,ttUnequal];
+                   ttEqual,ttUnequal, ttLike];
 
 Type
 
@@ -66,6 +66,7 @@ Type
     FToken : String;
     FTokenType : TTokenType;
   private
+    FAllowLike: Boolean;
     function GetCurrentChar: Char;
     procedure ScanError(Msg: String);
   protected
@@ -88,6 +89,7 @@ Type
     Property Source : String Read FSource Write SetSource;
     Property Pos : Integer Read FPos;
     Property CurrentChar : Char Read GetCurrentChar;
+    Property AllowLike : Boolean Read FAllowLike Write FAllowLike;
   end;
 
   EExprScanner = Class(Exception);
@@ -131,7 +133,7 @@ Type
   Protected
     Procedure CheckSameNodeTypes;
   Public
-    Constructor Create(ALeft,ARight : TFPExprNode);
+    Constructor Create(ALeft,ARight : TFPExprNode); virtual;
     Destructor Destroy; override;
     Procedure InitAggregate; override;
     Procedure UpdateAggregate; override;
@@ -195,6 +197,21 @@ Type
   Public
     Function AsString : string ; override;
   end;
+
+  { TFPEqualOperation }
+
+  { TFPLikeOperation }
+
+  TFPLikeOperation = Class(TFPBooleanResultOperation)
+  Protected
+    FRE : TJSRegexp;
+    FLast : String;
+    Function GetNodeValue : TFPExpressionResult; override;
+  Public
+    procedure check; override;
+    Function AsString : string ; override;
+  end;
+
 
   { TFPUnequalOperation }
 
@@ -712,10 +729,12 @@ Type
     function GetAsCurrency: Currency;
     function GetAsInteger: NativeInt;
     function GetAsString: String;
+    function GetAllowLike: Boolean;
     function MatchNodes(Todo, Match: TFPExprNode): TFPExprNode;
     procedure CheckNodes(var Left, Right: TFPExprNode);
     procedure SetBuiltIns(const AValue: TBuiltInCategories);
     procedure SetIdentifiers(const AValue: TFPExprIdentifierDefs);
+    procedure SetAllowLike(AValue: Boolean);
   Protected
     procedure ParserError(Msg: String);
     procedure SetExpression(const AValue: String); virtual;
@@ -751,6 +770,7 @@ Type
     Function HasAggregate : Boolean;
     Procedure InitAggregate;
     Procedure UpdateAggregate;
+    Property AllowLike : Boolean Read GetAllowLike Write SetAllowLike;
     Property AsFloat : TExprFloat Read GetAsFloat;
     Property AsCurrency : Currency Read GetAsCurrency;
     Property AsInteger : NativeInt Read GetAsInteger;
@@ -876,6 +896,7 @@ Resourcestring
   SErrCaseLabelNotAConst = 'Case label %d "%s" is not a constant expression';
   SErrCaseLabelType = 'Case label %d "%s" needs type %s, but has type %s';
   SErrCaseValueType = 'Case value %d "%s" needs type %s, but has type %s';
+  SErrStringTypeRequired = 'Expression requires string type, got type "%s" for %s';
 
 { ---------------------------------------------------------------------
   Auxiliary functions
@@ -1243,14 +1264,14 @@ begin
   end;
 end;
 
-Procedure TFPExpressionScanner.SkipWhiteSpace;
+procedure TFPExpressionScanner.SkipWhiteSpace;
 
 begin
   While (FChar in WhiteSpace) and (FPos<=LSource) do
     NextPos;
 end;
 
-Function TFPExpressionScanner.DoDelimiter : TTokenType;
+function TFPExpressionScanner.DoDelimiter: TTokenType;
 
 Var
   B : Boolean;
@@ -1293,13 +1314,14 @@ begin
 
 end;
 
-Procedure TFPExpressionScanner.ScanError(Msg : String);
+procedure TFPExpressionScanner.ScanError(Msg: String);
 
 begin
   Raise EExprScanner.Create(Msg)
 end;
 
-Function TFPExpressionScanner.DoString : TTokenType;
+
+function TFPExpressionScanner.DoString: TTokenType;
 
   Function TerminatingChar(C : Char) : boolean;
 
@@ -1351,7 +1373,7 @@ begin
 end;
 {$endif}
 
-Function TFPExpressionScanner.DoNumber(AKind: TNumberKind) : TTokenType;
+function TFPExpressionScanner.DoNumber(AKind: TNumberKind): TTokenType;
 
 Var
   C : Char;
@@ -1402,7 +1424,7 @@ begin
   Result:=ttNumber;
 end;
 
-Function TFPExpressionScanner.DoIdentifier : TTokenType;
+function TFPExpressionScanner.DoIdentifier: TTokenType;
 
 Var
   C : Char;
@@ -1445,11 +1467,13 @@ begin
     Result:=ttcase
   else if (S='mod') then
     Result:=ttMod
+  else if (S='like') and AllowLike then
+    Result:=ttLike
   else
     Result:=ttIdentifier;
 end;
 
-Function TFPExpressionScanner.GetToken : TTokenType;
+function TFPExpressionScanner.GetToken: TTokenType;
 
 Var
   C : Char;
@@ -1588,6 +1612,11 @@ begin
   FIdentifiers.Assign(AValue)
 end;
 
+procedure TFPExpressionParser.SetAllowLike(AValue: Boolean);
+begin
+  FScanner.AllowLike:=aValue;
+end;
+
 function TFPExpressionParser.Evaluate: TFPExpressionResult;
 begin
   If (FExpression='') then
@@ -1598,12 +1627,12 @@ begin
 end;
 
 
-procedure TFPExpressionParser.EvaluateExpression(Out Result: TFPExpressionResult);
+procedure TFPExpressionParser.EvaluateExpression(out Result: TFPExpressionResult);
 begin
   Result:=Evaluate;
 end;
 
-function TFPExpressionParser.ExtractNode(Var N : TFPExprNode) : Boolean;
+function TFPExpressionParser.ExtractNode(var N: TFPExprNode): Boolean;
 begin
   Result:=Assigned(FExprNode);
   if Result then
@@ -1619,7 +1648,7 @@ begin
   Raise EExprParser.Create(Msg);
 end;
 
-Class function TFPExpressionParser.ConvertNode(Todo : TFPExprNode; ToType : TResultType): TFPExprNode;
+class function TFPExpressionParser.ConvertNode(Todo: TFPExprNode; ToType: TResultType): TFPExprNode;
 begin
   Result:=ToDo;
   Case ToDo.NodeType of
@@ -1712,6 +1741,11 @@ begin
   EvaluateExpression(Res);
   CheckResultType(Res,rtString);
   Result:=String(Res.resValue);
+end;
+
+function TFPExpressionParser.GetAllowLike: Boolean;
+begin
+  Result:=FScanner.AllowLike;
 end;
 
 {
@@ -1824,6 +1858,7 @@ begin
         ttLargerThanEqual  : C:=TFPGreaterThanEqualOperation;
         ttEqual            : C:=TFPEqualOperation;
         ttUnequal          : C:=TFPUnequalOperation;
+        ttLike             : C:=TFPLikeOperation;
       Else
         ParserError(SErrUnknownComparison)
       end;
@@ -3236,6 +3271,56 @@ begin
   RRes:=Right.GetNodeValue;
   Result.resValue:=Result.resValue=RRes.resValue;
   Result.ResultType:=rtBoolean;
+end;
+
+{ TFPLikeOperation }
+
+function TFPLikeOperation.GetNodeValue: TFPExpressionResult;
+
+const
+  RESpecials = '([\$\+\[\]\(\)\\\.\*\^\?\|])';
+
+Var
+  S: String;
+  RE : TJSRegexp;
+
+begin
+  // We need to recreate a regexp every time, since the RE can change any time the right-hand expression changes
+  S:=String(Right.NodeValue.resValue);
+  if (FLast<>'') and (S=FLast) then
+    RE:=FRE
+  else
+    begin
+    FLast:=S;
+    S:=TJSString(S).replace(TJSRegexp.new(RESpecials,'g'),'\$1');
+    S:=StringReplace(S,'%','(.*)',[rfReplaceAll]);
+    S:=StringReplace(S,'_','(.)',[rfReplaceAll]);
+    try
+      // Writeln('Ex: ',FLast,' -> ',S);
+      FRE:=TJSRegexp.New(S,'i');
+      Re:=FRe;
+    except
+      Result.resValue:=False;
+      exit;
+    end;
+    end;
+  Result.resValue:=RE.Test(String(Left.NodeValue.resValue));
+  // Writeln('Checking : ',flast,' (',FRE.Source,') on ',Left.NodeValue.resValue,' : ',  Result.resValue);
+end;
+
+
+procedure TFPLikeOperation.check;
+begin
+  if Left.NodeType<>rtString then
+    RaiseParserError(SErrStringTypeRequired,[ResultTypeName(Left.NodeType),Left.AsString]);
+  if Right.NodeType<>rtString then
+    RaiseParserError(SErrStringTypeRequired,[ResultTypeName(Right.NodeType),Right.AsString]);
+  inherited check;
+end;
+
+function TFPLikeOperation.AsString: string;
+begin
+  Result:=Left.AsString+' LIKE '+Right.AsString;
 end;
 
 { TFPUnequalOperation }

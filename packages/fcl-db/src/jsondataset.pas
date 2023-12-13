@@ -1392,6 +1392,7 @@ Var
 
 begin
   Result:=FilterExpressionClass.Create(Self);
+  Result.AllowLike:=True;
   for I:=0 to Fields.Count-1 do
     if not (Fields[i].DataType in [ftBlob,ftMemo]) then
       Result.Identifiers.AddVariable(Fields[i].FieldName,FieldTypeToExpressionType(Fields[i].DataType),@GetFilterField);
