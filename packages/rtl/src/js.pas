@@ -253,6 +253,19 @@ type
     property Milliseconds: NativeInt read getMilliseconds write setMilliseconds;
   end;
 
+  { TJSSymbol }
+
+  TJSSymbol = class external name 'Symbol' (TJSFunction)
+  private
+  Private
+    FDescription: String; external name 'description';
+  Public
+    constructor new (aValue : JSValue);
+    class function for_ (key : string) : TJSSymbol;
+    class function keyFor (aSymbol : TJSSymbol) : string;
+    property Description : String Read FDescription;
+  end;
+
   TLocaleCompareOptions = record
     localematched : string;
     usage: string;
@@ -960,6 +973,7 @@ type
     Property Encoding : string Read FEncoding;
   end;
 
+
 var
   // JSArguments can be used in procedures/functions to provide access to the 'arguments' array.
   JSArguments: TJSFunctionArguments; external name 'arguments';
@@ -968,7 +982,10 @@ var
   // JSExceptValue can be used in catch blocks to access the JS throw value
   JSExceptValue: JSValue; external name '$e';
 
-  Function JSValueArrayOf(Args : Array of const) : TJSValueDynArray;
+function Symbol : TJSSymbol;
+function Symbol(Description : String) : TJSSymbol;
+
+Function JSValueArrayOf(Args : Array of const) : TJSValueDynArray;
 function new(aElements: TJSValueDynArray) : TJSObject; overload;
 function JSDelete(const Obj: JSValue; const PropName: string): boolean; assembler; overload;
 
@@ -1250,6 +1267,17 @@ begin
       else
         result:=jvtFloat
     end;
+end;
+
+function Symbol : TJSSymbol; assembler;
+asm
+  return Symbol();
+end;
+
+function Symbol(Description : String) : TJSSymbol; assembler;
+
+asm
+  return Symbol(Description);
 end;
 
 end.
