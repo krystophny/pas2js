@@ -56,7 +56,14 @@ begin
   Addln('# If you don''t want so much verbosity use');
   Addln('#-vw');
   Addln('');
-  Addln('-Fu$CfgDir/'+BASEDIR+'/packages/*');
+  Addln('#ifdef FPC_SUBTARGET_NAMESPACES');
+  Addln('-Fu$CfgDir/'+BASEDIR+'/*/namespaced');
+  Addln('-Fi$CfgDir/'+BASEDIR+'/packages/*/src');
+  Addln('# For compatibility with FPC:');
+  Addln('-dUnicodeRTL');
+  Addln('#else');
+  Addln('-Fu$CfgDir/'+BASEDIR+'/packages/*/src');
+  Addln('#endif');
   Addln('');
   Addln('#IFDEF nodejs');
   Addln('-Jirtl.js');
