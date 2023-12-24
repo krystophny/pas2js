@@ -109,6 +109,8 @@ begin
   Addln('#IFDEF FPC_SUBTARGET_NAMESPACED');
   AddPath('-Fu',BaseDir,'namespaced');
   AddPath('-Fi',BaseDir,'src');
+  // needed for system unit.
+  AddPath('-Fu',BaseDir+'rtl'+PathDelim+'src','');
   AddLn('#else');
   AddPath('-Fu',BaseDir,'src');
   AddLn('#endif');
