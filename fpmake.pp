@@ -17,15 +17,61 @@ begin
   {$ENDIF}
 end;
 
+Procedure CreateNamespacedConfigFile(CfgFile : string);
+
+var
+  F : Text;
+  
+  Procedure AddLn(S : String);
+
+  begin
+    Writeln(F,S);
+  end;
+
+begin
+  if not ForceDirectories(ExtractFilePath(CfgFile)) then
+    begin
+    Writeln(StdErr,'Could not create destination directory ',ExtractFilePath(CfgFile));
+    Halt(2);
+    end;
+  Assign(F,CfgFile);
+  try
+    Rewrite(F);
+  except
+    On E : exception do
+      begin
+      Writeln(StdErr,'Could not create config file ',CfgFile,' : ',E.Message);
+      Halt(3);
+      end;
+  end;
+  AddLn('-dUNICODERTL');
+  Close(F);
+end;
+
 Procedure CreateConfigFile(CfgFile,BaseDir : String; rtl_js_dir: string = '');
 
 Var
   F : Text;
 
+
   Procedure AddLn(S : String);
 
   begin
     Writeln(F,S);
+  end;
+
+  Procedure AddPath(const aPrefix,aDir,Suffix : String);
+  
+  var 
+    aSubDirs : String;
+  
+  begin
+    aSubDirs:=aDir;
+    if Suffix<>'' then
+      aSubDirs:=aSubDirs+'*'+PathDelim+Suffix;
+    if not FilenameIsAbsolute(aDir) then
+      aSubDirs:='$CfgDir'+aSubDirs;
+    Addln(aPrefix+aSubDirs);
   end;
 
 begin
@@ -60,15 +106,14 @@ begin
   Addln('# If you don''t want so much verbosity use');
   Addln('#-vw');
   Addln('');
-  if FilenameIsAbsolute(BaseDir) then
-    Addln('-Fu'+BaseDir+'*')
-  else
-    Addln('-Fu$CfgDir'+PathDelim+BaseDir+'*');
+  Addln('#IFDEF FPC_SUBTARGET_NAMESPACED');
+  AddPath('-Fu',BaseDir,'namespaced');
+  AddPath('-Fi',BaseDir,'src');
+  AddLn('#else');
+  AddPath('-Fu',BaseDir,'src');
+  AddLn('#endif');
   if rtl_js_dir<>'' then
-    if FilenameIsAbsolute(rtl_js_dir) then
-      AddLn('-Fu'+rtl_js_dir)
-    else
-      AddLn('-Fu$CfgDir'+PathDelim+rtl_js_dir);
+    AddPath('-Fu',rtl_js_dir,'');
   Addln('');
   Addln('#IFDEF nodejs');
   Addln('-Jirtl.js');
@@ -128,7 +173,7 @@ end;
 
 Var
   P : TPackage;
-  UnitDir,DemoDir,BD, TmpCfg: String;
+  UnitDir,DemoDir,BD, TmpCfg, TmpCfg2: String;
   T: TTarget;
 
 begin
@@ -217,12 +262,15 @@ begin
     BD:=IncludeTrailingPathDelimiter(P.GetBinOutputDir(Defaults.BuildCPU,Defaults.BuildOS));
     {$ENDIF}
     TmpCfg:='compiler/utils/pas2js/dist/pas2js.cfg';
+    TmpCfg2:='compiler/utils/pas2js/dist/pas2js-namespaced.cfg';
     Case Installer.RunMode of
     rmCompile,rmBuild:
       begin
       if not FileExists(BD+'pas2js.cfg') then
         CreateConfigFile(BD+'pas2js.cfg',SetDirSeparators('../../packages'),
                          SetDirSeparators('../../compiler/utils/pas2js/dist/'));
+       if not FileExists(BD+'pas2js-namespaced.cfg') then
+         CreateNameSpacedConfigFile(BD+'pas2js-namespaced.cfg');
       end;
     rmInstall,rmArchive,rmZipInstall:
       begin
@@ -235,7 +283,9 @@ begin
       // Config file
       // Create config file
       CreateConfigFile(TmpCfg,ExtractRelativePath(IncludeTrailingPathDelimiter(Defaults.BinInstallDir),IncludeTrailingPathDelimiter(UnitDir)));
+      CreateNamespacedConfigFile(TmpCfg2);
       P.InstallFiles.Add(TmpCfg,Defaults.BinInstallDir);
+      P.InstallFiles.Add(TmpCfg2,Defaults.BinInstallDir);
       P.InstallFiles.Add('compiler/utils/pas2js/dist/rtl.js',IncludeTrailingPathDelimiter(UnitDir)+'rtl');
       AddPackageFiles(P.InstallFiles,'chartjs',UnitDir);
       AddPackageFiles(P.InstallFiles,'dataabstract',UnitDir);
