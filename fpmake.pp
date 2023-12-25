@@ -70,7 +70,7 @@ Var
     if Suffix<>'' then
       aSubDirs:=aSubDirs+'*'+PathDelim+Suffix;
     if not FilenameIsAbsolute(aDir) then
-      aSubDirs:='$CfgDir'+aSubDirs;
+      aSubDirs:='$CfgDir'+PathDelim+aSubDirs;
     Addln(aPrefix+aSubDirs);
   end;
 
