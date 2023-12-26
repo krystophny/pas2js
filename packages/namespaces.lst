@@ -117,3 +117,6 @@ rtl/src/typinfo.pas=rtl/namespaced/System.TypInfo.pas
 jitsimeet/src/libjitsimeet.pp=jitsimeet/namespaced/Api.JitsiMeet.pas
 kurento/src/libkurento.pp=kurento/namespaced/Api.Kurento.pas
 flatpickr/src/libflatpickr.pas=flatpickr/namespaced/Api.FlatPickr.pas
+fpcunit/src/fpcunittestinsight.pp=fpcunit/namespaced/TestInsight.FpcUnit.pp
+fpcunit/src/testinsightclient.pp=fpcunit/namespaced/TestInsight.Client.pp
+fpcunit/src/testinsightprotocol.pp=fpcunit/namesaced/TestInsight.Protocol.pp

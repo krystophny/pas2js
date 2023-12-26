@@ -117,3 +117,6 @@ typinfo=*System.TypInfo
 libjitsimeet=*Api.JitsiMeet
 libkurento=*Api.Kurento
 libflatpickr=*Api.FlatPickr
+fpcunittestinsight=*TestInsight.FpcUnit
+testinsightclient=*TestInsight.Client
+testinsightprotocol=*TestInsight.Protocol
