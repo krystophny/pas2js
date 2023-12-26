@@ -160,7 +160,8 @@ Const
   PackExt = '.pp.pas.inc.lpk';
 
 begin
-  AddInstallFiles(Files,'packages'+PathDelim+ADir,packExt,aPrefix);
+  AddInstallFiles(Files,'packages'+PathDelim+ADir+PathDelim+'src',packExt,aPrefix);
+  AddInstallFiles(Files,'packages'+PathDelim+ADir+PathDelim+'namespaced',packExt,aPrefix);
 end;
 
 
@@ -293,10 +294,31 @@ begin
       AddPackageFiles(P.InstallFiles,'dataabstract',UnitDir);
       AddPackageFiles(P.InstallFiles,'fcl-base',UnitDir);
       AddPackageFiles(P.InstallFiles,'fcl-db',UnitDir);
+      AddPackageFiles(P.InstallFiles,'fcl-json',UnitDir);
       AddPackageFiles(P.InstallFiles,'fpcunit',UnitDir);
       AddPackageFiles(P.InstallFiles,'jspdf',UnitDir);
       AddPackageFiles(P.InstallFiles,'nodejs',UnitDir);
       AddPackageFiles(P.InstallFiles,'rtl',UnitDir);
+      AddPackageFiles(P.InstallFiles,'atom',UnitDir);
+      AddPackageFiles(P.InstallFiles,'job',UnitDir);
+      AddPackageFiles(P.InstallFiles,'pushjs',UnitDir);
+      AddPackageFiles(P.InstallFiles,'wasi',UnitDir);
+      AddPackageFiles(P.InstallFiles,'bootstrap',UnitDir); 
+      AddPackageFiles(P.InstallFiles,'fullcalendar',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'datatables',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'pdfjs',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'fcl-rpc',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'bulma',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'electron',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'htmlfragment',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'opentok',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'tinyeditor',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'xterm',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'flatpickr',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'jitsimeet',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'kurento',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'vscode',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'webwidget',UnitDir);   
       // Demo files
       DemoDir:=IncludeTrailingPathDelimiter(Defaults.ExamplesInstallDir);
       AddDemoFiles(P.InstallFiles,'fcldb',DemoDir);
