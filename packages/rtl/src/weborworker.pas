@@ -1146,6 +1146,32 @@ type
     property crypto : TJSCrypto Read FCrypto;
   end;
 
+  { TJSAbortSignal }
+
+  TJSAbortSignal = class external name 'AbortSignal' (TJSEventTarget)
+  private
+    FAborted: Boolean; external name 'aborted';
+    FReason: JSValue; external name 'reason';
+  Public
+    Class function abort : TJSAbortSignal;
+    Class function any(iterable : TJSIterator) : TJSAbortSignal;
+    Class function any(iterable : array of TJSAbortSignal) : TJSAbortSignal;
+    Class function timeout(aTimeout : NativeInt) : TJSAbortSignal;
+    procedure throwIfAborted;
+    Property Aborted : Boolean Read FAborted;
+    Property Reason : JSValue Read FReason;
+  end;
+
+  { TJSAbortController }
+
+  TJSAbortController = class external name 'AbortController' (TJSAbortSignal)
+  private
+    FSignal: TJSAbortSignal; external name 'signal';
+  Public
+    Procedure abort;
+    Procedure abort(aReason :  JSValue);
+    Property signal : TJSAbortSignal Read FSignal;
+  end;
 
 var
   Console : TJSConsole; external name 'console';
