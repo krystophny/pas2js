@@ -3295,6 +3295,7 @@ begin
     S:=TJSString(S).replace(TJSRegexp.new(RESpecials,'g'),'\$1');
     S:=StringReplace(S,'%','(.*)',[rfReplaceAll]);
     S:=StringReplace(S,'_','(.)',[rfReplaceAll]);
+    S:='^'+S+'$';
     try
       // Writeln('Ex: ',FLast,' -> ',S);
       FRE:=TJSRegexp.New(S,'i');
