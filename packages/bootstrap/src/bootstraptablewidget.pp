@@ -65,9 +65,12 @@ type
   TStylingClasses = Class(TPersistent)
   private
     FButtonClass: String;
+    FButtonGroupClass: String;
     FCheckBoxClass: String;
     FDeleteClass: String;
     FEditClass: String;
+    FGroupedButtonExtraTag: String;
+    FGroupedButtonExtraTagClass: String;
     FInfoClass: String;
     FReadonlyEditClass: String;
     FWidget : TCustomDBBootstrapTableWidget;
@@ -79,17 +82,21 @@ type
     function GetOwner: TPersistent; override;
   Published
     Property CheckBoxClass : String Read FCheckBoxClass Write FCheckBoxClass;
+    Property ButtonGroupClass : String Read FButtonGroupClass Write FButtonGroupClass;
     Property ButtonClass : String Read FButtonClass Write FButtonClass;
     Property InfoClass : String Read FInfoClass Write FInfoClass;
     Property EditClass : String Read FEditClass Write FEditClass;
     Property ReadonlyEditClass : String Read GetReadonlyEditClass Write FReadonlyEditClass stored IsReadonlyStored;
     Property DeleteClass : String Read FDeleteClass Write FDeleteClass;
+    Property GroupedButtonExtraTag : String Read FGroupedButtonExtraTag Write FGroupedButtonExtraTag;
+    Property GroupedButtonExtraTagClass : String Read FGroupedButtonExtraTagClass Write FGroupedButtonExtraTagClass;
   end;
 
   { TBSColumnAction }
 
 Type
   TRenderButtonData = Record
+    ExtraTag,ExtraTagClass : String;
     ButtonIconClass, tagName, classnames, sIcon: string;
     ButtonURLTarget, ButtonURL,ExtraAttributes : String;
     ButtonType : TColumnButtonType;
@@ -482,6 +489,9 @@ begin
   DeleteClass:='bi bi-trash';
   InfoClass:='bi bi-info-circle';
   CheckBoxClass:='form-check-input';
+  ButtonGroupClass:='btn-group';
+  GroupedButtonExtraTag:='';
+  GroupedButtonExtraTagClass:='';
 end;
 
 procedure TStylingClasses.Assign(Source: TPersistent);
@@ -965,7 +975,9 @@ begin
     sURL:='href="javascript.void(0)"';
   Writeln('Attributes : ',sExtraAttributes);
   Result:=Format('<%s class="%s" %s %s><i class="%s"></i></%s> ',
-                 [renderData.tagName, renderData.classnames, sUrl, sExtraAttributes, renderData.sIcon, renderData.tagName])
+                 [renderData.tagName, renderData.classnames, sUrl, sExtraAttributes, renderData.sIcon, renderData.tagName]);
+  if RenderData.ExtraTag<>'' then
+    Result:=Format('<%s class="%s">%s</%s>',[RenderData.ExtraTag,RenderData.ExtraTagClass,Result,RenderData.ExtraTag]);
 end;
 
 function TCustomDBBootstrapTableWidget.MakeButtonCol(aCol: TBootstrapTableColumn; aTableCol: TBSTableColumn): TBootstrapTableColumn;
@@ -1019,7 +1031,7 @@ var
     S:='';
     For I:=0 to Length(RenderData)-1 do
       S:=S+DoRenderButton(Row,RenderData[i],I);
-    Result:='<div class="btn-group" role="group">'+S+'</div>';
+    Result:='<div class="'+StylingClasses.ButtonGroupClass +'" role="group">'+S+'</div>';
 
   end;
 
@@ -1054,6 +1066,8 @@ begin
     begin
     A:=aTableCol.Actions[i];
     RenderData[i]:=Default(TRenderButtonData);
+    RenderData[i].ExtraTag:=StylingClasses.GroupedButtonExtraTag;
+    RenderData[i].ExtraTagClass:=StylingClasses.GroupedButtonExtraTagClass;
     RenderData[i].ButtonIconClass:=A.ButtonIconClass;
     RenderData[i].ButtonType:=A.ButtonType;
     RenderData[i].ButtonURL:=A.ButtonURL;
