@@ -108,6 +108,7 @@ Type
     Procedure Hide;
     Function HTMLTag : String; override;
     Property Showing : Boolean Read FShowing;
+    Property Reference;
     // Id of the modal toplevel element. If not set, the first child is used.
   Published
     Property ParentID;
@@ -472,7 +473,10 @@ begin
   NList:=Element.querySelectorAll('.modal-background, .modal-close, .modal-card-head .delete');
   for I:=0 to Nlist.length-1 do
     TJSHTMLElement(NList.Nodes[i]).addEventListener('click',@HideClick);
-  E:=References.FindElementByName('OK');
+  E:=References.FindElementByName(OKButtonName);
+  if (E<>Nil) then
+    E.addEventListener('click',@HideClick);
+  E:=References.FindElementByName(CancelButtonName);
   if (E<>Nil) then
     E.addEventListener('click',@HideClick);
   for I:=0 to References.Count-1 do
