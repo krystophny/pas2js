@@ -2290,12 +2290,16 @@ begin
     if (FElementID<>'') then
       begin
       El:=FindElement(FElementID);
+      FElement:=El;
       if Assigned(El) then
         begin
+        if Assigned(FBeforeRenderHTML) then
+          FBeforeRenderHTML(Self);
         ApplyWidgetSettings(el);
         HookupEvents(el);
+        if Assigned(FAfterRenderHTML) then
+          FAfterRenderHTML(Self);
         end;
-      FElement:=El;
       if Assigned(El) then
         ApplyData;
       RefreshReferences;// After data, so data can be used in selectors
