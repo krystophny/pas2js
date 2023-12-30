@@ -138,6 +138,8 @@ Type
   
   TCustomDBSelectWidget = class(TCustomSelectWidget)
   Private
+    FClearValue: String;
+    FClearValueText: String;
     FItemTemplate: String;
     FLink : TSelectLink;
     FItemField: String;
@@ -173,6 +175,7 @@ Type
     Function CreateOptionEnumerator: TSelectOptionEnumerator; override;
     procedure ActiveChanged; virtual;
     Procedure DoUnRender(aParent : TJSHTMLElement) ; override;
+    function CreateFixedElements(aSelect: TJSHTMLSelectElement): Integer; override;
   Protected
     // properties that can be published in descendents
     Property Datasource : TDatasource Read GetDatasource write SetDatasource;
@@ -181,6 +184,8 @@ Type
     Property ItemTemplate: String Read FItemTemplate Write SetItemTemplate;
     Property NullIsNotValue : Boolean Read FNullIsNotValue Write SetNullIsNotValue;
     Property Value : String Read GetValue Write SetValue;
+    Property ClearValue : String Read FClearValue Write FClearValue;
+    Property ClearValueText : String Read FClearValueText  Write FClearValueText;
   Public
     constructor Create(aOwner : TComponent); override;
     destructor destroy; override;
@@ -207,6 +212,9 @@ Type
     Property NullIsNotValue;
     property SelectedIndex;
     Property Multiple;
+    Property ClearValue;
+    Property ClearValueText;
+    Property Size;
   end;
 
 
@@ -375,6 +383,22 @@ begin
   if ExternalElement then
     Element.innerHTML:='';
   inherited DoUnRender(aParent);
+end;
+
+function TCustomDBSelectWidget.CreateFixedElements(aSelect: TJSHTMLSelectElement): Integer;
+var
+  O : TJSHTMLOptionElement;
+
+begin
+  Result:=0;
+  if ClearValueText<>'' then
+    begin
+    O:=TJSHTMLOptionElement(Document.createElement('OPTION'));
+    O.innerText:=ClearValueText;
+    O.value:=ClearValue;
+    aSelect.appendChild(O);
+    Result:=1;
+    end;
 end;
 
 constructor TCustomDBSelectWidget.Create(aOwner: TComponent);

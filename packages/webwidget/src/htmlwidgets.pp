@@ -483,6 +483,7 @@ Type
         Property Select: TCustomSelectWidget Read FSelect;
       end;
   Protected
+    function CreateFixedElements(aSelect: TJSHTMLSelectElement): Integer; virtual;
     function GetItemCount: Integer; virtual;
     Function CreateOptionEnumerator : TSelectOptionEnumerator; virtual; abstract;
     Procedure ApplyWidgetSettings(aElement: TJSHTMLElement); override;
@@ -2177,6 +2178,13 @@ begin
     SelectElement.Size:=FSize;
 end;
 
+Function TCustomSelectWidget.CreateFixedElements(aSelect: TJSHTMLSelectElement) : Integer;
+
+begin
+  if aSelect<>Nil then ;
+  Result:=0;
+end;
+
 procedure TCustomSelectWidget.BuildOptions(aSelect: TJSHTMLSelectElement);
 
 Var
@@ -2189,7 +2197,7 @@ begin
   SetLength(FOptions,0);
   aSelect.InnerHTML:='';
   // Rebuild
-  Idx:=0;
+  Idx:=CreateFixedElements(aSelect);
   enum:=CreateOptionEnumerator;
   While enum.MoveNext do
     begin
@@ -2226,8 +2234,8 @@ Var
 begin
   inherited ApplyWidgetSettings(aElement);
   el.multiple:=Self.Multiple;
-    if Size<>-1 then
-  el.Size:=Self.Size;
+  if Size<>-1 then
+    el.Size:=Self.Size;
   BuildOptions(el);
   // We need to force this.
   if SelectedIndex=-1 then
