@@ -124,8 +124,10 @@ Type
   end;
 
   TDBCustomHTMLInputElementAction = class(TDBCustomHTMLElementAction)
+  private
   Protected
     procedure DoKeyDown(aEvent: TJSEvent); override;
+    procedure DoEditChange(aEvent: TJSEvent); virtual;
     Procedure ActiveChanged; override;
     function NeedsClick(aEl: TJSElement): Boolean;
     Procedure StartEditing; override;
@@ -525,8 +527,16 @@ begin
   aEl.addEventListener(sEventKeyDown,@DoKeyDown);
   if NeedsClick(aEl) then
     aEl.addEventListener(sEventClick,@DoKeyDown);
+  aEl.addEventListener(SEventChange,@DoEditChange);
 end;
 
+
+procedure TDBCustomHTMLInputElementAction.DoEditChange(aEvent : TJSEvent);
+
+begin
+  if Link.Edit then
+    ElementToDataset;
+end;
 
 procedure TDBCustomHTMLInputElementAction.DoKeyDown(aEvent : TJSEvent);
 
