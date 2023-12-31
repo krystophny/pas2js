@@ -508,6 +508,9 @@ begin
     FEditClass:=IC.FEditClass;
     FInfoClass:=IC.FInfoClass;
     FReadonlyEditClass:=IC.FReadonlyEditClass;
+    FButtonGroupClass:=IC.FButtonGroupClass;
+    FGroupedButtonExtraTag:=IC.FGroupedButtonExtraTag;
+    FGroupedButtonExtraTagClass:=IC.FGroupedButtonExtraTagClass;
     end
   else
     inherited Assign(Source);
@@ -523,7 +526,6 @@ end;
 procedure TBSColumnAction.SetExtraAttributes(AValue: String);
 begin
   if FExtraAttributes=AValue then Exit;
-  Writeln('Setting extra attributes : ',aValue);
   FExtraAttributes:=AValue;
 end;
 
@@ -541,7 +543,6 @@ begin
   if Source is TBSColumnAction then
   begin
     Name:=aSource.Name;
-    Writeln('Copying ',ExtraAttributes,':=',aSource.ExtraAttributes);
     ExtraAttributes:=aSource.ExtraAttributes;
     ButtonURLTarget:=aSource.ButtonURLTarget;
     ButtonURL:=aSource.ButtonURL;
@@ -1074,7 +1075,6 @@ begin
     RenderData[i].ButtonURLTarget:=A.ButtonURLTarget;
     RenderData[i].ExtraAttributes:=A.ExtraAttributes+Format(' data-action-index="%d"',[I]);
     PrepareButtonRender(RenderData[I]);
-    Writeln('Attributes : ',I,': ',a.Name,' -> ',A.ExtraAttributes);
     if Assigned(aTableCol.OnButtonClick) then
       begin
       Result.events:=TJSObject.new;
