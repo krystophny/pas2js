@@ -1000,18 +1000,18 @@ type
   TJSSubtleCrypto = class external name 'SubtleCrypto'
   Private
   Public
-    function encrypt(algorithm :  TJSCryptoAlgorithmIdentifier; key : TJSCryptoKey; data : TJSBufferSource): TJSPromise;
-    function decrypt(algorithm : TJSCryptoAlgorithmIdentifier; key : TJSCryptoKey; data : TJSBufferSource): TJSPromise;
-    function sign(algorithm : TJSCryptoAlgorithmIdentifier; key : TJSCryptoKey; data : TJSBufferSource): TJSPromise;
-    function verify(algorithm : TJSCryptoAlgorithmIdentifier; key : TJSCryptoKey; signature : TJSBufferSource; data : TJSBufferSource): TJSPromise;
-    function digest(algorithm : TJSCryptoAlgorithmIdentifier; data : TJSBufferSource): TJSPromise;
+    function encrypt(algorithm :  TJSCryptoAlgorithmIdentifier; key : TJSCryptoKey; data : TJSBufferSource): TJSArrayBuffer; async;
+    function decrypt(algorithm : TJSCryptoAlgorithmIdentifier; key : TJSCryptoKey; data : TJSBufferSource): TJSArrayBuffer; async;
+    function sign(algorithm : TJSCryptoAlgorithmIdentifier; key : TJSCryptoKey; data : TJSBufferSource): TJSArrayBuffer; async;
+    function verify(algorithm : TJSCryptoAlgorithmIdentifier; key : TJSCryptoKey; signature : TJSBufferSource; data : TJSBufferSource): Boolean; async;
+    function digest(algorithm : TJSCryptoAlgorithmIdentifier; data : TJSBufferSource): TJSArrayBuffer; async;
     function generateKey(algorithm : TJSCryptoAlgorithmIdentifier; extractable : boolean; keyUsages : TJSCryptoKeyUsageDynArray): TJSPromise;
-    function deriveKey(algorithm : TJSCryptoAlgorithmIdentifier; baseKey : TJSCryptoKey; derivedKeyType : TJSCryptoAlgorithmIdentifier; extractable : boolean; keyUsages : TJSCryptoKeyUsageDynArray): TJSPromise;
-    function deriveBits(algorithm : TJSCryptoAlgorithmIdentifier; baseKey : TJSCryptoKey; length_ : NativeInt): TJSPromise;
-    function importKey(format : TJSCryptoKeyFormat; keyData : TJSObject; algorithm : TJSCryptoAlgorithmIdentifier; extractable : boolean; keyUsages : TJSCryptoKeyUsageDynArray): TJSPromise;
+    function deriveKey(algorithm : TJSCryptoAlgorithmIdentifier; baseKey : TJSCryptoKey; derivedKeyType : TJSCryptoAlgorithmIdentifier; extractable : boolean; keyUsages : TJSCryptoKeyUsageDynArray): TJSCryptoKey; async;
+    function deriveBits(algorithm : TJSCryptoAlgorithmIdentifier; baseKey : TJSCryptoKey; length_ : NativeInt): TJSArrayBuffer; async;
+    function importKey(format : TJSCryptoKeyFormat; keyData : TJSObject; algorithm : TJSCryptoAlgorithmIdentifier; extractable : boolean; keyUsages : TJSCryptoKeyUsageDynArray): TJSCryptoKey; async;
     function exportKey(format : TJSCryptoKeyFormat; key : TJSCryptoKey): TJSPromise;
-    function wrapKey(format : TJSCryptoKeyFormat; key : TJSCryptoKey; wrappingKey : TJSCryptoKey; wrapAlgorithm : TJSCryptoAlgorithmIdentifier): TJSPromise;
-    function unwrapKey(format : TJSCryptoKeyFormat; wrappedKey : TJSBufferSource; unwrappingKey : TJSCryptoKey; unwrapAlgorithm : TJSCryptoAlgorithmIdentifier; unwrappedKeyAlgorithm : TJSCryptoAlgorithmIdentifier; extractable : boolean; keyUsages : TJSCryptoKeyUsageDynArray): TJSPromise;
+    function wrapKey(format : TJSCryptoKeyFormat; key : TJSCryptoKey; wrappingKey : TJSCryptoKey; wrapAlgorithm : TJSCryptoAlgorithmIdentifier): TJSArrayBuffer; async;
+    function unwrapKey(format : TJSCryptoKeyFormat; wrappedKey : TJSBufferSource; unwrappingKey : TJSCryptoKey; unwrapAlgorithm : TJSCryptoAlgorithmIdentifier; unwrappedKeyAlgorithm : TJSCryptoAlgorithmIdentifier; extractable : boolean; keyUsages : TJSCryptoKeyUsageDynArray): TJSCryptoKey; async;
   end;
 
   { TJSCrypto }
