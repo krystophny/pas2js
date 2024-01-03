@@ -322,7 +322,8 @@ type
     property length : NativeInt read flength; 
     class function fromCharCode() : string; varargs;
     class function fromCodePoint() : string; varargs;
-    function anchor(const aName : string) : string;
+    function anchor(const aName : string) : string; deprecated;
+    function at(const index: Integer): String;
     function charAt(aIndex : NativeInt) : string;
     function charCodeAt(aIndex : NativeInt) : NativeInt;
     function codePointAt(aIndex : NativeInt) : NativeInt;
@@ -331,18 +332,25 @@ type
     function endsWith(aSearchString : string; Pos : NativeInt) : boolean; overload;
     function includes(aSearchString : string; Pos : NativeInt = 0) : boolean;
     function indexOf(aSearchString : String; Pos : NativeInt = 0) : Integer;
+    function isWellFormed: Boolean;
     function lastIndexOf(aSearchString : String) : NativeInt;overload;
     function lastIndexOf(aSearchString : String; Pos : NativeInt) : Integer;overload;
-    function link(aUrl : string) : String;
+    function link(aUrl : string) : String; deprecated;
     function localeCompare(aCompareString : string) : NativeInt; overload;
     function localeCompare(aCompareString : string; aLocales: string) : integer; overload;
     function localeCompare(compareString : string; locales: string; Options : TlocaleCompareOptions) : integer; overload;
     function match(aRegexp : TJSRegexp) : TStringDynArray; overload;
-    function match(aRegexp : String) : TStringDynArray;overload;
+    function match(aRegexp : String) : TStringDynArray; overload;
+    function matchAll(aRegexp : TJSRegexp) : TJSIterator; overload;
+    function matchAll(aRegexp : String) : TJSIterator; overload;
     {$IFDEF ECMAScript6}
     function normalize : string;
     function normalize(aForm : string) : string;
     {$ENDIF}
+    function padEnd(targetLength: Integer): String; overload;
+    function padEnd(targetLength: Integer; padString: String): String; overload;
+    function padStart(targetLength: Integer): String; overload;
+    function padStart(targetLength: Integer; padString: String): String; overload;
     function _repeat(aCount : NativeInt) : Integer; external name 'repeat';
     function replace(aRegexp : String; NewString : String) : String; overload;
     function replace(aRegexp : TJSRegexp; NewString : String) : String; overload;
@@ -376,8 +384,8 @@ type
     function split(aSeparator : array of string; aLimit : NativeInt) : TStringDynArray; overload;
     function startsWith(aSearchString : String) : Boolean; overload;
     function startsWith(aSearchString : String; aPosition : NativeInt) : Boolean; overload;
-    function substr(aStartIndex : NativeInt) : String; overload;
-    function substr(aStartIndex,aLength : NativeInt) : String; overload;
+    function substr(aStartIndex : NativeInt) : String; overload; deprecated;
+    function substr(aStartIndex,aLength : NativeInt) : String; overload; deprecated;
     function substring(aStartIndex : NativeInt) : String; overload;
     function substring(aStartIndex,aEndIndex : NativeInt) : String; overload;
     function toLocaleLowerCase : String;
@@ -385,7 +393,10 @@ type
     function toLowerCase : String;
     function toString : string;
     function toUpperCase : String;
+    function toWellFormed: String;
     function trim : string;
+    function trimEnd: String;
+    function trimStart: String;
     function valueOf : string;
   end;
 
@@ -995,6 +1006,55 @@ type
     constructor New(Target, Handler: TJSObject);
   end;
 
+  TJSNumber = class external name 'Number' (TJSFunction)
+  private
+    class var FEPSILON: Double; external name 'EPSILON';
+    class var FMAX_SAFE_INTEGER: Int64; external name 'MAX_SAFE_INTEGER';
+    class var FMAX_VALUE: Double; external name 'MAX_VALUE';
+    class var FMIN_SAFE_INTEGER: Int64; external name 'MIN_SAFE_INTEGER';
+    class var FMIN_VALUE: Double; external name 'MIN_VALUE';
+    class var FNaN: Double; external name 'NaN';
+    class var FNEGATIVE_INFINITY: TJSNumber; external name 'NEGATIVE_INFINITY';
+    class var FPOSITIVE_INFINITY: TJSNumber; external name 'POSITIVE_INFINITY';
+  public
+    constructor New(const value: Double);
+
+    class function isFinite(const value: Double): Boolean; overload;
+    class function isFinite(const value: Integer): Boolean; overload;
+    class function isFinite(const value: TJSNumber): Boolean; overload;
+    class function isInteger(const value: Double): Boolean; overload;
+    class function isInteger(const value: Integer): Boolean; overload;
+    class function isInteger(const value: TJSNumber): Boolean; overload;
+    class function isNaN(const value: Double): Boolean; overload;
+    class function isNaN(const value: Integer): Boolean; overload;
+    class function isNaN(const value: TJSNumber): Boolean; overload;
+    class function isSafeInteger(const value: Double): Boolean; overload;
+    class function isSafeInteger(const value: Integer): Boolean; overload;
+    class function isSafeInteger(const value: TJSNumber): Boolean; overload;
+    class function parseFloat(const value: String): TJSNumber; overload;
+    class function parseInt(const value: String): TJSNumber; overload;
+
+    function toExponential: TJSString; overload;
+    function toExponential(const fractionDigits: Integer): TJSString; overload;
+    function toFixed: TJSString; overload;
+    function toFixed(const digits: Integer): TJSString; overload;
+    function toLocaleString: TJSString; overload;
+    function toLocaleString(const locale: String): TJSString; overload;
+    function toPrecision: TJSString; overload;
+    function toPrecision(const precision: Integer): TJSString; overload;
+    function toString: TJSString; overload;
+    function toString(const radix: Integer): TJSString; overload;
+    function valueOf: Double;
+
+    class property EPSILON: Double read FEPSILON;
+    class property MAX_SAFE_INTEGER: Int64 read FMAX_SAFE_INTEGER;
+    class property MAX_VALUE: Double read FMAX_VALUE;
+    class property MIN_SAFE_INTEGER: Int64 read FMIN_SAFE_INTEGER;
+    class property MIN_VALUE: Double read FMIN_VALUE;
+    class property NaN: Double read FNaN;
+    class property NEGATIVE_INFINITY: TJSNumber read FNEGATIVE_INFINITY;
+    class property POSITIVE_INFINITY: TJSNumber read FPOSITIVE_INFINITY;
+  end;
 
 var
   // JSArguments can be used in procedures/functions to provide access to the 'arguments' array.
