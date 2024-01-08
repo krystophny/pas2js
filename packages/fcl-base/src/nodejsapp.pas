@@ -23,7 +23,7 @@ unit NodeJSApp;
 interface
 
 uses
-{$IFNDEF FPC_DOTTEDUNITS} 
+{$IFDEF FPC_DOTTEDUNITS}
   NodeApi.JS, System.Classes, System.SysUtils, System.Types, JSApi.JS, Fcl.CustApp;
 {$ELSE}
   NodeJS, Classes, SysUtils, Types, JS, CustApp;
