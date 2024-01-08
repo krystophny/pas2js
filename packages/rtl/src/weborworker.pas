@@ -1168,7 +1168,7 @@ type
   private
     FSignal: TJSAbortSignal; external name 'signal';
   Public
-    Procedure abort;
+    Procedure abort; reintroduce;
     Procedure abort(aReason :  JSValue);
     Property signal : TJSAbortSignal Read FSignal;
   end;
