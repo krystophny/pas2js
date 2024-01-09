@@ -11,6 +11,15 @@ uses
 
 const
   DefaultCfgFilename = 'pas2jsrelease.ini';
+  {$IFDEF Linux}
+  BuildOS = 'linux';
+  {$ENDIF}
+  {$IFDEF Windows}
+  BuildOS = 'windows';
+  {$ENDIF}
+  {$IFDEF MacOS}
+  BuildOS = 'macos';
+  {$ENDIF}
 
 type
   TGetDefaultEvent = function(): string of object;
@@ -23,24 +32,31 @@ type
     procedure DoRun; override;
     procedure Err(const Msg: string);
   public
-    CfgFilename: string;
-    Ini: TIniFile;
-    SourceDir: string; // cloned git release
     BuildDir: string;
-    LazBuildFilename: string;
-    Verbosity: integer;
+    BuildSourceDir: string;
+    CfgFilename: string;
+    FPCReleaseFilename: string; // released compiler binary
+    FPCDevelFilename: string; // development compiler binary
+    Ini: TIniFile;
+    LazBuildFilename: string; // lazbuild binary
     Pas2jsVersion: string;
+    Simulate: boolean;
+    SourceDir: string; // cloned git release
+    Verbosity: integer;
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
     procedure WriteHelp; virtual;
     procedure ReadVersion;
     procedure CheckForgottenWriteln;
+    procedure CreateBuildSourceDir;
+    procedure BuildPas2js;
     function GetDefaultCfgFilename: string;
     function GetDefaultBuildDir: string;
     function GetDefaultLazBuild: string;
     function GetOption_String(ShortOption: char; const LongOption: string): string;
     function GetOption_Directory(ShortOption: char; const LongOption: string; const GetDefaultFunc: TGetDefaultEvent): string;
     function GetOption_Executable(ShortOption: char; const LongOption: string; const GetDefaultFunc: TGetDefaultEvent): string;
+    procedure CheckExecutable(const Filename, ParamName: string);
   end;
 
 { TPas2jsReleaseCreator }
@@ -64,7 +80,8 @@ var
 begin
   // quick check parameters
   ErrorMsg:=CheckOptions('hb:c:s:l:qvx', ['help', 'config:', 'lazbuild:',
-    'builddir:', 'sourcedir:', 'quiet', 'verbose', 'execute']);
+    'builddir:', 'sourcedir:', 'quiet', 'verbose', 'execute',
+    'fpcrelease:', 'fpcdevel:']);
   if ErrorMsg<>'' then
     Err(ErrorMsg);
 
@@ -75,6 +92,7 @@ begin
     Exit;
   end;
 
+  Simulate:=true;
   if HasOption('q','quiet') then
     dec(Verbosity);
   if HasOption('v','verbose') then
@@ -99,15 +117,21 @@ begin
   SourceDir:=GetOption_Directory('s','sourcedir',nil);
   if SourceDir='' then
     Err('missing source directory');
+  FPCReleaseFilename:=GetOption_Executable(' ','fpcrelease',nil);
+  FPCDevelFilename:=GetOption_Executable(' ','fpcdevel',nil);
 
   // write options
   if Verbosity>=0 then begin
     Log(etInfo,'BuildDir: "'+BuildDir+'"');
     Log(etInfo,'LazBuild: "'+LazBuildFilename+'"');
+    Log(etInfo,'FPCRelease: "'+FPCReleaseFilename+'"');
+    Log(etInfo,'FPCDevel: "'+FPCDevelFilename+'"');
     Log(etInfo,'SourceDir: "'+SourceDir+'"');
   end;
 
-  if not HasOption('x','execute') then
+  if HasOption('x','execute') then
+    Simulate:=true
+  else
     Log(etInfo,'Simulating...');
 
   // preflight checks
@@ -115,13 +139,15 @@ begin
     Err('BuildDir missing: "'+BuildDir+'"');
   if not DirectoryExists(SourceDir) then
     Err('SourceDir missing: "'+SourceDir+'"');
-  if not FileExists(LazBuildFilename) then
-    Err('LazBuild missing: "'+LazBuildFilename+'"');
-  if not FileIsExecutable(LazBuildFilename) then
-    Err('LazBuild not executable: "'+LazBuildFilename+'"');
+  CheckExecutable(LazBuildFilename,'lazbuild');
+  CheckExecutable(FPCReleaseFilename,'fpcrelease');
+  CheckExecutable(FPCDevelFilename,'fpcdevel');
 
   ReadVersion;
   CheckForgottenWriteln;
+
+  // build
+  CreateBuildSourceDir;
 
   // stop program loop
   Terminate;
@@ -156,6 +182,8 @@ begin
   writeln('                Default: '+GetDefaultBuildDir);
   writeln('-c <filename>, --config=<filename>: Path of ini file with a Main section.');
   writeln('                Default: '+GetDefaultCfgFilename);
+  writeln('--fpcrelease=<filename>: Path of released version fpc executable.');
+  writeln('--fpcdevel=<filename>: Path of development version fpc executable.');
   writeln('-l <filename>, --lazbuild=<filename>: Path of lazbuild executable.');
   writeln('                Default: '+GetDefaultLazBuild);
   writeln('-s <filename>, --sourcedir=<filename>: git directory of the pas2js release');
@@ -249,6 +277,30 @@ begin
   Check(SourceDir+'compiler'+PathDelim+'utils'+PathDelim+'pas2js');
 end;
 
+procedure TPas2jsReleaseCreator.CreateBuildSourceDir;
+begin
+  BuildSourceDir:=BuildDir+'pas2js-'+lowercase({$i %FPCTargetOS%})+'-'+lowercase({$i %FPCTargetCPU%})+'-'+Pas2jsVersion;
+  if DirectoryExists(BuildSourceDir) then begin
+    if Verbosity>=0 then
+      Log(etInfo,'Deleting directory "'+BuildSourceDir+'"');
+    if not Simulate then begin
+      if not DeleteDirectory(BuildSourceDir,false) then
+        Err('Unable to delete directory "'+BuildSourceDir+'"');
+    end;
+  end;
+  if Simulate then begin
+    Log(etInfo,'Simulate: create directory "'+BuildSourceDir+'"')
+  end else begin
+    if not ForceDirectory(BuildSourceDir) then
+      Err('Unable to create directory "'+BuildSourceDir+'"');
+  end;
+end;
+
+procedure TPas2jsReleaseCreator.BuildPas2js;
+begin
+
+end;
+
 function TPas2jsReleaseCreator.GetDefaultCfgFilename: string;
 begin
   Result:=ExpandFileName(DefaultCfgFilename);
@@ -267,9 +319,16 @@ end;
 function TPas2jsReleaseCreator.GetOption_String(ShortOption: char;
   const LongOption: string): string;
 begin
-  if HasOption(ShortOption,LongOption) then begin
-    Result:=GetOptionValue(ShortOption,LongOption);
-    exit;
+  if ShortOption<=' ' then begin
+    if HasOption(LongOption) then begin
+      Result:=GetOptionValue(LongOption);
+      exit;
+    end;
+  end else begin
+    if HasOption(ShortOption,LongOption) then begin
+      Result:=GetOptionValue(ShortOption,LongOption);
+      exit;
+    end;
   end;
   if Ini<>nil then begin
     Result:=Ini.ReadString('Main',LongOption,'');
@@ -291,8 +350,11 @@ end;
 function TPas2jsReleaseCreator.GetOption_Executable(ShortOption: char;
   const LongOption: string; const GetDefaultFunc: TGetDefaultEvent): string;
 begin
-  Result:=GetOption_String(ShortOption,LongOption);
-  if Result='' then
+  if ShortOption<=' ' then
+    Result:=GetOption_String(ShortOption,LongOption)
+  else
+    Result:=GetOption_String(ShortOption,LongOption);
+  if (Result='') and Assigned(GetDefaultFunc) then
     Result:=GetDefaultFunc();
   if Result='' then exit;
   if FilenameIsAbsolute(Result) then exit;
@@ -300,6 +362,16 @@ begin
     Result:=ExpandFileName(Result)
   else
     Result:=FindDefaultExecutablePath(Result);
+end;
+
+procedure TPas2jsReleaseCreator.CheckExecutable(const Filename, ParamName: string);
+begin
+  if Filename='' then
+    Err('Missing parameter '+ParamName);
+  if not FileExists(Filename) then
+    Err('File '+ParamName+' not found: "'+Filename+'"');
+  if not FileIsExecutable(Filename) then
+    Err('File '+ParamName+' not executable: "'+Filename+'"');
 end;
 
 var
