@@ -6,20 +6,11 @@ uses
   {$IFDEF UNIX}
   cthreads,
   {$ENDIF}
-  LazUTF8, Classes, SysUtils, CustApp, IniFiles, LazFileUtils, FileUtil,
-  FindWriteln;
+  LazUTF8, Classes, SysUtils, Types, CustApp, IniFiles, process, LazFileUtils,
+  FileUtil, FindWriteln;
 
 const
   DefaultCfgFilename = 'pas2jsrelease.ini';
-  {$IFDEF Linux}
-  BuildOS = 'linux';
-  {$ENDIF}
-  {$IFDEF Windows}
-  BuildOS = 'windows';
-  {$ENDIF}
-  {$IFDEF MacOS}
-  BuildOS = 'macos';
-  {$ENDIF}
 
 type
   TGetDefaultEvent = function(): string of object;
@@ -39,6 +30,7 @@ type
     FPCDevelFilename: string; // development compiler binary
     Ini: TIniFile;
     LazBuildFilename: string; // lazbuild binary
+    MakeFilename: string; // 'make' binary
     Pas2jsVersion: string;
     Simulate: boolean;
     SourceDir: string; // cloned git release
@@ -48,11 +40,14 @@ type
     procedure WriteHelp; virtual;
     procedure ReadVersion;
     procedure CheckForgottenWriteln;
+    procedure CleanSources;
     procedure CreateBuildSourceDir;
     procedure BuildPas2js;
+    procedure RunTool(WorkDir, Exe: string; const ProcParams: TStringDynArray);
     function GetDefaultCfgFilename: string;
     function GetDefaultBuildDir: string;
     function GetDefaultLazBuild: string;
+    function GetDefaultMake: string;
     function GetOption_String(ShortOption: char; const LongOption: string): string;
     function GetOption_Directory(ShortOption: char; const LongOption: string; const GetDefaultFunc: TGetDefaultEvent): string;
     function GetOption_Executable(ShortOption: char; const LongOption: string; const GetDefaultFunc: TGetDefaultEvent): string;
@@ -119,6 +114,7 @@ begin
     Err('missing source directory');
   FPCReleaseFilename:=GetOption_Executable(' ','fpcrelease',nil);
   FPCDevelFilename:=GetOption_Executable(' ','fpcdevel',nil);
+  MakeFilename:=GetOption_Executable(' ','make',@GetDefaultMake);
 
   // write options
   if Verbosity>=0 then begin
@@ -126,11 +122,12 @@ begin
     Log(etInfo,'LazBuild: "'+LazBuildFilename+'"');
     Log(etInfo,'FPCRelease: "'+FPCReleaseFilename+'"');
     Log(etInfo,'FPCDevel: "'+FPCDevelFilename+'"');
+    Log(etInfo,'Make: "'+MakeFilename+'"');
     Log(etInfo,'SourceDir: "'+SourceDir+'"');
   end;
 
   if HasOption('x','execute') then
-    Simulate:=true
+    Simulate:=false
   else
     Log(etInfo,'Simulating...');
 
@@ -142,12 +139,15 @@ begin
   CheckExecutable(LazBuildFilename,'lazbuild');
   CheckExecutable(FPCReleaseFilename,'fpcrelease');
   CheckExecutable(FPCDevelFilename,'fpcdevel');
+  CheckExecutable(MakeFilename,'make');
 
   ReadVersion;
   CheckForgottenWriteln;
 
   // build
+  CleanSources;
   CreateBuildSourceDir;
+  BuildPas2js;
 
   // stop program loop
   Terminate;
@@ -186,6 +186,7 @@ begin
   writeln('--fpcdevel=<filename>: Path of development version fpc executable.');
   writeln('-l <filename>, --lazbuild=<filename>: Path of lazbuild executable.');
   writeln('                Default: '+GetDefaultLazBuild);
+  writeln('--make=<filename>: Path of gnu make executable.');
   writeln('-s <filename>, --sourcedir=<filename>: git directory of the pas2js release');
   writeln('-x, --execute: Do not simulate, execute the commands');
 end;
@@ -277,6 +278,11 @@ begin
   Check(SourceDir+'compiler'+PathDelim+'utils'+PathDelim+'pas2js');
 end;
 
+procedure TPas2jsReleaseCreator.CleanSources;
+begin
+  RunTool(SourceDir,MakeFilename,['clean']);
+end;
+
 procedure TPas2jsReleaseCreator.CreateBuildSourceDir;
 begin
   BuildSourceDir:=BuildDir+'pas2js-'+lowercase({$i %FPCTargetOS%})+'-'+lowercase({$i %FPCTargetCPU%})+'-'+Pas2jsVersion;
@@ -301,6 +307,68 @@ begin
 
 end;
 
+procedure TPas2jsReleaseCreator.RunTool(WorkDir, Exe: string;
+  const ProcParams: TStringDynArray);
+var
+  TheProcess: TProcess;
+  i, OutLen, LineStart: Integer;
+  OutputLine, buf, CmdLine: String;
+begin
+  if not FileIsExecutable(Exe) then
+    Err('Not an executable: '+Exe);
+  if (not Simulate) and (not DirectoryExists(WorkDir)) then
+    Err('Workdir missing: '+WorkDir);
+
+  TheProcess:=TProcess.Create(nil);
+  try
+    TheProcess.Executable := Exe;
+    CmdLine:=QuotedStr(Exe);
+    for i:=0 to length(ProcParams)-1 do begin
+      CmdLine+=' '+QuotedStr(ProcParams[i]);
+      TheProcess.Parameters.Add(ProcParams[i]);
+    end;
+    TheProcess.Options:= [poUsePipes, poStdErrToOutPut];
+    TheProcess.ShowWindow := swoHide;
+    TheProcess.CurrentDirectory:=WorkDir;
+
+    if Simulate then begin
+      Log(etInfo,'Simulate Running: WorkDir="'+WorkDir+'" Cmd: '+CmdLine);
+      exit;
+    end;
+    Log(etInfo,'Running: WorkDir="'+WorkDir+'" Cmd: '+CmdLine);
+
+    TheProcess.Execute;
+    OutputLine:='';
+    SetLength(buf{%H-},4096);
+    repeat
+      if (TheProcess.Output<>nil) then begin
+        OutLen:=TheProcess.Output.Read(Buf[1],length(Buf));
+      end else
+        OutLen:=0;
+      LineStart:=1;
+      i:=1;
+      while i<=OutLen do begin
+        if Buf[i] in [#10,#13] then begin
+          OutputLine:=OutputLine+copy(Buf,LineStart,i-LineStart);
+          writeln(OutputLine);
+          OutputLine:='';
+          if (i<OutLen) and (Buf[i+1] in [#10,#13]) and (Buf[i]<>Buf[i+1])
+          then
+            inc(i);
+          LineStart:=i+1;
+        end;
+        inc(i);
+      end;
+      OutputLine:=OutputLine+copy(Buf,LineStart,OutLen-LineStart+1);
+    until OutLen=0;
+    if OutputLine<>'' then
+      writeln(OutputLine);
+    TheProcess.WaitOnExit;
+  finally
+    TheProcess.Free;
+  end;
+end;
+
 function TPas2jsReleaseCreator.GetDefaultCfgFilename: string;
 begin
   Result:=ExpandFileName(DefaultCfgFilename);
@@ -314,6 +382,11 @@ end;
 function TPas2jsReleaseCreator.GetDefaultLazBuild: string;
 begin
   Result:='lazbuild';
+end;
+
+function TPas2jsReleaseCreator.GetDefaultMake: string;
+begin
+  Result:='make';
 end;
 
 function TPas2jsReleaseCreator.GetOption_String(ShortOption: char;
