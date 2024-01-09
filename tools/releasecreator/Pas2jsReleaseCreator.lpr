@@ -279,8 +279,49 @@ begin
 end;
 
 procedure TPas2jsReleaseCreator.CleanSources;
+
+  procedure Clean(Dir: string);
+  var
+    Info: TRawByteSearchRec;
+    Ext, Filename: String;
+  begin
+    Dir:=AppendPathDelim(Dir);
+    if FindFirst(Dir+AllFilesMask,faAnyFile,Info)=0 then begin
+      repeat
+        if (Info.Name='') or (Info.Name='.') or (Info.Name='..') then continue;
+        if (Info.Attr and faDirectory)>0 then begin
+          Clean(Dir+Info.Name);
+        end
+        else begin
+          Ext:=lowercase(ExtractFileExt(Info.Name));
+          case Ext of
+          '.ppu','.o','.rsj','.lib','.dylib':
+            begin
+              Filename:=Dir+Info.Name;
+              if Simulate then begin
+                if Verbosity>0 then
+                  Log(etInfo,'Simulate Deleting "'+Filename+'"');
+              end
+              else begin
+                if DeleteFile(Filename) then begin
+                  if Verbosity>0 then
+                    Log(etInfo,'Deleted "'+Filename+'"');
+                end else begin
+                  Err('Unable to delete "'+Filename+'"');
+                end;
+              end;
+            end;
+          end;
+        end;
+      until FindNext(Info)<>0;
+    end;
+  end;
+
 begin
+  // make clean
   RunTool(SourceDir,MakeFilename,['clean']);
+  // delete files
+  Clean(SourceDir);
 end;
 
 procedure TPas2jsReleaseCreator.CreateBuildSourceDir;
