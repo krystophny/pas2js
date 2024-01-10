@@ -41,9 +41,12 @@ type
     procedure ReadVersion;
     procedure CheckForgottenWriteln;
     procedure CleanSources;
-    procedure CreateBuildSourceDir;
-    procedure BuildPas2js;
-    procedure RunTool(WorkDir, Exe: string; const ProcParams: TStringDynArray);
+    procedure CreateBuildSourceDir(const TargetOS, TargetCPU: string);
+    procedure BuildPas2js(const TargetOS, TargetCPU: string);
+    procedure RunTool(WorkDir, Exe: string; const ProcParams: TStringDynArray); overload;
+    procedure RunTool(WorkDir, Exe: string; ProcParams: TStringList); overload;
+    procedure ForceDir(Dir, DirTitle: string);
+    function Quote(const s: string): string;
     function GetDefaultCfgFilename: string;
     function GetDefaultBuildDir: string;
     function GetDefaultLazBuild: string;
@@ -72,6 +75,7 @@ end;
 procedure TPas2jsReleaseCreator.DoRun;
 var
   ErrorMsg: String;
+  TargetOS, TargetCPU: String;
 begin
   // quick check parameters
   ErrorMsg:=CheckOptions('hb:c:s:l:qvx', ['help', 'config:', 'lazbuild:',
@@ -146,8 +150,11 @@ begin
 
   // build
   CleanSources;
-  CreateBuildSourceDir;
-  BuildPas2js;
+
+  TargetOS:=lowercase({$i %FPCTargetOS%});
+  TargetCPU:=lowercase({$i %FPCTargetCPU%});
+  CreateBuildSourceDir(TargetOS,TargetCPU);
+  BuildPas2js(TargetOS,TargetCPU);
 
   // stop program loop
   Terminate;
@@ -315,6 +322,7 @@ procedure TPas2jsReleaseCreator.CleanSources;
         end;
       until FindNext(Info)<>0;
     end;
+    FindClose(Info);
   end;
 
 begin
@@ -324,9 +332,10 @@ begin
   Clean(SourceDir);
 end;
 
-procedure TPas2jsReleaseCreator.CreateBuildSourceDir;
+procedure TPas2jsReleaseCreator.CreateBuildSourceDir(const TargetOS,
+  TargetCPU: string);
 begin
-  BuildSourceDir:=BuildDir+'pas2js-'+lowercase({$i %FPCTargetOS%})+'-'+lowercase({$i %FPCTargetCPU%})+'-'+Pas2jsVersion;
+  BuildSourceDir:=BuildDir+'pas2js-'+TargetOS+'-'+TargetCPU+'-'+Pas2jsVersion;
   if DirectoryExists(BuildSourceDir) then begin
     if Verbosity>=0 then
       Log(etInfo,'Deleting directory "'+BuildSourceDir+'"');
@@ -340,16 +349,67 @@ begin
   end else begin
     if not ForceDirectory(BuildSourceDir) then
       Err('Unable to create directory "'+BuildSourceDir+'"');
+    Log(etInfo,'Created directory "'+BuildSourceDir+'"')
   end;
 end;
 
-procedure TPas2jsReleaseCreator.BuildPas2js;
+procedure TPas2jsReleaseCreator.BuildPas2js(const TargetOS, TargetCPU: string);
+var
+  WorkDir, SrcCompilerDir, PkgSrcDir, UnitOutDir, BinOutDir: String;
+  ProcParams: TStringList;
 begin
+  ProcParams:=TStringList.Create;
+  try
+    SrcCompilerDir:=SourceDir+'compiler'+PathDelim;
 
+    WorkDir:=SrcCompilerDir+'utils'+PathDelim+'pas2js';
+
+    PkgSrcDir:=SrcCompilerDir+'packages'+PathDelim;
+    ProcParams.Add('-Fu'+PkgSrcDir+'fcl-js'+PathDelim+'src');
+    ProcParams.Add('-Fu'+PkgSrcDir+'fcl-json'+PathDelim+'src');
+    ProcParams.Add('-Fu'+PkgSrcDir+'fcl-passrc'+PathDelim+'src');
+    ProcParams.Add('-Fu'+PkgSrcDir+'pastojs'+PathDelim+'src');
+
+    ProcParams.Add('-B');
+    ProcParams.Add('-MObjFPC');
+    ProcParams.Add('-O1');
+    ProcParams.Add('-Schi');
+    ProcParams.Add('-vew');
+
+    UnitOutDir:=SourceDir+'units'+PathDelim+TargetCPU+'-'+TargetOS;
+    ForceDir(UnitOutDir,'unit output');
+    ProcParams.Add('-FU'+UnitOutDir);
+
+    BinOutDir:=SourceDir+'bin'+PathDelim+TargetCPU+'-'+TargetOS;
+    ForceDir(BinOutDir,'binary output');
+    ProcParams.Add('-FE'+BinOutDir);
+
+    ProcParams.Add('pas2js.pp');
+
+    RunTool(WorkDir,FPCReleaseFilename,ProcParams);
+  finally
+    ProcParams.Free;
+  end;
 end;
 
 procedure TPas2jsReleaseCreator.RunTool(WorkDir, Exe: string;
   const ProcParams: TStringDynArray);
+var
+  sl: TStringList;
+  i: Integer;
+begin
+  sl:=TStringList.Create;
+  try
+    for i:=0 to length(ProcParams)-1 do
+      sl.Add(ProcParams[i]);
+    RunTool(WorkDir,Exe,sl);
+  finally
+    sl.Free;
+  end;
+end;
+
+procedure TPas2jsReleaseCreator.RunTool(WorkDir, Exe: string;
+  ProcParams: TStringList);
 var
   TheProcess: TProcess;
   i, OutLen, LineStart: Integer;
@@ -357,21 +417,22 @@ var
 begin
   if not FileIsExecutable(Exe) then
     Err('Not an executable: '+Exe);
+  if DirectoryExists(Exe) then
+    Err('Not an executable: '+Exe);
   if (not Simulate) and (not DirectoryExists(WorkDir)) then
     Err('Workdir missing: '+WorkDir);
 
   TheProcess:=TProcess.Create(nil);
   try
     TheProcess.Executable := Exe;
-    CmdLine:=QuotedStr(Exe);
-    for i:=0 to length(ProcParams)-1 do begin
-      CmdLine+=' '+QuotedStr(ProcParams[i]);
-      TheProcess.Parameters.Add(ProcParams[i]);
-    end;
-    TheProcess.Options:= [poUsePipes, poStdErrToOutPut];
+    TheProcess.Parameters := ProcParams;
+    TheProcess.Options := [poUsePipes, poStdErrToOutput];
     TheProcess.ShowWindow := swoHide;
-    TheProcess.CurrentDirectory:=WorkDir;
+    TheProcess.CurrentDirectory := WorkDir;
 
+    CmdLine:=Quote(Exe);
+    for i:=0 to ProcParams.Count-1 do
+      CmdLine+=' '+Quote(ProcParams[i]);
     if Simulate then begin
       Log(etInfo,'Simulate Running: WorkDir="'+WorkDir+'" Cmd: '+CmdLine);
       exit;
@@ -393,8 +454,7 @@ begin
           OutputLine:=OutputLine+copy(Buf,LineStart,i-LineStart);
           writeln(OutputLine);
           OutputLine:='';
-          if (i<OutLen) and (Buf[i+1] in [#10,#13]) and (Buf[i]<>Buf[i+1])
-          then
+          if (i<OutLen) and (Buf[i+1] in [#10,#13]) and (Buf[i]<>Buf[i+1]) then
             inc(i);
           LineStart:=i+1;
         end;
@@ -405,9 +465,28 @@ begin
     if OutputLine<>'' then
       writeln(OutputLine);
     TheProcess.WaitOnExit;
+    if TheProcess.ExitStatus<>0 then
+      Err('ExitStatus: '+IntToStr(TheProcess.ExitStatus));
+    if TheProcess.ExitCode<>0 then
+      Err('ExitCode: '+IntToStr(TheProcess.ExitCode));
   finally
     TheProcess.Free;
   end;
+end;
+
+procedure TPas2jsReleaseCreator.ForceDir(Dir, DirTitle: string);
+begin
+  if DirectoryExists(Dir) then exit;
+  if Simulate then exit;
+  if ForceDirectories(Dir) then exit;
+  Err('Unable to create '+DirTitle+' directory "'+Dir+'"');
+end;
+
+function TPas2jsReleaseCreator.Quote(const s: string): string;
+begin
+  Result:=s;
+  if Pos(' ',Result)<1 then exit;
+  Result:=QuotedStr(s);
 end;
 
 function TPas2jsReleaseCreator.GetDefaultCfgFilename: string;
