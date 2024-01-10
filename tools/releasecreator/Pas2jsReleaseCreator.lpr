@@ -1,5 +1,7 @@
 program Pas2jsReleaseCreator;
 
+{ #todo -oMattias : remove folder scripts }
+
 {$mode objfpc}{$H+}
 
 uses
@@ -387,7 +389,9 @@ begin
   // make clean
   RunTool(SourceDir,MakeFilename,['clean']);
   // delete files
-  Clean(SourceDir);
+  Clean(SourceDir+'packages');
+  Clean(SourceDir+'demo');
+  Clean(SourceDir+'tools');
 end;
 
 procedure TPas2jsReleaseCreator.CreateBuildSourceDir(const TargetOS,
@@ -552,7 +556,7 @@ begin
   if not DirectoryExists(BuildDir_Sources) then
     Err('TPas2jsReleaseCreator.CreateZip: Empty BuildDir_Sources');
   Dir:=ExtractFilename(ChompPathDelim(BuildDir_Sources));
-  Filename:=Dir+'.zip';
+  Filename:=BuildDir+Dir+'.zip';
   RunTool(BuildDir,ZipFilename,['-r',Filename,Dir]);
   s:=IntToStr(FileSize(Filename));
   Log(etInfo,'Created '+Filename+' Size='+s);
