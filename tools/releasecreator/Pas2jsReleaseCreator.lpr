@@ -157,12 +157,13 @@ begin
   // build
   CleanSources;
 
-  TargetOS:=lowercase({$i %FPCTargetOS%});
-  TargetCPU:=lowercase({$i %FPCTargetCPU%});
+  TargetOS:=GetCompiledTargetOS;
+  TargetCPU:=GetCompiledTargetCPU;
   CreateBuildSourceDir(TargetOS,TargetCPU);
-  BuildTools(TargetOS,TargetCPU);
+  //BuildTools(TargetOS,TargetCPU);
   CopySourceFolders;
   CopyRTL;
+  { #todo -oMattias : zip }
 
   // stop program loop
   Terminate;
@@ -270,6 +271,9 @@ begin
     Pas2jsVersion:=IntToStr(Parts[vMajor])+'.'+IntToStr(Parts[vMinor])+'.'+IntToStr(Parts[vRelease]);
     if Verbosity>=0 then
       Log(etInfo,'Pas2js version is '+Pas2jsVersion);
+
+    { #todo -oMattias : Read version in rtl.js }
+
   finally
     sl.Free;
   end;
