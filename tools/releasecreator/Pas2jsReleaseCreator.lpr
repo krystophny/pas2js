@@ -159,7 +159,7 @@ begin
   TargetOS:=lowercase({$i %FPCTargetOS%});
   TargetCPU:=lowercase({$i %FPCTargetCPU%});
   CreateBuildSourceDir(TargetOS,TargetCPU);
-  //BuildTools(TargetOS,TargetCPU);
+  BuildTools(TargetOS,TargetCPU);
   CopySourceFolders;
 
   // stop program loop
