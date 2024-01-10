@@ -7,7 +7,7 @@ uses
   cthreads,
   {$ENDIF}
   LazUTF8, Classes, SysUtils, Types, CustApp, IniFiles, process, LazFileUtils,
-  FileUtil, FindWriteln;
+  FileUtil, FPCAdds, FindWriteln;
 
 const
   DefaultCfgFilename = 'pas2jsrelease.ini';
@@ -24,7 +24,8 @@ type
     procedure Err(const Msg: string);
   public
     BuildDir: string;
-    BuildSourceDir: string;
+    BuildDir_Sources: string;
+    BuildDir_Bin: string;
     CfgFilename: string;
     FPCReleaseFilename: string; // released compiler binary
     FPCDevelFilename: string; // development compiler binary
@@ -42,7 +43,7 @@ type
     procedure CheckForgottenWriteln;
     procedure CleanSources;
     procedure CreateBuildSourceDir(const TargetOS, TargetCPU: string);
-    procedure BuildPas2js(const TargetOS, TargetCPU: string);
+    procedure BuildTools(const TargetOS, TargetCPU: string);
     procedure RunTool(WorkDir, Exe: string; const ProcParams: TStringDynArray); overload;
     procedure RunTool(WorkDir, Exe: string; ProcParams: TStringList); overload;
     procedure ForceDir(Dir, DirTitle: string);
@@ -51,6 +52,7 @@ type
     function GetDefaultBuildDir: string;
     function GetDefaultLazBuild: string;
     function GetDefaultMake: string;
+    function GetLibExt(TargetOS: string = ''): string;
     function GetOption_String(ShortOption: char; const LongOption: string): string;
     function GetOption_Directory(ShortOption: char; const LongOption: string; const GetDefaultFunc: TGetDefaultEvent): string;
     function GetOption_Executable(ShortOption: char; const LongOption: string; const GetDefaultFunc: TGetDefaultEvent): string;
@@ -154,7 +156,7 @@ begin
   TargetOS:=lowercase({$i %FPCTargetOS%});
   TargetCPU:=lowercase({$i %FPCTargetCPU%});
   CreateBuildSourceDir(TargetOS,TargetCPU);
-  BuildPas2js(TargetOS,TargetCPU);
+  BuildTools(TargetOS,TargetCPU);
 
   // stop program loop
   Terminate;
@@ -335,60 +337,93 @@ end;
 procedure TPas2jsReleaseCreator.CreateBuildSourceDir(const TargetOS,
   TargetCPU: string);
 begin
-  BuildSourceDir:=BuildDir+'pas2js-'+TargetOS+'-'+TargetCPU+'-'+Pas2jsVersion;
-  if DirectoryExists(BuildSourceDir) then begin
+  BuildDir_Sources:=BuildDir+'pas2js-'+TargetOS+'-'+TargetCPU+'-'+Pas2jsVersion;
+  if DirectoryExists(BuildDir_Sources) then begin
     if Verbosity>=0 then
-      Log(etInfo,'Deleting directory "'+BuildSourceDir+'"');
+      Log(etInfo,'Deleting directory "'+BuildDir_Sources+'"');
     if not Simulate then begin
-      if not DeleteDirectory(BuildSourceDir,false) then
-        Err('Unable to delete directory "'+BuildSourceDir+'"');
+      if not DeleteDirectory(BuildDir_Sources,false) then
+        Err('Unable to delete directory "'+BuildDir_Sources+'"');
     end;
   end;
   if Simulate then begin
-    Log(etInfo,'Simulate: create directory "'+BuildSourceDir+'"')
+    Log(etInfo,'Simulate: create directory "'+BuildDir_Sources+'"')
   end else begin
-    if not ForceDirectory(BuildSourceDir) then
-      Err('Unable to create directory "'+BuildSourceDir+'"');
-    Log(etInfo,'Created directory "'+BuildSourceDir+'"')
+    if not ForceDirectory(BuildDir_Sources) then
+      Err('Unable to create directory "'+BuildDir_Sources+'"');
+    Log(etInfo,'Created directory "'+BuildDir_Sources+'"')
   end;
+  BuildDir_Sources+=PathDelim;
+
+  BuildDir_Bin:=BuildDir_Sources+'bin';
+  if not ForceDirectory(BuildDir_Bin) then
+    Err('Unable to create directory "'+BuildDir_Bin+'"');
+  BuildDir_Bin+=PathDelim;
 end;
 
-procedure TPas2jsReleaseCreator.BuildPas2js(const TargetOS, TargetCPU: string);
+procedure TPas2jsReleaseCreator.BuildTools(const TargetOS, TargetCPU: string);
 var
-  WorkDir, SrcCompilerDir, PkgSrcDir, UnitOutDir, BinOutDir: String;
-  ProcParams: TStringList;
+  WorkDir, SrcCompilerDir, PkgSrcDir, UnitOutDir: String;
+  SharedParams, TheParams: TStringList;
 begin
-  ProcParams:=TStringList.Create;
+  SharedParams:=TStringList.Create;
+  TheParams:=TStringList.Create;
   try
     SrcCompilerDir:=SourceDir+'compiler'+PathDelim;
-
     WorkDir:=SrcCompilerDir+'utils'+PathDelim+'pas2js';
 
     PkgSrcDir:=SrcCompilerDir+'packages'+PathDelim;
-    ProcParams.Add('-Fu'+PkgSrcDir+'fcl-js'+PathDelim+'src');
-    ProcParams.Add('-Fu'+PkgSrcDir+'fcl-json'+PathDelim+'src');
-    ProcParams.Add('-Fu'+PkgSrcDir+'fcl-passrc'+PathDelim+'src');
-    ProcParams.Add('-Fu'+PkgSrcDir+'pastojs'+PathDelim+'src');
+    SharedParams.Add('-Fu'+PkgSrcDir+'fcl-js'+PathDelim+'src');
+    SharedParams.Add('-Fu'+PkgSrcDir+'fcl-json'+PathDelim+'src');
+    SharedParams.Add('-Fu'+PkgSrcDir+'fcl-passrc'+PathDelim+'src');
+    SharedParams.Add('-Fu'+PkgSrcDir+'pastojs'+PathDelim+'src');
 
-    ProcParams.Add('-B');
-    ProcParams.Add('-MObjFPC');
-    ProcParams.Add('-O1');
-    ProcParams.Add('-Schi');
-    ProcParams.Add('-vew');
+    SharedParams.Add('-B');
+    SharedParams.Add('-MObjFPC');
+    SharedParams.Add('-O1');
+    SharedParams.Add('-Schi');
+    SharedParams.Add('-vew');
+    SharedParams.Add('-XX');
+    SharedParams.Add('-Xs');
 
     UnitOutDir:=SourceDir+'units'+PathDelim+TargetCPU+'-'+TargetOS;
     ForceDir(UnitOutDir,'unit output');
-    ProcParams.Add('-FU'+UnitOutDir);
+    SharedParams.Add('-FU'+UnitOutDir);
 
-    BinOutDir:=SourceDir+'bin'+PathDelim+TargetCPU+'-'+TargetOS;
-    ForceDir(BinOutDir,'binary output');
-    ProcParams.Add('-FE'+BinOutDir);
+    // compile pas2js exe using release fpc
+    TheParams.Assign(SharedParams);
+    TheParams.Add('-o'+BuildDir_Bin+'pas2js'+GetExeExt);
+    TheParams.Add('pas2js.pp');
+    RunTool(WorkDir,FPCReleaseFilename,TheParams);
 
-    ProcParams.Add('pas2js.pp');
+    // compile libpas2js using release fpc
+    TheParams.Assign(SharedParams);
+    TheParams.Add('-fPIC');
+    TheParams.Add('-o'+BuildDir_Bin+'libpas2js'+GetLibExt(TargetOS));
+    TheParams.Add('pas2jslib.pp');
+    RunTool(WorkDir,FPCReleaseFilename,TheParams);
 
-    RunTool(WorkDir,FPCReleaseFilename,ProcParams);
+    // compile compileserver using devel fpc
+    TheParams.Assign(SharedParams);
+    TheParams.Add('-o'+BuildDir_Bin+'compileserver'+GetExeExt);
+    TheParams.Add('compileserver.pp');
+    RunTool(WorkDir,FPCDevelFilename,TheParams);
+
+    // compile webidl2pas using devel fpc
+    TheParams.Assign(SharedParams);
+    TheParams.Add('-o'+BuildDir_Bin+'webidl2pas'+GetExeExt);
+    TheParams.Add('webidl2pas.pp');
+    RunTool(WorkDir,FPCDevelFilename,TheParams);
+
+    // compile makestub using devel fpc
+    TheParams.Assign(SharedParams);
+    TheParams.Add('-o'+BuildDir_Bin+'makestub'+GetExeExt);
+    TheParams.Add('makestub.pp');
+    RunTool(WorkDir,FPCDevelFilename,TheParams);
+
   finally
-    ProcParams.Free;
+    TheParams.Free;
+    SharedParams.Free;
   end;
 end;
 
@@ -507,6 +542,36 @@ end;
 function TPas2jsReleaseCreator.GetDefaultMake: string;
 begin
   Result:='make';
+end;
+
+function TPas2jsReleaseCreator.GetLibExt(TargetOS: string): string;
+begin
+  if TargetOS='' then
+    TargetOS:=GetCompiledTargetOS;
+  TargetOS:=LowerCase(TargetOS);
+  if copy(TargetOS,1,3)='win' then
+    Result:='.dll'
+  else
+    case TargetOS of
+      'darwin',
+      'ios':
+         Result:='.dylib';
+      'linux',
+      'android',
+      'freebsd',
+      'openbsd',
+      'netbsd',
+      'dragonfly',
+      'haiku':
+         Result:='.so';
+      'browser',
+      'nodejs',
+      'electron',
+      'module':
+        Result:='.js';
+    else
+      Result:='';
+    end;
 end;
 
 function TPas2jsReleaseCreator.GetOption_String(ShortOption: char;
