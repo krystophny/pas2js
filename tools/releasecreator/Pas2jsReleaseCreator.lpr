@@ -545,8 +545,35 @@ begin
 end;
 
 procedure TPas2jsReleaseCreator.CreatePas2jsCfg;
+var
+  Dir, SrcFilename, ExeFilename, Pas2jsCfgFilename: String;
+  NeedBuild: Boolean;
 begin
-  // Todo
+  // build createconfig
+  Dir:=SourceDir+SetDirSeparators('tools/createconfig/');
+  SrcFilename:=Dir+'createconfig.pp';
+  ExeFilename:=Dir+'createconfig'+GetExeExt;
+  if not FileExists(SrcFilename) then
+    Err('File not found: "'+SrcFilename+'"');
+  NeedBuild:=true;
+  if not FileExists(ExeFilename) then
+    log(etInfo,'Missing createconfig, building ...')
+  else if FileAge(SrcFilename)>FileAgeUTF8(ExeFilename) then
+    log(etInfo,'createconfig.pp changed, building ...')
+  else
+    NeedBuild:=false;
+
+  if NeedBuild then begin
+    RunTool(Dir,FPCReleaseFilename,['-O1','Schi','-vew','-XX','-Xs','createconfig.pp']);
+  end;
+
+  // run createconfig
+  Pas2jsCfgFilename:=BuildDir_Bin+'pas2js.cfg';
+  if Simulate then begin
+    Log(etInfo,'Simulate: run createconfig to create "'+Pas2jsCfgFilename+'"');
+  end else begin
+    RunTool(Dir,ExeFilename,[Pas2jsCfgFilename,'..']);
+  end;
 end;
 
 procedure TPas2jsReleaseCreator.CreateZip;
@@ -559,7 +586,10 @@ begin
   Filename:=BuildDir+Dir+'.zip';
   RunTool(BuildDir,ZipFilename,['-r',Filename,Dir]);
   s:=IntToStr(FileSize(Filename));
-  Log(etInfo,'Created '+Filename+' Size='+s);
+  if Simulate then
+    Log(etInfo,'Simulate: Created '+Filename+' Size='+s)
+  else
+    Log(etInfo,'Created '+Filename+' Size='+s);
 end;
 
 procedure TPas2jsReleaseCreator.RunTool(WorkDir, Exe: string;
@@ -585,6 +615,7 @@ var
   i, OutLen, LineStart: Integer;
   OutputLine, buf, CmdLine: String;
 begin
+  WorkDir:=ChompPathDelim(WorkDir);
   if not FileIsExecutable(Exe) then
     Err('Not an executable: '+Exe);
   if DirectoryExists(Exe) then
