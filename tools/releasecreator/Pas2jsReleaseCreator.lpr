@@ -46,6 +46,7 @@ type
     procedure CreateBuildSourceDir(const TargetOS, TargetCPU: string);
     procedure BuildTools(const TargetOS, TargetCPU: string);
     procedure CopySourceFolders;
+    procedure CopyRTL;
 
     procedure RunTool(WorkDir, Exe: string; const ProcParams: TStringDynArray); overload;
     procedure RunTool(WorkDir, Exe: string; ProcParams: TStringList); overload;
@@ -161,6 +162,7 @@ begin
   CreateBuildSourceDir(TargetOS,TargetCPU);
   BuildTools(TargetOS,TargetCPU);
   CopySourceFolders;
+  CopyRTL;
 
   // stop program loop
   Terminate;
@@ -446,8 +448,12 @@ procedure TPas2jsReleaseCreator.CopySourceFolders;
     // git restore SrcDir
     RunTool(SourceDir,GitFilename,['restore',SrcDir]);
     // copy
-    Log(etInfo,'Copying folder "'+SrcDir+'" -> "'+DestDir+'"');
-    CopyDirTree(SrcDir,DestDir,[cffCreateDestDirectory]);
+    if Simulate then begin
+      Log(etInfo,'Simulate: Copying folder "'+SrcDir+'" -> "'+DestDir+'"');
+    end else begin
+      Log(etInfo,'Copying folder "'+SrcDir+'" -> "'+DestDir+'"');
+      CopyDirTree(SrcDir,DestDir,[cffCreateDestDirectory,cffPreserveTime]);
+    end;
   end;
 
 var
@@ -467,6 +473,21 @@ begin
       end
     until FindNext(Info)<>0;
     FindClose(Info);
+  end;
+end;
+
+procedure TPas2jsReleaseCreator.CopyRTL;
+var
+  SrcFilename, DestFilename: String;
+begin
+  SrcFilename:=SourceDir+SetDirSeparators('compiler/utils/pas2js/dist/rtl.js');
+  DestFilename:=BuildDir_Sources+SetDirSeparators('packages/rtl/src/rtl.js');
+  if Simulate then begin
+    Log(etInfo,'Simulate: Copying "'+SrcFilename+'" -> "'+DestFilename+'"');
+  end else begin
+    Log(etInfo,'Copying "'+SrcFilename+'" -> "'+DestFilename+'"');
+    if not CopyFile(SrcFilename,DestFilename,[cffOverwriteFile,cffPreserveTime],false) then
+      Err('Unable to copy "'+SrcFilename+'" -> "'+DestFilename+'"');
   end;
 end;
 
