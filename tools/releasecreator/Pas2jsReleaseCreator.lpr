@@ -30,7 +30,7 @@ type
     FPCReleaseFilename: string; // released compiler binary
     FPCDevelFilename: string; // development compiler binary
     Ini: TIniFile;
-    LazBuildFilename: string; // lazbuild binary
+    GitFilename: string; // 'git' binary
     MakeFilename: string; // 'make' binary
     Pas2jsVersion: string;
     Simulate: boolean;
@@ -50,7 +50,7 @@ type
     function Quote(const s: string): string;
     function GetDefaultCfgFilename: string;
     function GetDefaultBuildDir: string;
-    function GetDefaultLazBuild: string;
+    function GetDefaultGit: string;
     function GetDefaultMake: string;
     function GetLibExt(TargetOS: string = ''): string;
     function GetOption_String(ShortOption: char; const LongOption: string): string;
@@ -80,9 +80,9 @@ var
   TargetOS, TargetCPU: String;
 begin
   // quick check parameters
-  ErrorMsg:=CheckOptions('hb:c:s:l:qvx', ['help', 'config:', 'lazbuild:',
+  ErrorMsg:=CheckOptions('hb:c:s:l:qvx', ['help', 'config:',
     'builddir:', 'sourcedir:', 'quiet', 'verbose', 'execute',
-    'fpcrelease:', 'fpcdevel:']);
+    'fpcrelease:', 'fpcdevel:', 'git:', 'make:']);
   if ErrorMsg<>'' then
     Err(ErrorMsg);
 
@@ -114,22 +114,22 @@ begin
   end;
 
   BuildDir:=GetOption_Directory('b','builddir',@GetDefaultBuildDir);
-  LazBuildFilename:=GetOption_Executable('l','lazbuild',@GetDefaultLazBuild);
   SourceDir:=GetOption_Directory('s','sourcedir',nil);
   if SourceDir='' then
     Err('missing source directory');
   FPCReleaseFilename:=GetOption_Executable(' ','fpcrelease',nil);
   FPCDevelFilename:=GetOption_Executable(' ','fpcdevel',nil);
+  GitFilename:=GetOption_Executable(' ','git',@GetDefaultGit);
   MakeFilename:=GetOption_Executable(' ','make',@GetDefaultMake);
 
   // write options
   if Verbosity>=0 then begin
+    Log(etInfo,'SourceDir: "'+SourceDir+'"');
     Log(etInfo,'BuildDir: "'+BuildDir+'"');
-    Log(etInfo,'LazBuild: "'+LazBuildFilename+'"');
     Log(etInfo,'FPCRelease: "'+FPCReleaseFilename+'"');
     Log(etInfo,'FPCDevel: "'+FPCDevelFilename+'"');
-    Log(etInfo,'Make: "'+MakeFilename+'"');
-    Log(etInfo,'SourceDir: "'+SourceDir+'"');
+    Log(etInfo,'git: "'+GitFilename+'"');
+    Log(etInfo,'make: "'+MakeFilename+'"');
   end;
 
   if HasOption('x','execute') then
@@ -142,9 +142,9 @@ begin
     Err('BuildDir missing: "'+BuildDir+'"');
   if not DirectoryExists(SourceDir) then
     Err('SourceDir missing: "'+SourceDir+'"');
-  CheckExecutable(LazBuildFilename,'lazbuild');
   CheckExecutable(FPCReleaseFilename,'fpcrelease');
   CheckExecutable(FPCDevelFilename,'fpcdevel');
+  CheckExecutable(GitFilename,'git');
   CheckExecutable(MakeFilename,'make');
 
   ReadVersion;
@@ -193,9 +193,10 @@ begin
   writeln('                Default: '+GetDefaultCfgFilename);
   writeln('--fpcrelease=<filename>: Path of released version fpc executable.');
   writeln('--fpcdevel=<filename>: Path of development version fpc executable.');
-  writeln('-l <filename>, --lazbuild=<filename>: Path of lazbuild executable.');
-  writeln('                Default: '+GetDefaultLazBuild);
+  writeln('--git=<filename>: Path of gnu make executable.');
+  writeln('                Default: '+GetDefaultGit);
   writeln('--make=<filename>: Path of gnu make executable.');
+  writeln('                Default: '+GetDefaultMake);
   writeln('-s <filename>, --sourcedir=<filename>: git directory of the pas2js release');
   writeln('-x, --execute: Do not simulate, execute the commands');
 end;
@@ -534,14 +535,14 @@ begin
   Result:=AppendPathDelim(ResolveDots(GetTempDir(false)));
 end;
 
-function TPas2jsReleaseCreator.GetDefaultLazBuild: string;
+function TPas2jsReleaseCreator.GetDefaultGit: string;
 begin
-  Result:='lazbuild';
+  Result:='git'+GetExeExt;
 end;
 
 function TPas2jsReleaseCreator.GetDefaultMake: string;
 begin
-  Result:='make';
+  Result:='make'+GetExeExt;
 end;
 
 function TPas2jsReleaseCreator.GetLibExt(TargetOS: string): string;
