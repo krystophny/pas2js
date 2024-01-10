@@ -39,11 +39,14 @@ type
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
     procedure WriteHelp; virtual;
+
     procedure ReadVersion;
     procedure CheckForgottenWriteln;
     procedure CleanSources;
     procedure CreateBuildSourceDir(const TargetOS, TargetCPU: string);
     procedure BuildTools(const TargetOS, TargetCPU: string);
+    procedure CopySourceFolders;
+
     procedure RunTool(WorkDir, Exe: string; const ProcParams: TStringDynArray); overload;
     procedure RunTool(WorkDir, Exe: string; ProcParams: TStringList); overload;
     procedure ForceDir(Dir, DirTitle: string);
@@ -426,6 +429,28 @@ begin
     TheParams.Free;
     SharedParams.Free;
   end;
+end;
+
+procedure TPas2jsReleaseCreator.CopySourceFolders;
+
+  procedure CopyFolder(const Dir: string);
+  var
+    SrcDir, DestDir: String;
+  begin
+    SrcDir:=SourceDir+Dir;
+    DestDir:=BuildDir_Sources+Dir;
+    if not DirectoryExists(SrcDir) then
+      Err('Unable to copy missing source folder "'+SrcDir+'"');
+
+    // git restore SrcDir
+    RunTool(SourceDir,GitFilename,['restore',SrcDir]);
+    // copy
+    Log(etInfo,'Copying folder "'+SrcDir+'" -> "'+DestDir+'"');
+    CopyDirTree(SrcDir,DestDir,[cffCreateDestDirectory]);
+  end;
+
+begin
+  CopyFolder('demo');
 end;
 
 procedure TPas2jsReleaseCreator.RunTool(WorkDir, Exe: string;
