@@ -170,6 +170,7 @@ begin
   BuildTools(TargetOS,TargetCPU);
   CopySourceFolders;
   CopyRTLjs;
+  CreatePas2jsCfg;
   CreateZip;
 
   // stop program loop
@@ -510,7 +511,6 @@ var
 begin
   CopyFolder('demo');
   CopyFolder('packages');
-  CopyFolder('utils');
 
   // copy all tools except releasecreator
   if FindFirst(SourceDir+'tools'+PathDelim+AllFilesMask,faAnyFile,Info)=0 then begin
