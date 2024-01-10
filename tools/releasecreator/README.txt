@@ -6,7 +6,8 @@ It creates a zip for a binary distribution of pasj2s:
 - packages
 - It does not include the compiler sources.
 
-The creator requires some installed tools: git, make, zip
+The creator requires some installed tools: git, make, zip, fpc release version,
+and fpc devel version.
 
 Running:
 
@@ -19,3 +20,4 @@ Example for an ini file:
 fpcrelease=/usr/lib/fpc/3.2.2/ppcx64
 fpcdevel=/usr/lib/fpc/3.3.1/ppcx64
 sourcedir=../..
+
