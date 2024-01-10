@@ -41,7 +41,7 @@ type
     destructor Destroy; override;
     procedure WriteHelp; virtual;
 
-    procedure ReadVersion;
+    procedure ReadPas2jsVersion;
     procedure CheckForgottenWriteln;
     procedure CleanSources;
     procedure CreateBuildSourceDir(const TargetOS, TargetCPU: string);
@@ -157,7 +157,7 @@ begin
   CheckExecutable(MakeFilename,'make');
   CheckExecutable(ZipFilename,'zip');
 
-  ReadVersion;
+  ReadPas2jsVersion;
   CheckForgottenWriteln;
 
   // build
@@ -166,7 +166,7 @@ begin
   TargetOS:=GetCompiledTargetOS;
   TargetCPU:=GetCompiledTargetCPU;
   CreateBuildSourceDir(TargetOS,TargetCPU);
-  //BuildTools(TargetOS,TargetCPU);
+  BuildTools(TargetOS,TargetCPU);
   CopySourceFolders;
   CopyRTLjs;
   CreateZip;
@@ -214,9 +214,9 @@ begin
   writeln('-x, --execute: Do not simulate, execute the commands');
 end;
 
-procedure TPas2jsReleaseCreator.ReadVersion;
+procedure TPas2jsReleaseCreator.ReadPas2jsVersion;
 
-  function CheckConstInt(const Line, Identifier: string; var aValue: integer): boolean;
+  function CheckPascalConstInt(const Line, Identifier: string; var aValue: integer): boolean;
   var
     s: String;
     p, StartP: SizeInt;
@@ -234,6 +234,24 @@ procedure TPas2jsReleaseCreator.ReadVersion;
     Result:=p>StartP;
   end;
 
+  function CheckJSConstInt(const Line, Identifier: string; var aValue: integer): boolean;
+  var
+    s: String;
+    p, StartP: SizeInt;
+  begin
+    Result:=false;
+    s:='  '+Identifier+': ';
+    if LeftStr(Line,length(s))<>s then exit;
+    p:=length(s)+1;
+    StartP:=p;
+    aValue:=0;
+    while (p<=length(Line)) and (Line[p] in ['0'..'9']) do begin
+      aValue:=aValue*10+ord(Line[p])-ord('0');
+      inc(p);
+    end;
+    Result:=p>StartP;
+  end;
+
 type
   TVersionPart = (vMajor,vMinor,vRelease);
 const
@@ -241,45 +259,64 @@ const
 var
   Filename, Line: String;
   sl: TStringList;
-  i: Integer;
+  i, JSVersion: Integer;
   Parts: array[TVersionPart] of integer;
   PartFound: array[TVersionPart] of boolean;
   p: TVersionPart;
 begin
-  Filename:=SourceDir+'compiler'+PathDelim+'packages'+PathDelim+'pastojs'+PathDelim+'src'+PathDelim+'pas2jscompiler.pp';
-  if Verbosity>0 then
-    Log(etInfo,'Reading version from "'+Filename+'" ...');
-  if not FileExists(Filename) then
-    Err('Missing source file: "'+Filename+'"');
   sl:=TStringList.Create;
   try
+    // read pas2js version number from Pascal sources
+    Filename:=SourceDir+SetDirSeparators('compiler/packages/pastojs/src/pas2jscompiler.pp');
+    if Verbosity>0 then
+      Log(etInfo,'Reading version from "'+Filename+'" ...');
+    if not FileExists(Filename) then
+      Err('Missing source file: "'+Filename+'"');
     sl.LoadFromFile(Filename);
+
+    // parse source and find all three version constants
     for p in TVersionPart do begin
-      Parts[p]:=0;
+      Parts[p]:=-1;
       PartFound[p]:=false;
     end;
     for i:=0 to sl.Count-1 do begin
       Line:=sl[i];
       for p in TVersionPart do
         if not PartFound[p] then
-          PartFound[p]:=CheckConstInt(Line,PartNames[p],Parts[p]);
+          PartFound[p]:=CheckPascalConstInt(Line,PartNames[p],Parts[p]);
       if PartFound[High(TVersionPart)] then begin
+        // last constant found
         if Verbosity>0 then
           Log(etInfo,'Found const '+PartNames[High(TVersionPart)]+' = '+IntToStr(Parts[High(TVersionPart)]));
         break;
       end;
     end;
-
     for p in TVersionPart do
       if not PartFound[p] then
-        Err('Missing '+PartNames[p]+' in "'+Filename+'"');
+        Err('Missing '+PartNames[p]+' in "'+Filename+'"'); // one constant missing
 
     Pas2jsVersion:=IntToStr(Parts[vMajor])+'.'+IntToStr(Parts[vMinor])+'.'+IntToStr(Parts[vRelease]);
     if Verbosity>=0 then
       Log(etInfo,'Pas2js version is '+Pas2jsVersion);
 
-    { #todo -oMattias : Read version in rtl.js }
+    // read version number from rtl.js
+    Filename:=SourceDir+SetDirSeparators('compiler/utils/pas2js/dist/rtl.js');
+    if Verbosity>0 then
+      Log(etInfo,'Reading version from "'+Filename+'" ...');
+    if not FileExists(Filename) then
+      Err('Missing source file: "'+Filename+'"');
+    sl.LoadFromFile(Filename);
 
+    JSVersion:=-1;
+    for i:=0 to sl.Count-1 do begin
+      Line:=sl[i];
+      if CheckJSConstInt(Line,'version',JSVersion) then break;
+    end;
+    if JSVersion<0 then
+      Err('Missing version in "'+Filename+'"');
+    i:=(Parts[vMajor]*100+Parts[vMinor])*100+Parts[vRelease];
+    if i<>JSVersion then
+      Err('Expected version '+IntToStr(i)+', but found '+IntToStr(JSVersion)+' in "'+Filename+'"');
   finally
     sl.Free;
   end;
@@ -503,10 +540,15 @@ end;
 
 procedure TPas2jsReleaseCreator.CreateZip;
 var
-  Dir: String;
+  Dir, Filename, s: String;
 begin
-  Dir:=ExtractFilename(BuildDir_Sources);
-  RunTool(BuildDir,ZipFilename,['-r',Dir+'.zip',Dir]);
+  if not DirectoryExists(BuildDir_Sources) then
+    Err('TPas2jsReleaseCreator.CreateZip: Empty BuildDir_Sources');
+  Dir:=ExtractFilename(ChompPathDelim(BuildDir_Sources));
+  Filename:=Dir+'.zip';
+  RunTool(BuildDir,ZipFilename,['-r',Filename,Dir]);
+  s:=IntToStr(FileSize(Filename));
+  Log(etInfo,'Created '+Filename+' Size='+s);
 end;
 
 procedure TPas2jsReleaseCreator.RunTool(WorkDir, Exe: string;
