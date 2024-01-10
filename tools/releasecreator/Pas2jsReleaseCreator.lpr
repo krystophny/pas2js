@@ -48,6 +48,7 @@ type
     procedure BuildTools(const TargetOS, TargetCPU: string);
     procedure CopySourceFolders;
     procedure CopyRTLjs;
+    procedure CreatePas2jsCfg;
     procedure CreateZip;
 
     procedure RunTool(WorkDir, Exe: string; const ProcParams: TStringDynArray); overload;
@@ -452,7 +453,8 @@ begin
 
     // compile libpas2js using release fpc
     TheParams.Assign(SharedParams);
-    TheParams.Add('-fPIC');
+    if SameText(TargetOS,'linux') then
+      TheParams.Add('-fPIC');
     TheParams.Add('-o'+BuildDir_Bin+'libpas2js'+GetLibExt(TargetOS));
     TheParams.Add('pas2jslib.pp');
     RunTool(WorkDir,FPCReleaseFilename,TheParams);
@@ -536,6 +538,11 @@ begin
     if not CopyFile(SrcFilename,DestFilename,[cffOverwriteFile,cffPreserveTime],false) then
       Err('Unable to copy "'+SrcFilename+'" -> "'+DestFilename+'"');
   end;
+end;
+
+procedure TPas2jsReleaseCreator.CreatePas2jsCfg;
+begin
+  // Todo
 end;
 
 procedure TPas2jsReleaseCreator.CreateZip;
