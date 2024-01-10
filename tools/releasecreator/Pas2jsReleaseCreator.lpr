@@ -59,6 +59,7 @@ type
     function Quote(const s: string): string;
     function GetDefaultCfgFilename: string;
     function GetDefaultBuildDir: string;
+    function GetDefaultTool(const Filename: string; Expanded: boolean): string;
     function GetDefaultGit: string;
     function GetDefaultMake: string;
     function GetDefaultZip: string;
@@ -202,20 +203,27 @@ begin
   writeln('Usage: ', ExeName, ' -h');
   writeln;
   writeln('-h, --help: Write this help and exit');
-  writeln('-q, --quiet: Less verbose');
-  writeln('-v, --verbose: More verbose');
-  writeln('-b <filename>, --builddir=<filename>: Output directory where to build the zip.');
-  writeln('                Default: '+GetDefaultBuildDir);
-  writeln('-c <filename>, --config=<filename>: Path of ini file with a Main section.');
-  writeln('                Default: '+GetDefaultCfgFilename);
+  writeln;
+  writeln('Required parameters:');
   writeln('--fpcrelease=<filename>: Path of released version fpc executable.');
   writeln('--fpcdevel=<filename>: Path of development version fpc executable.');
+  writeln('-s <filename>, --sourcedir=<filename>: git directory of the pas2js release');
+  writeln('-x, --execute: Do not simulate, execute the commands');
+  writeln;
+  writeln('Optional parameters:');
+  writeln('-q, --quiet: Less verbose');
+  writeln('-v, --verbose: More verbose');
+  writeln('-c <filename>, --config=<filename>: Path of ini file with a Main section.');
+  writeln('                Default: '+GetDefaultCfgFilename);
+  writeln('-b <filename>, --builddir=<filename>: Output directory where to build the zip.');
+  writeln('                Default: '+GetDefaultBuildDir);
   writeln('--git=<filename>: Path of gnu make executable.');
   writeln('                Default: '+GetDefaultGit);
   writeln('--make=<filename>: Path of gnu make executable.');
   writeln('                Default: '+GetDefaultMake);
-  writeln('-s <filename>, --sourcedir=<filename>: git directory of the pas2js release');
-  writeln('-x, --execute: Do not simulate, execute the commands');
+  writeln('--zip=<filename>: Path of zip executable.');
+  writeln('                Default: '+GetDefaultZip);
+  writeln;
 end;
 
 procedure TPas2jsReleaseCreator.ReadPas2jsVersion;
@@ -584,7 +592,12 @@ begin
     Err('TPas2jsReleaseCreator.CreateZip: Empty BuildDir_Sources');
   Dir:=ExtractFilename(ChompPathDelim(BuildDir_Sources));
   Filename:=BuildDir+Dir+'.zip';
+  if FileExists(Filename) and not Simulate then
+    if not DeleteFile(Filename) then
+      Err('Unable to delete "'+Filename+'"');
+
   RunTool(BuildDir,ZipFilename,['-r',Filename,Dir]);
+
   s:=IntToStr(FileSize(Filename));
   if Simulate then
     Log(etInfo,'Simulate: Created '+Filename+' Size='+s)
@@ -700,19 +713,32 @@ begin
   Result:=AppendPathDelim(ResolveDots(GetTempDir(false)));
 end;
 
+function TPas2jsReleaseCreator.GetDefaultTool(const Filename: string;
+  Expanded: boolean): string;
+begin
+  Result:=Filename;
+  if Expanded then begin
+    if FilenameIsAbsolute(Result) then exit;
+    if ExtractFilePath(Result)<>'' then exit;
+    Result:=FindDefaultExecutablePath(Result);
+    if Result='' then
+      Result:=Filename;
+  end;
+end;
+
 function TPas2jsReleaseCreator.GetDefaultGit: string;
 begin
-  Result:='git'+GetExeExt;
+  Result:=GetDefaultTool('git'+GetExeExt,true);
 end;
 
 function TPas2jsReleaseCreator.GetDefaultMake: string;
 begin
-  Result:='make'+GetExeExt;
+  Result:=GetDefaultTool('make'+GetExeExt,true);
 end;
 
 function TPas2jsReleaseCreator.GetDefaultZip: string;
 begin
-  Result:='zip'+GetExeExt;
+  Result:=GetDefaultTool('zip'+GetExeExt,true);
 end;
 
 function TPas2jsReleaseCreator.GetLibExt(TargetOS: string): string;
