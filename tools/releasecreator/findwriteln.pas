@@ -265,8 +265,8 @@ begin
         end;
       end;
     until FindNext(Info)<>0;
+    FindClose(Info);
   end;
-  FindClose(Info);
 end;
 
 end.

@@ -159,7 +159,8 @@ begin
   TargetOS:=lowercase({$i %FPCTargetOS%});
   TargetCPU:=lowercase({$i %FPCTargetCPU%});
   CreateBuildSourceDir(TargetOS,TargetCPU);
-  BuildTools(TargetOS,TargetCPU);
+  //BuildTools(TargetOS,TargetCPU);
+  CopySourceFolders;
 
   // stop program loop
   Terminate;
@@ -327,8 +328,8 @@ procedure TPas2jsReleaseCreator.CleanSources;
           end;
         end;
       until FindNext(Info)<>0;
+      FindClose(Info);
     end;
-    FindClose(Info);
   end;
 
 begin
@@ -449,8 +450,23 @@ procedure TPas2jsReleaseCreator.CopySourceFolders;
     CopyDirTree(SrcDir,DestDir,[cffCreateDestDirectory]);
   end;
 
+var
+  Info: TRawByteSearchRec;
 begin
   CopyFolder('demo');
+  CopyFolder('packages');
+  CopyFolder('utils');
+
+  // copy all tools except releasecreator
+  if FindFirst(SourceDir+'tools'+AllFilesMask,faAnyFile,Info)=0 then begin
+    repeat
+      if (Info.Name='') or (Info.Name='.') or (Info.Name='..') then continue;
+      if (Info.Attr and faDirectory)>0 then begin
+        CopyFolder('tools'+PathDelim+Info.Name);
+      end
+    until FindNext(Info)<>0;
+    FindClose(Info);
+  end;
 end;
 
 procedure TPas2jsReleaseCreator.RunTool(WorkDir, Exe: string;
