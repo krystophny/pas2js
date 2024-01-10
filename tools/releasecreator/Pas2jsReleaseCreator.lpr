@@ -32,6 +32,7 @@ type
     Ini: TIniFile;
     GitFilename: string; // 'git' binary
     MakeFilename: string; // 'make' binary
+    ZipFilename: string; // 'zip' binary
     Pas2jsVersion: string;
     Simulate: boolean;
     SourceDir: string; // cloned git release
@@ -46,7 +47,8 @@ type
     procedure CreateBuildSourceDir(const TargetOS, TargetCPU: string);
     procedure BuildTools(const TargetOS, TargetCPU: string);
     procedure CopySourceFolders;
-    procedure CopyRTL;
+    procedure CopyRTLjs;
+    procedure CreateZip;
 
     procedure RunTool(WorkDir, Exe: string; const ProcParams: TStringDynArray); overload;
     procedure RunTool(WorkDir, Exe: string; ProcParams: TStringList); overload;
@@ -56,6 +58,7 @@ type
     function GetDefaultBuildDir: string;
     function GetDefaultGit: string;
     function GetDefaultMake: string;
+    function GetDefaultZip: string;
     function GetLibExt(TargetOS: string = ''): string;
     function GetOption_String(ShortOption: char; const LongOption: string): string;
     function GetOption_Directory(ShortOption: char; const LongOption: string; const GetDefaultFunc: TGetDefaultEvent): string;
@@ -86,7 +89,7 @@ begin
   // quick check parameters
   ErrorMsg:=CheckOptions('hb:c:s:l:qvx', ['help', 'config:',
     'builddir:', 'sourcedir:', 'quiet', 'verbose', 'execute',
-    'fpcrelease:', 'fpcdevel:', 'git:', 'make:']);
+    'fpcrelease:', 'fpcdevel:', 'git:', 'make:', 'zip:']);
   if ErrorMsg<>'' then
     Err(ErrorMsg);
 
@@ -125,6 +128,7 @@ begin
   FPCDevelFilename:=GetOption_Executable(' ','fpcdevel',nil);
   GitFilename:=GetOption_Executable(' ','git',@GetDefaultGit);
   MakeFilename:=GetOption_Executable(' ','make',@GetDefaultMake);
+  ZipFilename:=GetOption_Executable(' ','zip',@GetDefaultZip);
 
   // write options
   if Verbosity>=0 then begin
@@ -134,6 +138,7 @@ begin
     Log(etInfo,'FPCDevel: "'+FPCDevelFilename+'"');
     Log(etInfo,'git: "'+GitFilename+'"');
     Log(etInfo,'make: "'+MakeFilename+'"');
+    Log(etInfo,'zip: "'+ZipFilename+'"');
   end;
 
   if HasOption('x','execute') then
@@ -150,6 +155,7 @@ begin
   CheckExecutable(FPCDevelFilename,'fpcdevel');
   CheckExecutable(GitFilename,'git');
   CheckExecutable(MakeFilename,'make');
+  CheckExecutable(ZipFilename,'zip');
 
   ReadVersion;
   CheckForgottenWriteln;
@@ -162,8 +168,8 @@ begin
   CreateBuildSourceDir(TargetOS,TargetCPU);
   //BuildTools(TargetOS,TargetCPU);
   CopySourceFolders;
-  CopyRTL;
-  { #todo -oMattias : zip }
+  CopyRTLjs;
+  CreateZip;
 
   // stop program loop
   Terminate;
@@ -480,7 +486,7 @@ begin
   end;
 end;
 
-procedure TPas2jsReleaseCreator.CopyRTL;
+procedure TPas2jsReleaseCreator.CopyRTLjs;
 var
   SrcFilename, DestFilename: String;
 begin
@@ -493,6 +499,14 @@ begin
     if not CopyFile(SrcFilename,DestFilename,[cffOverwriteFile,cffPreserveTime],false) then
       Err('Unable to copy "'+SrcFilename+'" -> "'+DestFilename+'"');
   end;
+end;
+
+procedure TPas2jsReleaseCreator.CreateZip;
+var
+  Dir: String;
+begin
+  Dir:=ExtractFilename(BuildDir_Sources);
+  RunTool(BuildDir,ZipFilename,['-r',Dir+'.zip',Dir]);
 end;
 
 procedure TPas2jsReleaseCreator.RunTool(WorkDir, Exe: string;
@@ -610,6 +624,11 @@ end;
 function TPas2jsReleaseCreator.GetDefaultMake: string;
 begin
   Result:='make'+GetExeExt;
+end;
+
+function TPas2jsReleaseCreator.GetDefaultZip: string;
+begin
+  Result:='zip'+GetExeExt;
 end;
 
 function TPas2jsReleaseCreator.GetLibExt(TargetOS: string): string;
