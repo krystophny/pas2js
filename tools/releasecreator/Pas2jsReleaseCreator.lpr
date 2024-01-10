@@ -458,9 +458,10 @@ begin
   CopyFolder('utils');
 
   // copy all tools except releasecreator
-  if FindFirst(SourceDir+'tools'+AllFilesMask,faAnyFile,Info)=0 then begin
+  if FindFirst(SourceDir+'tools'+PathDelim+AllFilesMask,faAnyFile,Info)=0 then begin
     repeat
       if (Info.Name='') or (Info.Name='.') or (Info.Name='..') then continue;
+      if (Info.Name='releasecreator') then continue;
       if (Info.Attr and faDirectory)>0 then begin
         CopyFolder('tools'+PathDelim+Info.Name);
       end
