@@ -463,7 +463,7 @@ end;
 
 procedure TPas2jsReleaseCreator.BuildTools(const TargetOS, TargetCPU: string);
 var
-  WorkDir, SrcCompilerDir, PkgSrcDir, UnitOutDir: String;
+  WorkDir, SrcCompilerDir, PkgSrcDir, UnitOutDir, CurBinDir: String;
   SharedParams, TheParams: TStringList;
 begin
   SharedParams:=TStringList.Create;
@@ -506,10 +506,12 @@ begin
 
     if FPC2Filename<>'' then begin
       // compile second libpas2js
+      CurBinDir:=BuildDir_Bin+FPC2TargetCPU+'-'+FPC2TargetOS+PathDelim;
+      ForceDir(CurBinDir,'sub folder for second libpas2js');
       TheParams.Assign(SharedParams);
       if SameText(FPC2TargetOS,'linux') then
         TheParams.Add('-fPIC');
-      TheParams.Add('-o'+BuildDir_Bin+'libpas2js-'+FPC2TargetCPU+'-'+FPC2TargetOS+GetLibExt(TargetOS));
+      TheParams.Add('-o'+CurBinDir+'libpas2js'+GetLibExt(TargetOS));
       TheParams.Add('-P');
       TheParams.Add(FPC2TargetCPU);
       TheParams.Add('-T');
@@ -736,6 +738,7 @@ end;
 
 procedure TPas2jsReleaseCreator.ForceDir(Dir, DirTitle: string);
 begin
+  Dir:=ChompPathDelim(Dir);
   if DirectoryExists(Dir) then exit;
   if Simulate then exit;
   if ForceDirectories(Dir) then exit;
