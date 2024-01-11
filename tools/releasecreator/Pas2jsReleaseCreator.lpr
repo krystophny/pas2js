@@ -512,12 +512,10 @@ begin
       if SameText(FPC2TargetOS,'linux') then
         TheParams.Add('-fPIC');
       TheParams.Add('-o'+CurBinDir+'libpas2js'+GetLibExt(TargetOS));
-      TheParams.Add('-P');
-      TheParams.Add(FPC2TargetCPU);
-      TheParams.Add('-T');
-      TheParams.Add(FPC2TargetOS);
+      TheParams.Add('-P'+FPC2TargetCPU);
+      TheParams.Add('-T'+FPC2TargetOS);
       TheParams.Add('pas2jslib.pp');
-      RunTool(WorkDir,FPCReleaseFilename,TheParams);
+      RunTool(WorkDir,FPC2Filename,TheParams);
     end;
 
     // compile compileserver using devel fpc
