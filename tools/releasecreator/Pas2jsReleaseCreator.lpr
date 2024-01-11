@@ -565,7 +565,7 @@ begin
     Err('File not found: "'+SrcFilename+'"');
   NeedBuild:=true;
   if not FileExists(ExeFilename) then
-    log(etInfo,'Missing createconfig, building ...')
+    log(etInfo,'Missing tool createconfig, building ...')
   else if FileAge(SrcFilename)>FileAgeUTF8(ExeFilename) then
     log(etInfo,'createconfig.pp changed, building ...')
   else
