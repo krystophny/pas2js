@@ -31,6 +31,9 @@ type
     CfgFilename: string;
     FPCReleaseFilename: string; // released compiler binary
     FPCDevelFilename: string; // development compiler binary
+    FPC2Filename: string; // optional second compiler for a second libpas2js
+    FPC2TargetCPU: string;
+    FPC2TargetOS: string;
     Ini: TIniFile;
     GitFilename: string; // 'git' binary
     MakeFilename: string; // 'make' binary
@@ -45,6 +48,7 @@ type
 
     procedure ReadPas2jsVersion;
     procedure CheckForgottenWriteln;
+    procedure ParseFPCTargetOption(const LongOpt: string; out TargetCPU, TargetOS: string);
     procedure CleanSources;
     procedure CreateBuildSourceDir(const TargetOS, TargetCPU: string);
     procedure BuildTools(const TargetOS, TargetCPU: string);
@@ -93,7 +97,8 @@ begin
   // quick check parameters
   ErrorMsg:=CheckOptions('hb:c:s:l:qvx', ['help', 'config:',
     'builddir:', 'sourcedir:', 'quiet', 'verbose', 'execute',
-    'fpcrelease:', 'fpcdevel:', 'git:', 'make:', 'zip:']);
+    'fpcrelease:', 'fpcdevel:', 'fpc2:', 'fpc2target:',
+    'git:', 'make:', 'zip:']);
   if ErrorMsg<>'' then
     Err(ErrorMsg);
 
@@ -130,6 +135,8 @@ begin
     Err('missing source directory');
   FPCReleaseFilename:=GetOption_Executable(' ','fpcrelease',nil);
   FPCDevelFilename:=GetOption_Executable(' ','fpcdevel',nil);
+  FPC2Filename:=GetOption_Executable(' ','fpc2',nil);
+  ParseFPCTargetOption('fpc2target',FPC2TargetCPU,FPC2TargetOS);
   GitFilename:=GetOption_Executable(' ','git',@GetDefaultGit);
   MakeFilename:=GetOption_Executable(' ','make',@GetDefaultMake);
   ZipFilename:=GetOption_Executable(' ','zip',@GetDefaultZip);
@@ -140,6 +147,8 @@ begin
     Log(etInfo,'BuildDir: "'+BuildDir+'"');
     Log(etInfo,'FPCRelease: "'+FPCReleaseFilename+'"');
     Log(etInfo,'FPCDevel: "'+FPCDevelFilename+'"');
+    Log(etInfo,'FPC2: "'+FPC2Filename+'"');
+    Log(etInfo,'FPC2Target: "'+FPC2TargetCPU+'-'+FPC2TargetOS+'"');
     Log(etInfo,'git: "'+GitFilename+'"');
     Log(etInfo,'make: "'+MakeFilename+'"');
     Log(etInfo,'zip: "'+ZipFilename+'"');
@@ -157,6 +166,8 @@ begin
     Err('SourceDir missing: "'+SourceDir+'"');
   CheckExecutable(FPCReleaseFilename,'fpcrelease');
   CheckExecutable(FPCDevelFilename,'fpcdevel');
+  if FPC2Filename<>'' then
+    CheckExecutable(FPC2Filename,'fpc2');
   CheckExecutable(GitFilename,'git');
   CheckExecutable(MakeFilename,'make');
   CheckExecutable(ZipFilename,'zip');
@@ -205,9 +216,13 @@ begin
   writeln('-h, --help: Write this help and exit');
   writeln;
   writeln('Required parameters:');
-  writeln('--fpcrelease=<filename>: Path of released version fpc executable.');
-  writeln('--fpcdevel=<filename>: Path of development version fpc executable.');
   writeln('-s <filename>, --sourcedir=<filename>: git directory of the pas2js release');
+  writeln('--fpcrelease=<filename>: Path of released version fpc executable.');
+  writeln('                       Used for pas2js and libpas2js.');
+  writeln('--fpcdevel=<filename>: Path of development version fpc executable.');
+  writeln('                       Used for compiling the other tools.');
+  writeln('--fpc2=<filename>: Path of a secondary fpc for building a second libpas2js.');
+  writeln('--fpc2target=<targetcpu>-<targetos>: Target CPU and OS for fpc2.');
   writeln('-x, --execute: Do not simulate, execute the commands');
   writeln;
   writeln('Optional parameters:');
@@ -353,6 +368,23 @@ begin
   Check(SourceDir+'compiler'+PathDelim+'utils'+PathDelim+'pas2js');
 end;
 
+procedure TPas2jsReleaseCreator.ParseFPCTargetOption(const LongOpt: string; out
+  TargetCPU, TargetOS: string);
+var
+  Opt: String;
+  p: SizeInt;
+begin
+  TargetOS:='';
+  TargetCPU:='';
+  Opt:=lowercase(GetOption_String(' ',LongOpt));
+  if Opt='' then exit;
+  p:=Pos('-',Opt);
+  if p<1 then
+    Err('Expected TargetCPU-TargetOS, but found "--'+LongOpt+'='+Opt+'"');
+  TargetCPU:=LeftStr(Opt,p-1);
+  TargetOS:=copy(Opt,p+1,length(Opt));
+end;
+
 procedure TPas2jsReleaseCreator.CleanSources;
 
   procedure Clean(Dir: string);
@@ -471,6 +503,20 @@ begin
     TheParams.Add('-o'+BuildDir_Bin+'libpas2js'+GetLibExt(TargetOS));
     TheParams.Add('pas2jslib.pp');
     RunTool(WorkDir,FPCReleaseFilename,TheParams);
+
+    if FPC2Filename<>'' then begin
+      // compile second libpas2js
+      TheParams.Assign(SharedParams);
+      if SameText(FPC2TargetOS,'linux') then
+        TheParams.Add('-fPIC');
+      TheParams.Add('-o'+BuildDir_Bin+'libpas2js-'+FPC2TargetCPU+'-'+FPC2TargetOS+GetLibExt(TargetOS));
+      TheParams.Add('-P');
+      TheParams.Add(FPC2TargetCPU);
+      TheParams.Add('-T');
+      TheParams.Add(FPC2TargetOS);
+      TheParams.Add('pas2jslib.pp');
+      RunTool(WorkDir,FPCReleaseFilename,TheParams);
+    end;
 
     // compile compileserver using devel fpc
     TheParams.Assign(SharedParams);
@@ -815,7 +861,7 @@ begin
   if FilenameIsAbsolute(Result) then exit;
   if ExtractFilePath(Result)<>'' then
     Result:=ExpandFileName(Result)
-  else
+  else if Result<>'' then
     Result:=FindDefaultExecutablePath(Result);
 end;
 
