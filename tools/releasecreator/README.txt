@@ -1,10 +1,21 @@
 Pas2jsReleaseCreator is a tool to create a release or a snapshot of pas2js.
 
 It creates a zip for a binary distribution of pasj2s:
-- binaries, e.g. pas2js.exe and some tools like compileserver.exe
-- demos
-- packages
-- It does not include the compiler sources.
+- Fetch version from Pascal sources and check version in rtl.js
+- Compile a bunch of executables:
+  - pas2js using fpc release
+  - libpas2js using fpc release and optional a second with fpc devel
+  - compileserver with fpc devel
+  - webidl2pas with fpc devel
+  - makestub with fpc devel
+- Copy files:
+  - demo
+  - packages
+  - tools except for releasecreator
+  - rtl.js
+  - It does not include the compiler sources.
+- Compile createconfig and create pas2js.cfg
+- Create a zip
 
 The creator requires some installed tools: git, make, zip, fpc release version,
 and fpc devel version.
