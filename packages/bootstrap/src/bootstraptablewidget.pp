@@ -878,25 +878,22 @@ function TCustomDBBootstrapTableWidget.MakeDateTimeRenderCol(aCol: TBootstrapTab
     DT : TDateTime;
 
   begin
-    if aTableCol.Formatting = '' then
+    if IsNull(Data) or isUndefined(Data) then
+      Result:=''
+    else if aTableCol.Formatting = '' then
       Result := String(Data)
     else
       begin
-      if IsNull(Data) then
+      if Data is TJSDate then
+        Dt:=JSDateToDateTime(TJSDate(Data))
+      else if isString(Data) then
+        Dt:=ISO8601ToDate(String(Data),False)
+      else
+        Dt:=0;
+      if Dt<=100 then
         Result:=''
       else
-        begin
-        if Data is TJSDate then
-          Dt:=JSDateToDateTime(TJSDate(Data))
-        else if isString(Data) then
-          Dt:=ISO8601ToDate(String(Data),False)
-        else
-          Dt:=0;
-        if Dt<=100 then
-          Result:=''
-        else  
-          Result := FormatDateTime(aTableCol.Formatting, DT)
-        end;
+        Result := FormatDateTime(aTableCol.Formatting, DT)
       end;
     if aTableCol.ExtraAttributes <> '' then
       Result := Format('<span %s>%s</span>', [ReplaceMoustache(row, aTableCol.ExtraAttributes), Result]);
