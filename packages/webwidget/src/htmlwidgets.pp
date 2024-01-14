@@ -2234,8 +2234,9 @@ Var
 begin
   inherited ApplyWidgetSettings(aElement);
   el.multiple:=Self.Multiple;
-  if Size<>-1 then
-    el.Size:=Self.Size;
+//  Writeln('Checking size : ',FSize);
+  if FSize<>-1 then
+    el.Size:=FSize;
   BuildOptions(el);
   // We need to force this.
   if SelectedIndex=-1 then
@@ -3115,7 +3116,7 @@ Var
   Inp : TJSHTMLElement;
 
 begin
-  Writeln('Setting text: ',AValue,' previous : ',Text);
+//  Writeln('Setting text: ',AValue,' previous : ',Text);
   if aValue=Text then exit;
   FText:=aValue;
   Inp:=Element;
@@ -3152,9 +3153,9 @@ begin
     Inp.value:=FValue;
     Inp.Required:=FRequired;
     Inp.ReadOnly:=FReadOnly;
-    Writeln('Setting inner text to "',FText,'"');
+    // Writeln('Setting inner text to "',FText,'"');
     Inp.innerHtml:=FText;
-    Writeln('Setting inner text is now "',Inp.innerText,'"');
+    // Writeln('Setting inner text is now "',Inp.innerText,'"');
     end;
 end;
 
