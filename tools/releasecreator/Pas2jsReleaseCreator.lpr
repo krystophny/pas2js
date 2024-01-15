@@ -8,8 +8,8 @@ uses
   {$IFDEF UNIX}
   cthreads,
   {$ENDIF}
-  LazUTF8, Classes, SysUtils, Types, CustApp, IniFiles, process, LazFileUtils,
-  FileUtil, FPCAdds, FindWriteln;
+  Classes, SysUtils, Types, CustApp, IniFiles, process,
+  FindWriteln, PRCUtils;
 
 const
   DefaultCfgFilename = 'pas2jsrelease.ini';
@@ -67,7 +67,6 @@ type
     function GetDefaultGit: string;
     function GetDefaultMake: string;
     function GetDefaultZip: string;
-    function GetLibExt(TargetOS: string = ''): string;
     function GetOption_String(ShortOption: char; const LongOption: string): string;
     function GetOption_Directory(ShortOption: char; const LongOption: string; const GetDefaultFunc: TGetDefaultEvent): string;
     function GetOption_Executable(ShortOption: char; const LongOption: string; const GetDefaultFunc: TGetDefaultEvent): string;
@@ -560,7 +559,7 @@ procedure TPas2jsReleaseCreator.CopySourceFolders;
       Log(etInfo,'Simulate: Copying folder "'+SrcDir+'" -> "'+DestDir+'"');
     end else begin
       Log(etInfo,'Copying folder "'+SrcDir+'" -> "'+DestDir+'"');
-      CopyDirTree(SrcDir,DestDir,[cffCreateDestDirectory,cffPreserveTime]);
+      CopyDirTree(SrcDir,DestDir,[cffCreateDestDirectory,cffPreserveTime,cffExceptionOnError]);
     end;
   end;
 
@@ -593,8 +592,7 @@ begin
     Log(etInfo,'Simulate: Copying "'+SrcFilename+'" -> "'+DestFilename+'"');
   end else begin
     Log(etInfo,'Copying "'+SrcFilename+'" -> "'+DestFilename+'"');
-    if not CopyFile(SrcFilename,DestFilename,[cffOverwriteFile,cffPreserveTime],false) then
-      Err('Unable to copy "'+SrcFilename+'" -> "'+DestFilename+'"');
+    CopyFile(SrcFilename,DestFilename,[cffOverwriteFile,cffPreserveTime,cffExceptionOnError]);
   end;
 end;
 
@@ -612,7 +610,7 @@ begin
   NeedBuild:=true;
   if not FileExists(ExeFilename) then
     log(etInfo,'Missing tool createconfig, building ...')
-  else if FileAge(SrcFilename)>FileAgeUTF8(ExeFilename) then
+  else if FileAge(SrcFilename)>FileAge(ExeFilename) then
     log(etInfo,'createconfig.pp changed, building ...')
   else
     NeedBuild:=false;
@@ -757,7 +755,7 @@ end;
 
 function TPas2jsReleaseCreator.GetDefaultBuildDir: string;
 begin
-  Result:=AppendPathDelim(ResolveDots(GetTempDir(false)));
+  Result:=AppendPathDelim(ExpandFileName(GetTempDir(false)));
 end;
 
 function TPas2jsReleaseCreator.GetDefaultTool(const Filename: string;
@@ -786,36 +784,6 @@ end;
 function TPas2jsReleaseCreator.GetDefaultZip: string;
 begin
   Result:=GetDefaultTool('zip'+GetExeExt,true);
-end;
-
-function TPas2jsReleaseCreator.GetLibExt(TargetOS: string): string;
-begin
-  if TargetOS='' then
-    TargetOS:=GetCompiledTargetOS;
-  TargetOS:=LowerCase(TargetOS);
-  if copy(TargetOS,1,3)='win' then
-    Result:='.dll'
-  else
-    case TargetOS of
-      'darwin',
-      'ios':
-         Result:='.dylib';
-      'linux',
-      'android',
-      'freebsd',
-      'openbsd',
-      'netbsd',
-      'dragonfly',
-      'haiku':
-         Result:='.so';
-      'browser',
-      'nodejs',
-      'electron',
-      'module':
-        Result:='.js';
-    else
-      Result:='';
-    end;
 end;
 
 function TPas2jsReleaseCreator.GetOption_String(ShortOption: char;

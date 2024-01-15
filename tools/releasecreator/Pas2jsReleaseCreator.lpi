@@ -38,6 +38,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="FindWriteln"/>
       </Unit>
+      <Unit>
+        <Filename Value="prcutils.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="PRCUtils"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
