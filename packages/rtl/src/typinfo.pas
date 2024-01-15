@@ -22,7 +22,7 @@ interface
 uses
 {$IFDEF FPC_DOTTEDUNITS}
   System.SysUtils, System.Types, System.RTLConsts, JSApi.JS;
-{$ELSE}  
+{$ELSE}
   SysUtils, Types, RTLConsts, JS;
 {$ENDIF}
 
@@ -436,9 +436,9 @@ function GetEnumProp(Instance: TObject; const PropInfo: TTypeMemberProperty): St
 procedure SetEnumProp(Instance: TObject; const PropName: String; const Value: String);
 procedure SetEnumProp(Instance: TObject; const PropInfo: TTypeMemberProperty; const Value: String);
 // Auxiliary routines, which may be useful
-function GetEnumName(TypeInfo: TTypeInfoEnum; Value: Integer): String;
-function GetEnumValue(TypeInfo: TTypeInfoEnum; const Name: string): Longint;
-function GetEnumNameCount(TypeInfo: TTypeInfoEnum): Longint;
+function GetEnumName(TypeInfo: TTypeInfo; Value: Integer): String;
+function GetEnumValue(TypeInfo: TTypeInfo; const Name: string): Longint;
+function GetEnumNameCount(TypeInfo: TTypeInfo): Longint;
 
 function GetSetProp(Instance: TObject; const PropName: String): String; overload;
 function GetSetProp(Instance: TObject; const PropInfo: TTypeMemberProperty): String; overload;
@@ -1200,22 +1200,29 @@ begin
     SetJSValueProp(Instance,PropInfo,n);
 end;
 
-function GetEnumName(TypeInfo: TTypeInfoEnum; Value: Integer): String;
-begin
-  Result:=TypeInfo.EnumType.IntToName[Value];
-end;
-
-function GetEnumValue(TypeInfo: TTypeInfoEnum; const Name: string): Longint;
-begin
-  Result:=TypeInfo.EnumType.NameToInt[Name];
-end;
-
-function GetEnumNameCount(TypeInfo: TTypeInfoEnum): Longint;
+function GetEnumName(TypeInfo: TTypeInfo; Value: Integer): String;
 var
+  Info: TTypeInfoEnum absolute TypeInfo;
+
+begin
+  Result := Info.EnumType.IntToName[Value];
+end;
+
+function GetEnumValue(TypeInfo: TTypeInfo; const Name: string): Longint;
+var
+  Info: TTypeInfoEnum absolute TypeInfo;
+
+begin
+  Result := Info.EnumType.NameToInt[Name];
+end;
+
+function GetEnumNameCount(TypeInfo: TTypeInfo): Longint;
+var
+  Info: TTypeInfoEnum absolute TypeInfo;
   o: TJSObject;
   l, r: LongInt;
 begin
-  o:=TJSObject(TypeInfo.EnumType);
+  o:=TJSObject(Info.EnumType);
   // as of pas2js 1.0 the RTTI does not contain a min/max value
   // -> use exponential search
   // ToDo: adapt this once enums with gaps are supported
