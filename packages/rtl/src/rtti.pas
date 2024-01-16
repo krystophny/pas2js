@@ -71,6 +71,7 @@ type
     generic function IsType<T>(const EmptyAsAnyType: Boolean = True): Boolean; overload;
     function GetArrayElement(aIndex: SizeInt): TValue;
     function GetArrayLength: SizeInt;
+    function GetReferenceToRawData: Pointer;
     function IsArray: boolean;
     function IsClass: boolean;
     function IsObject: boolean;
@@ -833,8 +834,15 @@ end;
 
 class procedure TValue.Make(const ABuffer: JSValue; const ATypeInfo: PTypeInfo; var Result: TValue);
 begin
-  Result.FData := ABuffer;
   Result.FTypeInfo := ATypeInfo;
+
+  if Result.FTypeInfo.Kind = tkRecord then
+    if Assigned(ABuffer) then
+      Result.FData := TTypeInfoRecord(ATypeInfo).RecordInfo.Assign(ABuffer)
+    else
+      Result.FData := TTypeInfoRecord(ATypeInfo).RecordInfo.New
+  else
+    Result.FData := ABuffer;
 end;
 
 generic class procedure TValue.Make<T>(const Value: T; var Result: TValue);
@@ -1173,6 +1181,11 @@ begin
     TJSValueDynArray(GetData)[aIndex] := AValue.AsJSValue
   else
     raise EInvalidCast.Create(SErrInvalidTypecast);
+end;
+
+function TValue.GetReferenceToRawData: Pointer;
+begin
+  Result := Pointer(GetData);
 end;
 
 function TValue.IsType(ATypeInfo: TTypeInfo): boolean;

@@ -291,9 +291,17 @@ type
 
   { TTypeInfoRecord - Kind = tkRecord }
 
+  TRecordInfo = class external name 'Object'(TJSObject)
+  public
+    function Assign(Source: JSValue): JSValue; external name '$assign';
+    function Clone(Source: JSValue): JSValue; external name '$clone';
+    function Equals(Source: JSValue): Boolean; external name '$eq';
+    function New: JSValue; external name '$new';
+  end;
+
   TTypeInfoRecord = class external name 'rtl.tTypeInfoRecord'(TTypeInfoStruct)
   public
-    RecordType: TJSObject external name '$record';  // only records with class vars, else jsundefined
+    RecordInfo: TRecordInfo external name '$record';  // only records with class vars, else jsundefined
   end;
 
   { TTypeInfoClass - Kind = tkClass }
