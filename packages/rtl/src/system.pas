@@ -378,7 +378,7 @@ const
   MathE: Double; external name 'Math.E'; // Euler's number
   MathLN10: Double; external name 'Math.LN10'; // ln(10)
   MathLN2: Double; external name 'Math.LN2'; // ln(2)
-  MathLog10E: Double; external name 'Math.Log10E'; // log10(e)
+  MathLog10E: Double; external name 'Math.LOG10E'; // log10(e)
   MathLog2E: Double; external name 'Math.LOG2E'; // log2(e)
   MathSQRT1_2: Double; external name 'Math.SQRT1_2'; // sqrt(0.5)
   MathSQRT2: Double; external name 'Math.SQRT2'; // sqrt(2)
