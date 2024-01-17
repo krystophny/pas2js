@@ -570,6 +570,10 @@ begin
   CopyFolder('packages');
 
   // copy all tools except releasecreator
+  if not Simulate then begin
+    if not CreateDir(BuildDir_Sources+'tools') then
+      Err('Unable to create directory: '+BuildDir_Sources+'tools');
+  end;
   if FindFirst(SourceDir+'tools'+PathDelim+AllFilesMask,faAnyFile,Info)=0 then begin
     repeat
       if (Info.Name='') or (Info.Name='.') or (Info.Name='..') then continue;
