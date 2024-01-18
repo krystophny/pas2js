@@ -50,11 +50,13 @@ cd compiler
 git config --local pull.rebase true
 ```
 
+```sh
 Update aka fetch new:
 cd pas2js
 git pull
 cd compiler
 git pull
+```
 
 This will pull any upstream changes to your local FPC repository.
 
