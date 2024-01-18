@@ -39,33 +39,26 @@ as well if it has the latest version.
 The makefile expects the sources of FPC to be present under the `compiler` directory.
 You can copy/clone the FPC sources there. Note that a symlink to the FPC sources will not work, as the linker confuses some relative paths.
 
-The git repository contains a submodule link `compiler` to the FPC sources.
-You can use this to have an automatically correct version of fpc. This is useful for the `fixes` and `release` branches, as they automatically get the tested combination of pas2js and fpc sources.
+For example:
 
-When you do a `git clone`, make sure you also specify the `--recurse-submodules`  option:
 ```sh
-git clone --recurse-submodules https://gitlab.com/freepascal.org/fpc/pas2js.git
+git clone https://gitlab.com/freepascal.org/fpc/pas2js.git pas2js
+cd pas2js
+git config --local pull.rebase true
+git clone https://gitlab.com/freepascal.org/fpc/source.git compiler
+cd compiler
+git config --local pull.rebase true
 ```
 
-If you didn't do this, issue the init and update commands:
-```sh
-git submodule update --init --recursive
-```
-This will have the same effect as when you do a --recurse-submodules.
-
-After doing a `git pull` or a `git switch`, you must also update the submodule:
-```sh
+Update aka fetch new:
+cd pas2js
 git pull
-git submodule update --init --recursive
-```
+cd compiler
+git pull
+
 This will pull any upstream changes to your local FPC repository.
 
-#### TortoiseGit ####
-
-To update the submodule 'compiler' do the following:
-In the Git Synchronization dialog, after the "Pull", click on the "Submodule Update" button.
-
-#### Under Linux/macOS
+#### Building on Linux/macOS
 type the following command:
 ```sh
 make all
@@ -75,18 +68,18 @@ This creates with a 64-bit fpc the executable `bin/x86_64-linux/pas2js`
 and a basic config file `bin/x86_64-linux/pas2js.cfg`.
 
 
-#### Under Windows
+#### Building on Windows
 
 
 Make sure that you use the `make.exe` from fpc, not the one from Delphi by setting the
 `PATH`: For example if you installed the 32-bit version of fpc in
-`C:\YourPathOfFPC\3.2.0`:
+`C:\YourPathOfFPC\3.2.2`:
 ```bat
-set PATH=C:\YourPathOfFPC\3.0.4\bin\i386-win32;%PATH%
+set PATH=C:\YourPathOfFPC\3.2.2\bin\i386-win32;%PATH%
 ```
-If you installed the 64-bit version of fpc in `C:\YourPathOfFPC\3.2.0` use
+If you installed the 64-bit version of fpc in `C:\YourPathOfFPC\3.2.2` use
 ```bat
-set PATH=C:\YourPathOfFPC\3.0.4\bin\x86-64-win64;%PATH%
+set PATH=C:\YourPathOfFPC\3.2.2\bin\x86-64-win64;%PATH%
 ```
 Then compile
 make all
