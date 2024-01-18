@@ -60,6 +60,15 @@ git pull
 
 This will pull any upstream changes to your local FPC repository.
 
+Switching to the fixes branch:
+```sh
+cd pas2js
+git checkout fixes_3_0
+cd compiler
+git checkout pas2js/fixes_3_0
+```
+
+
 #### Building on Linux/macOS
 type the following command:
 ```sh
