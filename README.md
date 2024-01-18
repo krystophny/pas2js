@@ -39,7 +39,7 @@ as well if it has the latest version.
 The makefile expects the sources of FPC to be present under the `compiler` directory.
 You can copy/clone the FPC sources there. Note that a symlink to the FPC sources will not work, as the linker confuses some relative paths.
 
-For example:
+Cloning pas2js and fpc git repos:
 
 ```sh
 git clone https://gitlab.com/freepascal.org/fpc/pas2js.git pas2js
@@ -50,8 +50,8 @@ cd compiler
 git config --local pull.rebase true
 ```
 
+Update local git repos:
 ```sh
-Update aka fetch new:
 cd pas2js
 git pull
 cd compiler
