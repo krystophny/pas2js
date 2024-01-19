@@ -11,3 +11,4 @@ units
 *.o
 *.wasm
 link*.res
+compiler
