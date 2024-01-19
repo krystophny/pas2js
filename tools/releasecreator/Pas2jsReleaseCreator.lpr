@@ -41,7 +41,7 @@ type
     Pas2jsVersion: string;
     Simulate: boolean;
     SourceDir: string; // cloned git release
-    FPCDir: string;
+    FPCSrcDir: string;
     Verbosity: integer;
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -133,7 +133,7 @@ begin
   SourceDir:=GetOption_Directory('s','sourcedir',nil);
   if SourceDir='' then
     Err('missing source directory');
-  FPCDir:=GetOption_Directory(' ','fpcdir',nil);
+  FPCSrcDir:=GetOption_Directory(' ','fpcdir',nil);
   FPCReleaseFilename:=GetOption_Executable(' ','fpcrelease',nil);
   FPCDevelFilename:=GetOption_Executable(' ','fpcdevel',nil);
   FPC2Filename:=GetOption_Executable(' ','fpc2',nil);
@@ -142,16 +142,16 @@ begin
   MakeFilename:=GetOption_Executable(' ','make',@GetDefaultMake);
   ZipFilename:=GetOption_Executable(' ','zip',@GetDefaultZip);
 
-  if FPCDir='' then
-    FPCDir:=GetEnvironmentVariable('FPCDIR');
-  if FPCDir='' then
-    FPCDir:=SourceDir+'compiler'+PathDelim;
+  if FPCSrcDir='' then
+    FPCSrcDir:=GetEnvironmentVariable('FPCDIR');
+  if FPCSrcDir='' then
+    FPCSrcDir:=SourceDir+'compiler'+PathDelim;
 
   // write options
   if Verbosity>=0 then begin
     Log(etInfo,'SourceDir: "'+SourceDir+'"');
     Log(etInfo,'BuildDir: "'+BuildDir+'"');
-    Log(etInfo,'FPCDir: "'+FPCDir+'"');
+    Log(etInfo,'FPCDir: "'+FPCSrcDir+'"');
     Log(etInfo,'FPCRelease: "'+FPCReleaseFilename+'"');
     Log(etInfo,'FPCDevel: "'+FPCDevelFilename+'"');
     Log(etInfo,'FPC2: "'+FPC2Filename+'"');
@@ -171,8 +171,8 @@ begin
     Err('BuildDir missing: "'+BuildDir+'"');
   if not DirectoryExists(SourceDir) then
     Err('SourceDir missing: "'+SourceDir+'"');
-  if not DirectoryExists(FPCDir) then
-    Err('FPCDir missing: "'+FPCDir+'"');
+  if not DirectoryExists(FPCSrcDir) then
+    Err('FPCDir missing: "'+FPCSrcDir+'"');
   CheckExecutable(FPCReleaseFilename,'fpcrelease');
   CheckExecutable(FPCDevelFilename,'fpcdevel');
   if FPC2Filename<>'' then
@@ -305,7 +305,7 @@ begin
   sl:=TStringList.Create;
   try
     // read pas2js version number from Pascal sources
-    Filename:=FPCDir+SetDirSeparators('packages/pastojs/src/pas2jscompiler.pp');
+    Filename:=FPCSrcDir+SetDirSeparators('packages/pastojs/src/pas2jscompiler.pp');
     if Verbosity>0 then
       Log(etInfo,'Reading version from "'+Filename+'" ...');
     if not FileExists(Filename) then
@@ -338,7 +338,7 @@ begin
       Log(etInfo,'Pas2js version is '+Pas2jsVersion);
 
     // read version number from rtl.js
-    Filename:=FPCDir+SetDirSeparators('utils/pas2js/dist/rtl.js');
+    Filename:=FPCSrcDir+SetDirSeparators('utils/pas2js/dist/rtl.js');
     if Verbosity>0 then
       Log(etInfo,'Reading version from "'+Filename+'" ...');
     if not FileExists(Filename) then
@@ -372,11 +372,11 @@ procedure TPas2jsReleaseCreator.CheckForgottenWriteln;
   end;
 
 begin
-  Check(FPCDir+'packages'+PathDelim+'fcl-js'+PathDelim+'src');
-  Check(FPCDir+'packages'+PathDelim+'fcl-json'+PathDelim+'src');
-  Check(FPCDir+'packages'+PathDelim+'fcl-passrc'+PathDelim+'src');
-  Check(FPCDir+'packages'+PathDelim+'pastojs'+PathDelim+'src');
-  Check(FPCDir+'utils'+PathDelim+'pas2js');
+  Check(FPCSrcDir+'packages'+PathDelim+'fcl-js'+PathDelim+'src');
+  Check(FPCSrcDir+'packages'+PathDelim+'fcl-json'+PathDelim+'src');
+  Check(FPCSrcDir+'packages'+PathDelim+'fcl-passrc'+PathDelim+'src');
+  Check(FPCSrcDir+'packages'+PathDelim+'pastojs'+PathDelim+'src');
+  Check(FPCSrcDir+'utils'+PathDelim+'pas2js');
 end;
 
 procedure TPas2jsReleaseCreator.ParseFPCTargetOption(const LongOpt: string; out
@@ -480,9 +480,9 @@ begin
   SharedParams:=TStringList.Create;
   TheParams:=TStringList.Create;
   try
-    WorkDir:=FPCDir+'utils'+PathDelim+'pas2js';
+    WorkDir:=FPCSrcDir+'utils'+PathDelim+'pas2js';
 
-    PkgSrcDir:=FPCDir+'packages'+PathDelim;
+    PkgSrcDir:=FPCSrcDir+'packages'+PathDelim;
     SharedParams.Add('-Fu'+PkgSrcDir+'fcl-js'+PathDelim+'src');
     SharedParams.Add('-Fu'+PkgSrcDir+'fcl-json'+PathDelim+'src');
     SharedParams.Add('-Fu'+PkgSrcDir+'fcl-passrc'+PathDelim+'src');
@@ -601,7 +601,7 @@ procedure TPas2jsReleaseCreator.CopyRTLjs;
 var
   SrcFilename, DestFilename: String;
 begin
-  SrcFilename:=FPCDir+SetDirSeparators('utils/pas2js/dist/rtl.js');
+  SrcFilename:=FPCSrcDir+SetDirSeparators('utils/pas2js/dist/rtl.js');
   DestFilename:=BuildDir_Sources+SetDirSeparators('packages/rtl/src/rtl.js');
   if Simulate then begin
     Log(etInfo,'Simulate: Copying "'+SrcFilename+'" -> "'+DestFilename+'"');

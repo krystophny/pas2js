@@ -106,13 +106,14 @@ begin
   Addln('# If you don''t want so much verbosity use');
   Addln('#-vw');
   Addln('');
+  Addln('# Allow C-operators');
+  Addln('-Sc');
+  Addln('');
   Addln('#IFDEF FPC_SUBTARGET_NAMESPACED');
-  AddPath('-Fu',BaseDir,'namespaced');
-  AddPath('-Fi',BaseDir,'src');
-  // needed for system unit.
-  AddPath('-Fu',BaseDir+'rtl'+PathDelim+'src','');
+  AddPath('-Fu',BaseDir,'*/namespaced');
+  AddPath('-Fi',BaseDir,'*/src');
   AddLn('#else');
-  AddPath('-Fu',BaseDir,'src');
+  AddPath('-Fu',BaseDir,'*/src');
   AddLn('#endif');
   if rtl_js_dir<>'' then
     AddPath('-Fu',rtl_js_dir,'');
@@ -178,8 +179,15 @@ Var
   P : TPackage;
   UnitDir,DemoDir,BD, TmpCfg, TmpCfg2: String;
   T: TTarget;
+  FPCSrcDir: String;
 
 begin
+  FPCSrcDir:=GetEnvironmentVariable('FPCDIR');
+  if FPCSrcDir<>'' then
+    FPCSrcDir:=IncludeTrailingPathDelimiter(ExpandFileName(FPCSrcDir));
+  if FPCSrcDir='' then
+    FPCSrcDir:=IncludeTrailingPathDelimiter(GetCurrentDir)+'compiler'+PathDelim;
+
   With Installer do
     begin
     P:=AddPackage('pas2js');
@@ -190,26 +198,26 @@ begin
     P.Email := 'michael@freepascal.org';
     P.NeedLibC:= false;
     P.Version:='3.3.1';
-    P.SourcePath.Add('compiler/utils/pas2js');
-    P.UnitPath.Add('compiler/utils/pas2js');
-    P.UnitPath.Add('compiler/packages/pastojs/src');
-    P.UnitPath.Add('compiler/packages/fcl-passrc/src');
-    P.UnitPath.Add('compiler/packages/fcl-js/src');
-    P.UnitPath.Add('compiler/packages/fcl-json/src');
+    P.SourcePath.Add(FPCSrcDir+'utils/pas2js');
+    P.UnitPath.Add(FPCSrcDir+'utils/pas2js');
+    P.UnitPath.Add(FPCSrcDir+'packages/pastojs/src');
+    P.UnitPath.Add(FPCSrcDir+'packages/fcl-passrc/src');
+    P.UnitPath.Add(FPCSrcDir+'packages/fcl-js/src');
+    P.UnitPath.Add(FPCSrcDir+'packages/fcl-json/src');
     {$IF FPC_FULLVERSION>=30301}
-    P.UnitPath.Add('compiler/packages/fcl-base/src');
-    P.UnitPath.Add('compiler/packages/fcl-web/src/base');
-    P.UnitPath.Add('compiler/packages/fcl-net/src');
-    P.IncludePath.Add('compiler/packages/fcl-net/src/unix',AllUnixOSes);
-    P.IncludePath.Add('compiler/packages/fcl-net/src/win',AllWindowsOSes);
-    P.IncludePath.Add('compiler/packages/fcl-net/src/os2',[EMX]);
-    P.IncludePath.Add('compiler/packages/fcl-net/src/amiga',[morphos]);
-    P.IncludePath.Add('compiler/packages/fcl-net/src/$(OS)',AllOSes-AllWindowsOSes-AllUnixOSes-[EMX]);
-    P.UnitPath.Add('compiler/packages/fcl-base/src');
-    P.IncludePath.Add('compiler/packages/fcl-base/src/dummy');
-    P.UnitPath.Add('compiler/packages/webidl/src');
+    P.UnitPath.Add(FPCSrcDir+'packages/fcl-base/src');
+    P.UnitPath.Add(FPCSrcDir+'packages/fcl-web/src/base');
+    P.UnitPath.Add(FPCSrcDir+'packages/fcl-net/src');
+    P.IncludePath.Add(FPCSrcDir+'packages/fcl-net/src/unix',AllUnixOSes);
+    P.IncludePath.Add(FPCSrcDir+'packages/fcl-net/src/win',AllWindowsOSes);
+    P.IncludePath.Add(FPCSrcDir+'packages/fcl-net/src/os2',[EMX]);
+    P.IncludePath.Add(FPCSrcDir+'packages/fcl-net/src/amiga',[morphos]);
+    P.IncludePath.Add(FPCSrcDir+'packages/fcl-net/src/$(OS)',AllOSes-AllWindowsOSes-AllUnixOSes-[EMX]);
+    P.UnitPath.Add(FPCSrcDir+'packages/fcl-base/src');
+    P.IncludePath.Add(FPCSrcDir+'packages/fcl-base/src/dummy');
+    P.UnitPath.Add(FPCSrcDir+'packages/webidl/src');
     {$ENDIF}
-    P.IncludePath.Add('compiler/packages/pastojs/src');
+    P.IncludePath.Add(FPCSrcDir+'packages/pastojs/src');
     P.Dependencies.Clear;
     Defaults.Options.Add('-Sc');
     P.Targets.AddProgram('pas2js.pp');
@@ -264,14 +272,14 @@ begin
     {$ELSE} 
     BD:=IncludeTrailingPathDelimiter(P.GetBinOutputDir(Defaults.BuildCPU,Defaults.BuildOS));
     {$ENDIF}
-    TmpCfg:='compiler/utils/pas2js/dist/pas2js.cfg';
-    TmpCfg2:='compiler/utils/pas2js/dist/pas2js-namespaced.cfg';
+    TmpCfg:=FPCSrcDir+'utils/pas2js/dist/pas2js.cfg';
+    TmpCfg2:=FPCSrcDir+'utils/pas2js/dist/pas2js-namespaced.cfg';
     Case Installer.RunMode of
     rmCompile,rmBuild:
       begin
       if not FileExists(BD+'pas2js.cfg') then
         CreateConfigFile(BD+'pas2js.cfg',SetDirSeparators('../../packages'),
-                         SetDirSeparators('../../compiler/utils/pas2js/dist/'));
+                         SetDirSeparators(FPCSrcDir+'utils/pas2js/dist/'));
        if not FileExists(BD+'pas2js-namespaced.cfg') then
          CreateNameSpacedConfigFile(BD+'pas2js-namespaced.cfg');
       end;
@@ -289,7 +297,7 @@ begin
       CreateNamespacedConfigFile(TmpCfg2);
       P.InstallFiles.Add(TmpCfg,Defaults.BinInstallDir);
       P.InstallFiles.Add(TmpCfg2,Defaults.BinInstallDir);
-      P.InstallFiles.Add('compiler/utils/pas2js/dist/rtl.js',IncludeTrailingPathDelimiter(UnitDir)+'rtl');
+      P.InstallFiles.Add(FPCSrcDir+'utils/pas2js/dist/rtl.js',IncludeTrailingPathDelimiter(UnitDir)+'rtl');
       AddPackageFiles(P.InstallFiles,'chartjs',UnitDir);
       AddPackageFiles(P.InstallFiles,'dataabstract',UnitDir);
       AddPackageFiles(P.InstallFiles,'fcl-base',UnitDir);
