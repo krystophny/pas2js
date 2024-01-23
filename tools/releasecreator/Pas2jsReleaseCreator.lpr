@@ -1,7 +1,5 @@
 program Pas2jsReleaseCreator;
 
-{ #todo -oMattias : remove folder scripts }
-
 {$mode objfpc}{$H+}
 
 uses
@@ -450,15 +448,18 @@ procedure TPas2jsReleaseCreator.CreateBuildSourceDir(const TargetOS,
 begin
   BuildDir_Sources:=BuildDir+'pas2js-'+TargetOS+'-'+TargetCPU+'-'+Pas2jsVersion;
   if DirectoryExists(BuildDir_Sources) then begin
-    if Verbosity>=0 then
-      Log(etInfo,'Deleting directory "'+BuildDir_Sources+'"');
-    if not Simulate then begin
+    if Simulate then begin
+      if Verbosity>=0 then
+        Log(etInfo,'Simulate: Deleting directory "'+BuildDir_Sources+'"');
+    end else begin
+      if Verbosity>=0 then
+        Log(etInfo,'Deleting directory "'+BuildDir_Sources+'"');
       if not DeleteDirectory(BuildDir_Sources,false) then
         Err('Unable to delete directory "'+BuildDir_Sources+'"');
     end;
   end;
   if Simulate then begin
-    Log(etInfo,'Simulate: create directory "'+BuildDir_Sources+'"')
+    Log(etInfo,'Simulate: Creating directory "'+BuildDir_Sources+'"')
   end else begin
     if not ForceDirectory(BuildDir_Sources) then
       Err('Unable to create directory "'+BuildDir_Sources+'"');
@@ -707,7 +708,7 @@ begin
     for i:=0 to ProcParams.Count-1 do
       CmdLine+=' '+Quote(ProcParams[i]);
     if Simulate then begin
-      Log(etInfo,'Simulate Running: WorkDir="'+WorkDir+'" Cmd: '+CmdLine);
+      Log(etInfo,'Simulate: Running: WorkDir="'+WorkDir+'" Cmd: '+CmdLine);
       exit;
     end;
     Log(etInfo,'Running: WorkDir="'+WorkDir+'" Cmd: '+CmdLine);
