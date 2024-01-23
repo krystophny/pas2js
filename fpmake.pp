@@ -280,8 +280,8 @@ begin
       if not FileExists(BD+'pas2js.cfg') then
         CreateConfigFile(BD+'pas2js.cfg',SetDirSeparators('../../packages'),
                          SetDirSeparators(FPCSrcDir+'utils/pas2js/dist/'));
-       if not FileExists(BD+'pas2js-namespaced.cfg') then
-         CreateNameSpacedConfigFile(BD+'pas2js-namespaced.cfg');
+      if not FileExists(BD+'pas2js-namespaced.cfg') then
+        CreateNameSpacedConfigFile(BD+'pas2js-namespaced.cfg');
       end;
     rmInstall,rmArchive,rmZipInstall:
       begin
