@@ -29,7 +29,7 @@
       </Linking>
       <Other>
         <CustomOptions Value="-dPas2js -O- -Jc"/>
-        <CompilerPath Value="pas2js"/>
+        <CompilerPath Value="$(pas2js)"/>
         <ExecuteBefore>
           <Command Value="$MakeExe(IDE,pas2js) -O- -Jc -vbq pas2js_rtl.pas"/>
           <ScanForFPCMsgs Value="True"/>
@@ -149,65 +149,81 @@
       <Item27>
         <Filename Value="generics.collections.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="generics.collections"/>
       </Item27>
       <Item28>
         <Filename Value="generics.defaults.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="generics.defaults"/>
       </Item28>
       <Item29>
         <Filename Value="generics.strings.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="generics.strings"/>
       </Item29>
       <Item30>
         <Filename Value="rstranslate.pp"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="rstranslate"/>
       </Item30>
       <Item31>
         <Filename Value="Rtl.BrowserLoadHelper.pas"/>
+        <UnitName Value="Rtl.BrowserLoadHelper"/>
       </Item31>
       <Item32>
         <Filename Value="Rtl.HTMLActions.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="Rtl.HTMLActions"/>
       </Item32>
       <Item33>
         <Filename Value="Rtl.HTMLEventNames.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="Rtl.HTMLEventNames"/>
       </Item33>
       <Item34>
         <Filename Value="Rtl.HTMLTranslate.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="Rtl.HTMLTranslate"/>
       </Item34>
       <Item35>
         <Filename Value="Rtl.HTMLUtils.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="Rtl.HTMLUtils"/>
       </Item35>
       <Item36>
         <Filename Value="Rtl.ScriptLoader.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="Rtl.ScriptLoader"/>
       </Item36>
       <Item37>
         <Filename Value="Rtl.TemplateLoader.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="Rtl.TemplateLoader"/>
       </Item37>
       <Item38>
         <Filename Value="Rtl.UnitLoader.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="Rtl.UnitLoader"/>
       </Item38>
       <Item39>
         <Filename Value="webassembly.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="webassembly"/>
       </Item39>
       <Item40>
         <Filename Value="webrtc.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="webrtc"/>
       </Item40>
       <Item41>
         <Filename Value="webutils.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="webutils"/>
       </Item41>
       <Item42>
         <Filename Value="webworker.pas"/>
         <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="webworker"/>
       </Item42>
     </Files>
     <CompatibilityMode Value="True"/>
