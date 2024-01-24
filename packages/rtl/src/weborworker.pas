@@ -41,6 +41,18 @@ type
   TJSServiceWorker = class;
   TJSReadableStream = class;
   TJSClient = class;
+  TJSFileSystemHandle = class;
+  TJSFileSystemFileHandle = class;
+  TJSFileSystemDirectoryHandle = class;
+  TJSFileSystemWritableFileStream = class;
+  TJSFileSystemSyncAccessHandle = class;
+  TFileSystemHandleKind = String;
+  TWriteCommandType = String;
+
+
+  TJSFileSystemFileHandleArray = array of TJSFileSystemFileHandle;
+  TJSFileSystemDirectoryHandleArray = array of TJSFileSystemDirectoryHandle;
+
 
 { ----------------------------------------------------------------------
   Console
@@ -276,6 +288,26 @@ type
     property size : NativeInt read FSize;
     property _type : string read FType; deprecated;
     property type_ : string read FType;
+  end;
+
+  TJSFileNewOptions = class external name 'Object' (TJSObject)
+    type_ : string; external name 'type';
+    lastModifier : NativeInt;
+  end;
+
+  { TJSFile }
+
+  TJSFile = class external name 'File' (TJSBlob)
+  private
+    fLastModified: NativeInt; external name 'lastModified';
+    fname: String; external name 'fname';
+  public
+    constructor new(Bits : TJSArray; const aName: string);
+    constructor new(Bits: TJSDataView; const aName : string);
+    constructor new(Bits : TJSArray; const aName: string; aOptions : TJSFileNewOptions);
+    constructor new(Bits: TJSDataView; const aName : string; aOptions : TJSFileNewOptions);
+    property Name : String  read fname;
+    property lastModified : NativeInt Read fLastModified;
   end;
 
   TJSBody = class external name 'Body' (TJSObject)
@@ -1098,10 +1130,183 @@ type
     property Registration: TJSServiceWorkerRegistration read FRegistration;
   end;
 
+  TOnChangeProcedure = reference to procedure;
+
+  TJSPermissionDescriptor = class external name 'Object' (TJSObject)
+  public
+    name: String;
+    userVisibleOnly: Boolean;
+    sysex: Boolean;
+  end;
+
+  TJSPermissionStatus = class external name 'PermissionStatus' (TJSObject)
+  private
+    FState: String; external name 'state';
+  public
+    onchange: TOnChangeProcedure;
+    property state: String read FState;
+  end;
+
+  TJSPermissions = class external name 'Permissions' (TJSObject)
+  public
+    function query(descriptor: TJSPermissionDescriptor): TJSPermissionStatus; async;
+  end;
+
+  TJSFileSystemHandlePermissionDescriptor = class external name 'Object' (TJSObject)
+  public
+    mode: String;
+  end;
+
+   // Union of BufferSource, Blob, USVString, WriteParams
+   TJSFileSystemWriteChunkType = JSValue;
+
+   { --------------------------------------------------------------------
+     FileSystemCreateWritableOptions
+     --------------------------------------------------------------------}
+
+   TJSFileSystemCreateWritableOptions = record
+     keepExistingData: Boolean;
+   end;
+
+   { --------------------------------------------------------------------
+     FileSystemGetFileOptions
+     --------------------------------------------------------------------}
+
+   TJSFileSystemGetFileOptions = record
+     create: Boolean;
+   end;
+
+   { --------------------------------------------------------------------
+     FileSystemGetDirectoryOptions
+     --------------------------------------------------------------------}
+
+   TJSFileSystemGetDirectoryOptions = record
+     create: Boolean;
+   end;
+
+   { --------------------------------------------------------------------
+     FileSystemRemoveOptions
+     --------------------------------------------------------------------}
+
+   TJSFileSystemRemoveOptions = record
+     recursive: Boolean;
+   end;
+
+   { --------------------------------------------------------------------
+     WriteParams
+     --------------------------------------------------------------------}
+
+   TJSWriteParams = record
+     type_: TWriteCommandType;external name 'type';
+     size: NativeInt;
+     position: NativeInt;
+     data: JSValue;
+   end;
+
+   { --------------------------------------------------------------------
+     FileSystemReadWriteOptions
+     --------------------------------------------------------------------}
+
+   TJSFileSystemReadWriteOptions = record
+     at: NativeInt;
+   end;
+
+   { --------------------------------------------------------------------
+     TJSWritableStream
+     --------------------------------------------------------------------}
+
+
+   { --------------------------------------------------------------------
+     TJSFileSystemHandle
+     --------------------------------------------------------------------}
+   TJSBooleanPromise = specialize TGPromise<boolean>;
+   TJSValuePromise = specialize TGPromise<JSValue>;
+   TJSUndefinedPromise = TJSValuePromise;
+   TJSFilePromise = specialize TGPromise<TJSFile>;
+
+   TJSFileSystemHandle = class external name 'FileSystemHandle'
+   Private
+     Fkind: TFileSystemHandleKind; external name 'kind';
+     Fname: String; external name 'name';
+   Public
+     function isSameEntry(aOther: TJSFileSystemHandle): TJSBooleanPromise;
+     Property kind: TFileSystemHandleKind Read Fkind;
+     Property name: String Read Fname;
+   end;
+
+
+   { --------------------------------------------------------------------
+     TJSFileSystemSyncAccessHandle
+     --------------------------------------------------------------------}
+
+   TJSFileSystemSyncAccessHandle = class external name 'FileSystemSyncAccessHandle'
+   Private
+   Public
+     function read(aBuffer: TJSBufferSource; const aOptions: TJSFileSystemReadWriteOptions): NativeInt; overload;
+     function read(aBuffer: TJSBufferSource): NativeInt; overload;
+     function write(aBuffer: TJSBufferSource; const aOptions: TJSFileSystemReadWriteOptions): NativeInt; overload;
+     function write(aBuffer: TJSBufferSource): NativeInt; overload;
+     function truncate(aNewSize: NativeInt): TJSUndefinedPromise;
+     function getSize: NativeInt;
+     function flush: TJSUndefinedPromise;
+     function close: TJSUndefinedPromise;
+   end;
+
+   { --------------------------------------------------------------------
+     TJSFileSystemFileHandle
+     --------------------------------------------------------------------}
+   TJSFileSystemWritableFileStreamPromise = specialize TGPromise<TJSFileSystemWritableFileStream>;
+   TJSFileSystemSyncAccessHandlePromise = specialize TGPromise<TJSFileSystemSyncAccessHandle>;
+
+   TJSFileSystemFileHandle = class external name 'FileSystemFileHandle' (TJSFileSystemHandle)
+   Private
+   Public
+     function getFile: TJSFilePromise;
+     function createWritable(const aOptions: TJSFileSystemCreateWritableOptions): TJSFileSystemWritableFileStreamPromise; overload;
+     function createWritable: TJSFileSystemWritableFileStreamPromise; overload;
+     function createSyncAccessHandle: TJSFileSystemSyncAccessHandlePromise;
+   end;
+
+   { --------------------------------------------------------------------
+     TJSFileSystemDirectoryHandle
+     --------------------------------------------------------------------}
+   TJSFileSystemFileHandlePromise = specialize TGPromise<TJSFileSystemFileHandle>;
+   TJSStringDynArrayPromise = specialize TGPromise<TStringDynArray>;
+   TJSFileSystemDirectoryHandlePromise = specialize TGPromise<TJSFileSystemDirectoryHandle>;
+
+   TJSFileSystemDirectoryHandle = class external name 'FileSystemDirectoryHandle' (TJSFileSystemHandle)
+   Private
+   Public
+     function getFileHandle(aName: String; const aOptions: TJSFileSystemGetFileOptions): TJSFileSystemFileHandlePromise; overload;
+     function getFileHandle(aName: String): TJSFileSystemFileHandlePromise; overload;
+     function getDirectoryHandle(aName: String; const aOptions: TJSFileSystemGetDirectoryOptions): TJSFileSystemDirectoryHandlePromise; overload;
+     function getDirectoryHandle(aName: String): TJSFileSystemDirectoryHandlePromise; overload;
+     function removeEntry(aName: String; const aOptions: TJSFileSystemRemoveOptions): TJSUndefinedPromise; overload;
+     function removeEntry(aName: String): TJSUndefinedPromise; overload;
+     function resolve(aPossibleDescendant: TJSFileSystemHandle): TJSStringDynArrayPromise;
+     function entries: TJSObject;
+     function values : TJSObject;
+   end;
+
+   { --------------------------------------------------------------------
+     TJSFileSystemWritableFileStream
+     --------------------------------------------------------------------}
+
+   TJSFileSystemWritableFileStream = class external name 'FileSystemWritableFileStream' (TJSWritableStream)
+   Private
+   Public
+     function write(aData: TJSFileSystemWriteChunkType): TJSUndefinedPromise;
+     function seek(aPosition: NativeInt): TJSUndefinedPromise;
+     function truncate(aSize: NativeInt): TJSUndefinedPromise;
+   end;
+
+
+  TJSDirectoryPromise = specialize TGPromise<TJSFileSystemDirectoryHandle>;
   TJSStorageManager = class external name 'StorageManager' (TJSObject)
     function estimate : TJSPromise;
     function persist : TJSPromise;
     function persisted : TJSPromise;
+    function GetDirectory : TJSDirectoryPromise;
   end;
 
   TJSMicrotaskProcedure = reference to Procedure;

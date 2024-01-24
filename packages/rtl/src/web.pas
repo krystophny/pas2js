@@ -46,13 +46,7 @@ Type
   TJSPointerEvent = Class;
   TJSUIEvent = class;
   TJSTouchEvent = Class;
-  TJSPermissions = class;
-  TJSFileSystemFileHandle = class;
-  TJSFileSystemFileHandleArray = array of TJSFileSystemFileHandle;
-  TJSFileSystemDirectoryHandle = class;
-  TJSFileSystemDirectoryHandleArray = array of TJSFileSystemDirectoryHandle;
-  TJSShowOpenFilePickerOptions = class;
-  TJSShowSaveFilePickerOptions = class;
+  TJSPermissions = weborworker.TJSPermissions;
 
 {$IFDEF FPC_DOTTEDUNITS}
   TJSServiceWorker = BrowserApi.WebOrWorker.TJSServiceWorker;
@@ -128,6 +122,9 @@ Type
   TJSServiceWorker = weborworker.TJSServiceWorker;
   TJSServiceWorkerRegistration = weborworker.TJSServiceWorkerRegistration;
   TJSMessageEvent = weborworker.TJSMessageEvent;
+  TJSShowOpenFilePickerOptions = class;
+  TJSShowSaveFilePickerOptions = class;
+
   TJSEvent = weborworker.TJSEvent;
   TJSBlob = weborworker.TJSBlob;
   TJSEventTarget = weborworker.TJSEventTarget;
@@ -197,7 +194,6 @@ Type
 {$ENDIF}
   TJSMessagePortArray = TJSMessagePortDynArray;
   TEventListenerEvent = TJSEvent;
-
   TJSEventHandler = reference to function(Event: TEventListenerEvent): boolean; safecall;
   TJSRawEventHandler = reference to Procedure(Event: TJSEvent); safecall;
 
@@ -2247,8 +2243,7 @@ Type
   private
     FAlign: String; external name 'align';
     FBGColor: String; external name 'bgColor';
-    FBorder: String; external name 'border';
-    FCaption: TJSHTMLElement; external name 'caption';
+    FBorder: String; external name 'border';    FCaption: TJSHTMLElement; external name 'caption';
     FCellPadding: String; external name 'cellPadding';
     FCellSpacing: String; external name 'cellSpacing';
     FFrame: String; external name 'frame';
@@ -3264,91 +3259,6 @@ Type
   end;
 
 
-  TOnChangeProcedure = reference to procedure;
-
-  TJSPermissionDescriptor = class external name 'Object' (TJSObject)
-  public
-    name: String;
-    userVisibleOnly: Boolean;
-    sysex: Boolean;
-  end;
-
-  TJSPermissionStatus = class external name 'PermissionStatus' (TJSObject)
-  private
-    FState: String; external name 'state';
-  public
-    onchange: TOnChangeProcedure;
-    property state: String read FState;
-  end;
-
-  TJSPermissions = class external name 'Permissions' (TJSObject)
-  public
-    function query(descriptor: TJSPermissionDescriptor): TJSPermissionStatus; async;
-  end;
-
-  TJSFileSystemHandlePermissionDescriptor = class external name 'Object' (TJSObject)
-  public
-    mode: String;
-  end;
-
-  TJSFileSystemCreateWritableOptions = class external name 'Object' (TJSObject)
-  public
-    keepExistingData: Boolean;
-  end;
-
-  TJSFileSystemWritableFileStream = class;
-
-  TJSFileSystemHandle = class external name 'FileSystemHandle' (TJSObject)
-  private
-    FKind: String; external name 'kind';
-    FName: String; external name 'name';
-  public
-    function isSameEntry(const Handle: TJSFileSystemHandle): Boolean;
-    function queryPermission(descriptor: TJSFileSystemHandlePermissionDescriptor): String;
-    function requestPermission(descriptor: TJSFileSystemHandlePermissionDescriptor): String;
-
-    property kind: String read FKind;
-    property name: String read FName;
-  end;
-
-  TJSFileSystemFileHandle = class external name 'FileSystemFileHandle' (TJSFileSystemHandle)
-  public
-    function getFile: TJSHTMLFile; async;
-    function createWritable: TJSFileSystemWritableFileStream; overload;
-    function createWritable(options: TJSFileSystemCreateWritableOptions): TJSFileSystemWritableFileStream; overload;
-  end;
-
-  TJSGetFileHandleOptions = class external name 'Object'
-  public
-    create: Boolean;
-
-    constructor new;
-  end;
-
-  TJSRemoveEntryOptions = class external name 'Object' (TJSObject)
-    recursive: Boolean;
-  end;
-
-  TJSFileSystemDirectoryHandle = class external name 'FileSystemDirectoryHandle' (TJSFileSystemHandle)
-  public
-    function entries: TJSObject;
-    function getDirectoryHandle(name: String): TJSFileSystemDirectoryHandle; async; overload;
-    function getDirectoryHandle(name: String; options: TJSGetFileHandleOptions): TJSFileSystemDirectoryHandle; async; overload;
-    function getFileHandle(name: String): TJSFileSystemFileHandle; async; overload;
-    function getFileHandle(name: String; options: TJSGetFileHandleOptions): TJSFileSystemFileHandle; async; overload;
-    function keys: TJSFileSystemDirectoryHandleArray; reintroduce;
-    function removeEntry(name: String): TJSPromise;
-    function removeEntry(name: String; options: TJSRemoveEntryOptions): TJSPromise;
-    function resolve(possibleDescendant: String): TStringDynArray; async;
-    function values(possibleDescendant: String): TJSFileSystemDirectoryHandleArray; reintroduce; async;
-  end;
-
-  TJSFileSystemWritableFileStream = class external name 'FileSystemWritableFileStream' (TJSWritableStream)
-  public
-    function seek(position: NativeInt): TJSPromise;
-    function write(data: JSValue): TJSPromise;
-    function truncate(size: NativeInt): TJSPromise;
-  end;
 
   TJSShowOpenFilePickerTypeOptions = class external name 'Object' (TJSObject)
   public
