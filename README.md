@@ -89,9 +89,8 @@ set PATH=C:\YourPathOfFPC\3.2.2\bin\i386-win32;%PATH%
 If you installed the 64-bit version of fpc in `C:\YourPathOfFPC\3.2.2` use
 ```bat
 set PATH=C:\YourPathOfFPC\3.2.2\bin\x86-64-win64;%PATH%
-```
-Then compile
 make clean all
+```
 
 If you see "Error makefile ... Command syntax error" your "set PATH" was
 not correct.
