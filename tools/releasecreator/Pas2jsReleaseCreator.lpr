@@ -140,8 +140,11 @@ begin
   MakeFilename:=GetOption_Executable(' ','make',@GetDefaultMake);
   ZipFilename:=GetOption_Executable(' ','zip',@GetDefaultZip);
 
-  if FPCSrcDir='' then
+  if FPCSrcDir='' then begin
     FPCSrcDir:=GetEnvironmentVariable('FPCDIR');
+    if FPCSrcDir<>'' then
+      FPCSrcDir:=AppendPathDelim(ExpandFileName(FPCSrcDir));
+  end;
   if FPCSrcDir='' then
     FPCSrcDir:=SourceDir+'compiler'+PathDelim;
 
