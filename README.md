@@ -37,7 +37,8 @@ as well if it has the latest version.
 ### Complete checkout
 
 The makefile expects the sources of FPC to be present under the `compiler` directory.
-You can copy/clone the FPC sources there. Note that a symlink to the FPC sources will not work, as the linker confuses some relative paths.
+You can copy/clone the FPC sources there or set enviroment variable FPCDIR.
+Note that a symlink to the FPC sources will not work, as the linker confuses some relative paths.
 
 Cloning pas2js and fpc git repos:
 
@@ -50,7 +51,7 @@ cd compiler
 git config --local pull.rebase true
 ```
 
-Update local git repos:
+Updating local git repos:
 ```sh
 cd pas2js
 git pull
@@ -58,7 +59,6 @@ cd compiler
 git pull
 ```
 
-This will pull any upstream changes to your local FPC repository.
 
 Switching to the fixes branch:
 ```sh
@@ -68,16 +68,14 @@ cd compiler
 git checkout pas2js/fixes_3_0
 ```
 
-
 #### Building on Linux/macOS
 type the following command:
 ```sh
-make all
+make clean all
 ```
 
 This creates with a 64-bit fpc the executable `bin/x86_64-linux/pas2js`
 and a basic config file `bin/x86_64-linux/pas2js.cfg`.
-
 
 #### Building on Windows
 
@@ -93,7 +91,7 @@ If you installed the 64-bit version of fpc in `C:\YourPathOfFPC\3.2.2` use
 set PATH=C:\YourPathOfFPC\3.2.2\bin\x86-64-win64;%PATH%
 ```
 Then compile
-make all
+make clean all
 
 If you see "Error makefile ... Command syntax error" your "set PATH" was
 not correct.

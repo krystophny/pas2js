@@ -179,7 +179,7 @@ Var
   P : TPackage;
   UnitDir,DemoDir,BD, TmpCfg, TmpCfg2: String;
   T: TTarget;
-  FPCSrcDir: String;
+  FPCSrcDir, Pas2jsOFilename: String;
 
 begin
   FPCSrcDir:=GetEnvironmentVariable('FPCDIR');
@@ -337,7 +337,17 @@ begin
       AddDemoFiles(P.InstallFiles,'rtl',DemoDir);
       end;
     rmClean:
+      begin
       P.CleanFiles.Add(TmpCfg);
+      // workaround for fpc bug 40602: delete pas2js.o in FPCDIR
+      Pas2jsOFilename:=FPCSrcDir+SetDirSeparators('utils/pas2js/units/'+Defaults.Target+'/pas2js.o');
+      if FileExists(Pas2jsOFilename) then
+        if not DeleteFile(Pas2jsOFilename) then
+          begin
+          writeln('Unable to delete "'+Pas2jsOFilename+'"');
+          Halt(3);
+          end;
+      end;
     rmDistClean:
       if FileExists(BD+'pas2js.cfg') then
         P.CleanFiles.Add(BD+'pas2js.cfg');
