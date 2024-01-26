@@ -14,7 +14,7 @@ Official site:
 * **bin** - output folder for binaries, e.g. pas2js.exe
 * **compiler** - source files to compile the compiler. This is an external submodule link.
 * **units** - output folder of compiler ppu/o files
-* **utils** - utilities
+* **tools** - utilities
 
 ## Building
 
