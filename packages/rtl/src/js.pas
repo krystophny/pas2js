@@ -1009,9 +1009,9 @@ type
   TJSNumber = class external name 'Number' (TJSFunction)
   private
     class var FEPSILON: Double; external name 'EPSILON';
-    class var FMAX_SAFE_INTEGER: Int64; external name 'MAX_SAFE_INTEGER';
+    class var {%H-}FMAX_SAFE_INTEGER: Int64; external name 'MAX_SAFE_INTEGER';
     class var FMAX_VALUE: Double; external name 'MAX_VALUE';
-    class var FMIN_SAFE_INTEGER: Int64; external name 'MIN_SAFE_INTEGER';
+    class var {%H-}FMIN_SAFE_INTEGER: Int64; external name 'MIN_SAFE_INTEGER';
     class var FMIN_VALUE: Double; external name 'MIN_VALUE';
     class var FNaN: Double; external name 'NaN';
     class var FNEGATIVE_INFINITY: TJSNumber; external name 'NEGATIVE_INFINITY';
@@ -1044,12 +1044,12 @@ type
     function toPrecision(const precision: Integer): TJSString; overload;
     function toString: TJSString; overload;
     function toString(const radix: Integer): TJSString; overload;
-    function valueOf: Double;
+    function valueOf: Double; reintroduce;
 
     class property EPSILON: Double read FEPSILON;
-    class property MAX_SAFE_INTEGER: Int64 read FMAX_SAFE_INTEGER;
+    class property MAX_SAFE_INTEGER{%H-}: Int64 read FMAX_SAFE_INTEGER;
     class property MAX_VALUE: Double read FMAX_VALUE;
-    class property MIN_SAFE_INTEGER: Int64 read FMIN_SAFE_INTEGER;
+    class property MIN_SAFE_INTEGER{%H-}: Int64 read FMIN_SAFE_INTEGER;
     class property MIN_VALUE: Double read FMIN_VALUE;
     class property NaN: Double read FNaN;
     class property NEGATIVE_INFINITY: TJSNumber read FNEGATIVE_INFINITY;

@@ -3103,7 +3103,7 @@ var
   i: Integer;
 begin
   Result:=aQuoted;
-  if TJSString(Result).substr(0,1)<>AQuote then exit;
+  if TJSString(Result).substring(0,1)<>AQuote then exit;
   Result:=TJSString(Result).slice(1);
   i:=1;
   while i<=length(Result) do
