@@ -1130,10 +1130,15 @@ end;
 
 function TValue.ToString: String;
 begin
+  if IsEmpty then
+    Exit('(empty)');
+
   case Kind of
     tkString: Result := AsString;
     tkInteger: Result := IntToStr(AsNativeInt);
     tkBool: Result := BoolToStr(AsBoolean, True);
+    tkClass: Result := AsObject.ClassName;
+    tkClassRef: Result := AsClass.ClassName;
   else
     Result := '';
   end;
