@@ -15,6 +15,8 @@ unit Classes;
 {$ENDIF}
 
 {$mode objfpc}
+// seemingly needed for streaming...
+{$RANGECHECKS OFF} 
 
 interface
 
