@@ -46,7 +46,9 @@ Type
   TJSPointerEvent = Class;
   TJSUIEvent = class;
   TJSTouchEvent = Class;
-  TJSPermissions = weborworker.TJSPermissions;
+
+  TJSShowOpenFilePickerOptions = class;
+  TJSShowSaveFilePickerOptions = class;
 
 {$IFDEF FPC_DOTTEDUNITS}
   TJSServiceWorker = BrowserApi.WebOrWorker.TJSServiceWorker;
@@ -118,13 +120,11 @@ Type
   TJSResponse = BrowserApi.WebOrWorker.TJSResponse;
   TJSCache = BrowserApi.WebOrWorker.TJSCache;
   TJSCacheStorage = BrowserApi.WebOrWorker.TJSCacheStorage;
+  TJSPermissions = BrowserApi.WebOrWorker.TJSPermissions;
 {$ELSE}
   TJSServiceWorker = weborworker.TJSServiceWorker;
   TJSServiceWorkerRegistration = weborworker.TJSServiceWorkerRegistration;
   TJSMessageEvent = weborworker.TJSMessageEvent;
-  TJSShowOpenFilePickerOptions = class;
-  TJSShowSaveFilePickerOptions = class;
-
   TJSEvent = weborworker.TJSEvent;
   TJSBlob = weborworker.TJSBlob;
   TJSEventTarget = weborworker.TJSEventTarget;
