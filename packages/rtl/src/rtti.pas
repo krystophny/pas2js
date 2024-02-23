@@ -1134,11 +1134,13 @@ begin
     Exit('(empty)');
 
   case Kind of
-    tkString: Result := AsString;
-    tkInteger: Result := IntToStr(AsNativeInt);
     tkBool: Result := BoolToStr(AsBoolean, True);
     tkClass: Result := AsObject.ClassName;
     tkClassRef: Result := AsClass.ClassName;
+    tkEnumeration: Result := GetEnumName(TTypeInfoEnum(TypeInfo), AsOrdinal);
+    tkFloat: Result := FloatToStr(AsExtended);
+    tkInteger: Result := IntToStr(AsNativeInt);
+    tkString: Result := AsString;
   else
     Result := '';
   end;
