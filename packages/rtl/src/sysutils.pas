@@ -123,7 +123,7 @@ type
     class var
       LogMessageOnCreate : Boolean;
   Public
-    constructor Create(const Msg: String); reintroduce;
+    constructor Create(const Msg: String); reintroduce; overload;
     constructor CreateFmt(const Msg: string; const Args: array of const);
     constructor CreateHelp(const Msg: String; AHelpContext: Integer);
     constructor CreateFmtHelp(const Msg: string; const Args: array of const; AHelpContext: Integer);
