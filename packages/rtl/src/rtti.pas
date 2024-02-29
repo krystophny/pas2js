@@ -1916,39 +1916,39 @@ end;
 function TRttiMethod.Invoke(const Instance: TValue; const Args: array of TValue): TValue;
 var
   A: Integer;
-
   AArgs: TJSValueDynArray;
+  ReturnValue: JSValue;
 
 begin
-  if Assigned(ReturnType) then
-    Result.FTypeInfo := ReturnType.Handle;
-
   SetLength(AArgs, Length(Args));
 
   for A := Low(Args) to High(Args) do
     AArgs[A] := Args[A].AsJSValue;
 
-  Result.SetData(TJSFunction(TJSObject(Instance.AsJSValue)[Name]).apply(TJSObject(Instance.AsJSValue), AArgs));
+  ReturnValue := TJSFunction(TJSObject(Instance.AsJSValue)[Name]).apply(TJSObject(Instance.AsJSValue), AArgs);
+
+  if Assigned(ReturnType) then
+    TValue.Make(ReturnValue, ReturnType.Handle, Result)
+  else if IsConstructor then
+    TValue.Make(ReturnValue, Instance.TypeInfo, Result)
 end;
 
 function TRttiMethod.Invoke(const Instance: TObject; const Args: array of TValue): TValue;
-
 var
-  v : TValue;
+  v: TValue;
 
 begin
-  TValue.make(Instance,Instance.ClassInfo,v);
-  Result:=Invoke(v,Args);
+  TValue.Make(Instance, Instance.ClassInfo, v);
+  Result := Invoke(v, Args);
 end;
 
-function TRttiMethod.Invoke(const aClass: TClass; const Args: array of TValue
-  ): TValue;
+function TRttiMethod.Invoke(const aClass: TClass; const Args: array of TValue): TValue;
 var
-  v : TValue;
+  v: TValue;
 
 begin
-  TValue.make(aClass,aClass.ClassInfo,v);
-  Result:=Invoke(V,Args);
+  TValue.Make(aClass, aClass.ClassInfo, v);
+  Result := Invoke(V, Args);
 end;
 
 { TRttiProperty }
