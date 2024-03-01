@@ -308,8 +308,8 @@ type
 
   TTypeInfoClass = class external name 'rtl.tTypeInfoClass'(TTypeInfoStruct)
   public
-    ClassType: TClass external name 'class';
     Ancestor: TTypeInfoClass external name 'ancestor';
+    ClassType: TClass external name 'class';
   end;
 
   { TTypeInfoExtClass - Kind = tkExtClass }
@@ -366,13 +366,6 @@ type
   public
     function get: JSValue;
     procedure &set(const value: JSValue);
-  end;
-
-  TInterfaceObject = class external name 'Object' (TJSObject)
-  public
-    InterfaceMaps: TJSObject external name '$intfmaps';
-    Interfaces: TJSObject external name '$interfaces';
-    Obj: TInterfacedObject external name '$o';
   end;
 
   EPropertyError  = class(Exception);

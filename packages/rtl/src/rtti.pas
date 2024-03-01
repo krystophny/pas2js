@@ -507,9 +507,9 @@ type
 
     function Invoke(const MethodName: String; const Args: TJSValueDynArray): JSValue;
   public
-    constructor Create(InterfaceTypeInfo: TTypeInfoInterface); overload;
-    constructor Create(InterfaceTypeInfo: TTypeInfoInterface; const InvokeEvent: TVirtualInterfaceInvokeEvent); overload;
-    constructor Create(InterfaceTypeInfo: TTypeInfoInterface; const InvokeEvent: TVirtualInterfaceInvokeEventJS); overload;
+    constructor Create(PIID: PTypeInfo); overload;
+    constructor Create(PIID: PTypeInfo; const InvokeEvent: TVirtualInterfaceInvokeEvent); overload;
+    constructor Create(PIID: PTypeInfo; const InvokeEvent: TVirtualInterfaceInvokeEventJS); overload;
 
     destructor Destroy; override;
 
@@ -2167,59 +2167,71 @@ end;
 
 { TVirtualInterface }
 
-constructor TVirtualInterface.Create(InterfaceTypeInfo: TTypeInfoInterface);
-var
-  SelfInterfaceObject, InterfaceObject: TInterfaceObject;
+constructor TVirtualInterface.Create(PIID: PTypeInfo);
 
-  Method: TRttiMethod;
-
-  MethodName: String;
-
-begin
-  FContext := TRttiContext.Create;
-  FInterfaceType := FContext.GetType(InterfaceTypeInfo) as TRttiInterfaceType;
-
-  if FInterfaceType.InterfaceTypeInfo.InterfaceInfo.kind <> 'com' then
-    raise EInvalidCast.Create;
-
-  InterfaceObject := TInterfaceObject(TJSObject.Create(FInterfaceType.InterfaceTypeInfo.InterfaceInfo));
-  InterfaceObject.Obj := Self;
-
-  for Method in FInterfaceType.GetMethods do
+  function Jump(MethodName: String): JSValue;
   begin
-    asm
-      let MethodName = Method.GetName();
-    end;
-
-    InterfaceObject[MethodName] :=
+    Result :=
       function: JSValue
       begin
-        Result := TVirtualInterface(TInterfaceObject(JSThis).Obj).Invoke(MethodName, TJSValueDynArray(JSValue(JSArguments)));
+        Result := TVirtualInterface(JSThis['$o']).Invoke(MethodName, TJSValueDynArray(JSValue(JSArguments)));
       end;
   end;
 
-  InterfaceObject['_AddRef'] := @_AddRef;
-  InterfaceObject['_Release'] := @_Release;
-  InterfaceObject['QueryInterface'] := @QueryInterface;
+  function GenerateNewMap(InterfaceInfo: TTypeInfoInterface): TJSObject;
+  var
+    MethodName: String;
 
-  SelfInterfaceObject := TInterfaceObject(TJSObject(Self));
-  SelfInterfaceObject.InterfaceMaps := TJSObject.New;
-  SelfInterfaceObject.InterfaceMaps[GUIDToString(IInterface)] := InterfaceObject;
-  SelfInterfaceObject.InterfaceMaps[FInterfaceType.Guid.ToString] := TJSObject.New;
-  SelfInterfaceObject.Interfaces := TJSObject.New;
-  SelfInterfaceObject.Interfaces[FInterfaceType.Guid.ToString] := InterfaceObject;
+  begin
+    Result := TJSObject.New;
+
+    while Assigned(InterfaceInfo) do
+    begin
+      if InterfaceInfo = TypeInfo(IInterface) then
+      begin
+        Result['_AddRef'] := @_AddRef;
+        Result['_Release'] := @_Release;
+        Result['QueryInterface'] := @QueryInterface;
+      end
+      else
+        for MethodName in InterfaceInfo.Names do
+          Result[MethodName] := Jump(MethodName);
+
+      InterfaceInfo := InterfaceInfo.Ancestor;
+    end;
+  end;
+
+var
+  InterfaceInfo: TTypeInfoInterface;
+  InterfaceMaps: TJSObject;
+
+begin
+  FContext := TRttiContext.Create;
+  InterfaceMaps := TJSObject.New;
+  FInterfaceType := FContext.GetType(PIID) as TRttiInterfaceType;
+
+  InterfaceInfo := FInterfaceType.InterfaceTypeInfo;
+
+  while Assigned(InterfaceInfo) do
+  begin
+    InterfaceMaps[InterfaceInfo.InterfaceInfo.GUID] := GenerateNewMap(InterfaceInfo);
+
+    InterfaceInfo := InterfaceInfo.Ancestor;
+  end;
+
+  JSThis['$intfmaps'] := InterfaceMaps;
 end;
 
-constructor TVirtualInterface.Create(InterfaceTypeInfo: TTypeInfoInterface; const InvokeEvent: TVirtualInterfaceInvokeEvent);
+constructor TVirtualInterface.Create(PIID: PTypeInfo; const InvokeEvent: TVirtualInterfaceInvokeEvent);
 begin
-  Create(InterfaceTypeInfo);
+  Create(PIID);
 
   OnInvoke := InvokeEvent;
 end;
 
-constructor TVirtualInterface.Create(InterfaceTypeInfo: TTypeInfoInterface; const InvokeEvent: TVirtualInterfaceInvokeEventJS);
+constructor TVirtualInterface.Create(PIID: PTypeInfo; const InvokeEvent: TVirtualInterfaceInvokeEventJS);
 begin
-  Create(InterfaceTypeInfo);
+  Create(PIID);
 
   OnInvokeJS := InvokeEvent;
 end;
