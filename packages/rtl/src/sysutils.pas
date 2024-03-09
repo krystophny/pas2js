@@ -8881,7 +8881,7 @@ begin
   CheckNegative(aStartIndex,'aStartIndex');
   CheckNegative(aLength,'aLength');
   CheckRange(aStartIndex,aLength,Length);
-  Writeln('FData : ',FData);
+//  Writeln('FData : ',FData);
   Result:=Copy(FData,1+aStartIndex,aStartIndex+aLength);
 end;
 
