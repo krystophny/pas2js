@@ -213,7 +213,9 @@ Type
   Public 
     Const
       ELEMENT_NODE 	=1;
+      ATTRIBUTE_NODE = 2;
       TEXT_NODE 	=3;
+      CDATA_SECTION_NODE = 4;
       PROCESSING_INSTRUCTION_NODE = 	7;
       COMMENT_NODE 	=8;
       DOCUMENT_NODE 	=9;
@@ -288,9 +290,19 @@ Type
 
 
   TJSNamedNodeMap = class external name 'NamedNodeMap'  (TJSObject)
+  private
+    FLength : NativeInt; external name 'length';
   Public
     function getNamedItem(aName : string) : TJSAttr;
+    function setNamedItem(aAttr : TJSAttr) : TJSAttr;
+    function removeNamedItem(aName : string) : TJSAttr;
+    function item(aIndex : NativeInt) : TJSAttr;
+    function getNamedItemNS(aNamespaceURI, aLocalName : string) : TJSAttr;
+    function setNamedItemNS(aAttr : TJSAttr) : TJSAttr;
+    function removeNamedItem(aNamespaceURI, aLocalName : string) : TJSAttr;
     Property Attrs[aIndex : String] : TJSattr Read getNamedItem; default;
+    // Property Attrs[aIndex : NativeInt] : TJSattr Read item; default; // ToDo: JS supports default property overloads
+    Property length : NativeInt Read FLength;
   end;
   
   TJSHTMLCollection = class external name 'HTMLCollection'  (TJSObject)
@@ -590,9 +602,12 @@ Type
 
   TJSCharacterData = class external name 'CharacterData' (TJSNode)
   private
+    FLength: NativeInt; external name 'length';
     FnextElementSibling: TJSElement; external name 'nextElementSibling';
     FpreviousElementSibling: TJSElement; external name 'previousElementSibling';
   public
+    data: JSValue;
+    property length : NativeInt read FLength;
     property nextElementSibling : TJSElement read FnextElementSibling;
     property previousElementSibling : TJSElement read FpreviousElementSibling;
   end;
