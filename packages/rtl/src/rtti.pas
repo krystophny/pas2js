@@ -78,7 +78,8 @@ type
     function IsObjectInstance: boolean;
     function IsOrdinal: boolean;
     function IsType(ATypeInfo: TTypeInfo): boolean;
-    function ToString: String;
+    function ToString: String; overload;
+    function ToString(const AFormatSettings: TFormatSettings): String; overload;
     function TryCast(ATypeInfo: TTypeInfo; out AResult: TValue; const EmptyAsAnyType: Boolean = True): Boolean;
 
     procedure SetArrayElement(aIndex: SizeInt; const AValue: TValue);
@@ -1130,6 +1131,11 @@ end;
 
 function TValue.ToString: String;
 begin
+  Result := ToString(FormatSettings);
+end;
+
+function TValue.ToString(const AFormatSettings: TFormatSettings): String;
+begin
   if IsEmpty then
     Exit('(empty)');
 
@@ -1138,7 +1144,7 @@ begin
     tkClass: Result := AsObject.ClassName;
     tkClassRef: Result := AsClass.ClassName;
     tkEnumeration: Result := GetEnumName(TTypeInfoEnum(TypeInfo), AsOrdinal);
-    tkFloat: Result := FloatToStr(AsExtended);
+    tkFloat: Result := FloatToStr(AsExtended, AFormatSettings);
     tkInteger: Result := IntToStr(AsNativeInt);
     tkString: Result := AsString;
   else
