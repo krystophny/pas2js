@@ -48,11 +48,21 @@ type
   TJSFileSystemSyncAccessHandle = class;
   TFileSystemHandleKind = String;
   TWriteCommandType = String;
+  TJSNotification = Class;
+  TJSNotificationEvent = Class;
+  TJSNotificationOptions = Class;
+  TJSNotificationAction = Class;
+  TJSGetNotificationOptions = Class;
+  TJSNotificationEventInit = Class;
+  NotificationPermission = String;
+  NotificationDirection = String;
+  NotificationPermissionCallback = Procedure (permission : NotificationPermission);
 
 
   TJSFileSystemFileHandleArray = array of TJSFileSystemFileHandle;
   TJSFileSystemDirectoryHandleArray = array of TJSFileSystemDirectoryHandle;
 
+  TJSVibratePattern = JSValue;
 
 { ----------------------------------------------------------------------
   Console
@@ -1110,6 +1120,10 @@ type
   public
     function unregister : TJSPromise;
     procedure update;
+    function showNotification(title : String; options : TJSNotificationOptions): TJSPromise; overload;
+    function showNotification(title : String): TJSPromise; overload;
+    function getNotifications(filter : TJSGetNotificationOptions): TJSPromise; overload;
+    function getNotifications: TJSPromise; overload;
     property Active : TJSServiceWorker read FActive;
     property Scope : string read FScope;
     property Waiting : TJSServiceWorker read FWaiting;
@@ -1377,6 +1391,131 @@ type
     Procedure abort(aReason :  JSValue);
     Property signal : TJSAbortSignal Read FSignal;
   end;
+
+  { --------------------------------------------------------------------
+    TJSNotificationOptions
+    --------------------------------------------------------------------}
+
+  TTJSNotificationActionDynArray = Array of TJSNotificationAction;
+  TJSNotificationOptions = class(TJSObject)
+    dir : NotificationDirection;
+    lang : String;
+    body : String;
+    tag : String;
+    image : String;
+    icon : String;
+    badge : String;
+    vibrate : TJSVibratePattern;
+    timestamp : NativeInt;
+    renotify : boolean;
+    silent : boolean;
+    requireInteraction : boolean;
+    data : JSValue;
+    actions : TTJSNotificationActionDynArray;
+  end;
+
+  { --------------------------------------------------------------------
+    TJSNotificationAction
+    --------------------------------------------------------------------}
+
+  TJSNotificationAction = class(TJSObject)
+    action : String;
+    title : String;
+    icon : String;
+  end;
+
+  { --------------------------------------------------------------------
+    TJSGetNotificationOptions
+    --------------------------------------------------------------------}
+
+  TJSGetNotificationOptions = class(TJSObject)
+    tag : String;
+  end;
+
+  { --------------------------------------------------------------------
+    TJSNotificationEventInit
+    --------------------------------------------------------------------}
+
+  TJSNotificationEventInit = class(TJSObject)
+    notification : TJSNotification;
+    action : String;
+  end;
+
+  { --------------------------------------------------------------------
+    TJSNotification
+    --------------------------------------------------------------------}
+
+  TNativeIntDynArray = Array of NativeInt;
+  TJSNotification = class external name 'Notification'  (TJSEventTarget)
+  Private
+    Fpermission : NotificationPermission; external name 'permission';
+    FmaxActions : NativeInt; external name 'maxActions';
+    Ftitle : String; external name 'title';
+    Fdir : NotificationDirection; external name 'dir';
+    Flang : String; external name 'lang';
+    Fbody : String; external name 'body';
+    Ftag : String; external name 'tag';
+    Fimage : String; external name 'image';
+    Ficon : String; external name 'icon';
+    Fbadge : String; external name 'badge';
+    Fvibrate : TNativeIntDynArray; external name 'vibrate';
+    Ftimestamp : NativeInt; external name 'timestamp';
+    Frenotify : boolean; external name 'renotify';
+    Fsilent : boolean; external name 'silent';
+    FrequireInteraction : boolean; external name 'requireInteraction';
+    Fdata : JSValue; external name 'data';
+    Factions : TTJSNotificationActionDynArray; external name 'actions';
+  Public
+    onclick : TJSEventHandler;
+    onshow : TJSEventHandler;
+    onerror : TJSEventHandler;
+    onclose : TJSEventHandler;
+    class function requestPermission(deprecatedCallback : NotificationPermissionCallback): TJSPromise; overload;
+    class function requestPermission: TJSPromise; overload;
+    Procedure close;
+    Property permission : NotificationPermission Read Fpermission;
+    Property maxActions : NativeInt Read FmaxActions;
+    Property title : String Read Ftitle;
+    Property dir : NotificationDirection Read Fdir;
+    Property lang : String Read Flang;
+    Property body : String Read Fbody;
+    Property tag : String Read Ftag;
+    Property image : String Read Fimage;
+    Property icon : String Read Ficon;
+    Property badge : String Read Fbadge;
+    Property vibrate : TNativeIntDynArray Read Fvibrate;
+    Property timestamp : NativeInt Read Ftimestamp;
+    Property renotify : boolean Read Frenotify;
+    Property silent : boolean Read Fsilent;
+    Property requireInteraction : boolean Read FrequireInteraction;
+    Property data : JSValue Read Fdata;
+    Property actions : TTJSNotificationActionDynArray Read Factions;
+  end;
+
+  { --------------------------------------------------------------------
+    TJSNotificationEvent
+    --------------------------------------------------------------------}
+
+  TJSNotificationEvent = class external name 'NotificationEvent'  (TJSExtendableEvent)
+  Private
+    Fnotification : TJSNotification; external name 'notification';
+    Faction : String; external name 'action';
+  Public
+    Property notification : TJSNotification Read Fnotification;
+    Property action : String Read Faction;
+  end;
+
+  { --------------------------------------------------------------------
+    TJSServiceWorkerGlobalScope
+    --------------------------------------------------------------------}
+
+  TJSServiceWorkerGlobalScope = class external name 'ServiceWorkerGlobalScope'
+  Private
+  Public
+      onnotificationclick : TJSEventHandler;
+      onnotificationclose : TJSEventHandler;
+  end;
+
 
 var
   Console : TJSConsole; external name 'console';
