@@ -179,7 +179,6 @@ end;
 Var
   P : TPackage;
   UnitDir,DemoDir,BD, TmpCfg, TmpCfg2: String;
-  T: TTarget;
   FPCSrcDir, Pas2jsOFilename, RTLJSFilename: String;
 
 begin
@@ -293,11 +292,13 @@ begin
       UnitDir:=ExcludeTrailingPathDelimiter(ExtractFilePath(UnitDir));
       UnitDir:=ExtractFilePath(UnitDir);
       UnitDir:=UnitDir+'pas2js'+PathDelim;
+      RTLJSFilename:=ExtractRelativePath(IncludeTrailingPathDelimiter(Defaults.BinInstallDir),
+                            UnitDir+'rtl'+PathDelim);
       // Config file
       // Create config file
       CreateConfigFile(TmpCfg,
         ExtractRelativePath(IncludeTrailingPathDelimiter(Defaults.BinInstallDir),
-                            IncludeTrailingPathDelimiter(UnitDir)));
+                            UnitDir),RTLJSFilename);
       CreateNamespacedConfigFile(TmpCfg2);
       P.InstallFiles.Add(TmpCfg,Defaults.BinInstallDir);
       P.InstallFiles.Add(TmpCfg2,Defaults.BinInstallDir);
