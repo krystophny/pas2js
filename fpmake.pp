@@ -63,15 +63,15 @@ Var
   Procedure AddPath(const aPrefix,aDir,Suffix : String);
   
   var 
-    aSubDirs : String;
+    aSubDir : String;
   
   begin
-    aSubDirs:=aDir;
+    aSubDir:=aDir;
     if Suffix<>'' then
-      aSubDirs:=aSubDirs+'*'+PathDelim+Suffix;
+      aSubDir:=aSubDir+Suffix;
     if not FilenameIsAbsolute(aDir) then
-      aSubDirs:='$CfgDir'+PathDelim+aSubDirs;
-    Addln(aPrefix+aSubDirs);
+      aSubDir:='$CfgDir'+PathDelim+aSubDir;
+    Addln(aPrefix+aSubDir);
   end;
 
 begin
@@ -92,6 +92,7 @@ begin
   end;
   if (BaseDir<>'') then
     BaseDir:=IncludeTrailingPathDelimiter(BaseDir);
+
   Addln('#');
   Addln('# Minimal config file for pas2js compiler');
   Addln('#');
@@ -179,7 +180,7 @@ Var
   P : TPackage;
   UnitDir,DemoDir,BD, TmpCfg, TmpCfg2: String;
   T: TTarget;
-  FPCSrcDir, Pas2jsOFilename: String;
+  FPCSrcDir, Pas2jsOFilename, RTLJSFilename: String;
 
 begin
   FPCSrcDir:=GetEnvironmentVariable('FPCDIR');
@@ -277,9 +278,10 @@ begin
     Case Installer.RunMode of
     rmCompile,rmBuild:
       begin
+      RTLJSFilename:=SetDirSeparators(FPCSrcDir+'utils/pas2js/dist/');
+      RTLJSFilename:=ExtractRelativePath(ExpandFileName(BD),RTLJSFilename);
       if not FileExists(BD+'pas2js.cfg') then
-        CreateConfigFile(BD+'pas2js.cfg',SetDirSeparators('../../packages'),
-                         SetDirSeparators(FPCSrcDir+'utils/pas2js/dist/'));
+        CreateConfigFile(BD+'pas2js.cfg',SetDirSeparators('../../packages'),RTLJSFilename);
       if not FileExists(BD+'pas2js-namespaced.cfg') then
         CreateNameSpacedConfigFile(BD+'pas2js-namespaced.cfg');
       end;
@@ -293,7 +295,9 @@ begin
       UnitDir:=UnitDir+'pas2js'+PathDelim;
       // Config file
       // Create config file
-      CreateConfigFile(TmpCfg,ExtractRelativePath(IncludeTrailingPathDelimiter(Defaults.BinInstallDir),IncludeTrailingPathDelimiter(UnitDir)));
+      CreateConfigFile(TmpCfg,
+        ExtractRelativePath(IncludeTrailingPathDelimiter(Defaults.BinInstallDir),
+                            IncludeTrailingPathDelimiter(UnitDir)));
       CreateNamespacedConfigFile(TmpCfg2);
       P.InstallFiles.Add(TmpCfg,Defaults.BinInstallDir);
       P.InstallFiles.Add(TmpCfg2,Defaults.BinInstallDir);
