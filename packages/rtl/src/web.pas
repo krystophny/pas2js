@@ -570,6 +570,37 @@ Type
     property lastElementChild : TJSElement read FlastElementChild;
   end;
 
+  TJSShadowRootMode = (open, closed);
+  TJSSlotAssignmentMode = (manual, named);
+
+  TJSShadowRoot = class external name 'ShadowRoot' (TJSDocumentFragment)
+  private
+    FactiveElement: TJSElement; external name 'activeElement';
+    FadoptedStyleSheets: TJSArray; external name 'adoptedStyleSheets';
+    Fclonable: Boolean; external name 'clonable';
+    FdelegatesFocus: Boolean; external name 'delegatesFocus';
+    FfullscreenElement: TJSElement; external name 'fullscreenElement';
+    Fhost: TJSElement; external name 'host';
+    FinnerHTML: String; external name 'innerHTML';
+    Fmode: TJSShadowRootMode; external name 'mode';
+    FpictureInPictureElement: TJSElement; external name 'pictureInPictureElement';
+    FpointerLockElement: TJSElement; external name 'pointerLockElement';
+    FslotAssignment: String; external name 'slotAssignment';
+    FstyleSheets: TJSStyleSheetList; external name 'styleSheets';
+  public
+    property activeElement: TJSElement read FactiveElement;
+    property adoptedStyleSheets: TJSArray read FadoptedStyleSheets;
+    property clonable: Boolean read Fclonable;
+    property delegatesFocus: Boolean read FdelegatesFocus;
+    property fullscreenElement: TJSElement read FfullscreenElement;
+    property host: TJSElement read Fhost;
+    property innerHTML: String read FinnerHTML;
+    property mode: TJSShadowRootMode read Fmode;
+    property pictureInPictureElement: TJSElement read FpictureInPictureElement;
+    property pointerLockElement: TJSElement read FpointerLockElement;
+    property slotAssignment: String read FslotAssignment;
+    property styleSheets: TJSStyleSheetList read FstyleSheets;
+  end;
 
   { TJSEventHelper }
 
