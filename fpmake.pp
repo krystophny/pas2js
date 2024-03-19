@@ -179,6 +179,9 @@ end;
 Var
   P : TPackage;
   UnitDir,DemoDir,BD, TmpCfg, TmpCfg2: String;
+  {$IF FPC_FULLVERSION>=30301}
+  T: TTarget;
+  {$ENDIF}
   FPCSrcDir, Pas2jsOFilename, RTLJSFilename: String;
 
 begin
