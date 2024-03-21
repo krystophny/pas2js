@@ -9,6 +9,15 @@ units
 *.js
 *.ppu
 *.o
+*.a
+*.exe
+*.dll
 *.wasm
+*.rst
+*.jst
+*.jrs
+*.cgi
+*.bak
+backup
 link*.res
 compiler
