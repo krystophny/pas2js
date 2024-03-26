@@ -1397,7 +1397,7 @@ type
     --------------------------------------------------------------------}
 
   TTJSNotificationActionDynArray = Array of TJSNotificationAction;
-  TJSNotificationOptions = class(TJSObject)
+  TJSNotificationOptions = class external name 'Object' (TJSObject)
     dir : NotificationDirection;
     lang : String;
     body : String;
@@ -1472,6 +1472,9 @@ type
     onclose : TJSEventHandler;
     class function requestPermission(deprecatedCallback : NotificationPermissionCallback): TJSPromise; overload;
     class function requestPermission: TJSPromise; overload;
+    constructor new (aTitle : String);
+    constructor new (aTitle : String; Options : TJSObject);
+    constructor new (aTitle : String; Options : TJSNotificationOptions);
     Procedure close;
     Property permission : NotificationPermission Read Fpermission;
     Property maxActions : NativeInt Read FmaxActions;
