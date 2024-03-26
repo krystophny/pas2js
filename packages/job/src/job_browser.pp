@@ -8,6 +8,7 @@ unit JOB_Browser;
 {$ENDIF}
 
 {$mode objfpc}
+{$modeswitch externalclass}
 
 interface
 
@@ -114,7 +115,9 @@ begin
   RegisterGlobalObject(document,'document');
   RegisterGlobalObject(window,'window');
   RegisterGlobalObject(console,'console');
+  {$IFDEF WORKER}
   RegisterGlobalObject(caches,'caches');
+  {$ENDIF}
   RegisterGlobalObject(TJSObject,'Object');
   RegisterGlobalObject(TJSFunction,'Function');
   RegisterGlobalObject(TJSDate,'Date');
