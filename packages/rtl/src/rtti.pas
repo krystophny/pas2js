@@ -221,6 +221,8 @@ type
     function GetReturnType: TRttiType;
 
     procedure LoadParameters;
+  protected
+    function GetName: String; override;
   public
     function GetParameters: TRttiParameterArray;
     function Invoke(const Instance: TValue; const Args: array of TValue): TValue;
@@ -1881,6 +1883,14 @@ begin
   Result := Pool.GetType(MethodTypeInfo.ProcSig.ResultType);
 end;
 
+function TRttiMethod.GetName: String;
+begin
+  Result := inherited;
+
+  if IsConstructor then
+    Result := Result.SubString(0, Result.IndexOf('$'));
+end;
+
 procedure TRttiMethod.LoadParameters;
 const
   FLAGS_CONVERSION: array[TParamFlag] of NativeInt = (1, 2, 4, 8, 16, 32);
@@ -1937,7 +1947,7 @@ begin
   for A := Low(Args) to High(Args) do
     AArgs[A] := Args[A].AsJSValue;
 
-  ReturnValue := TJSFunction(TJSObject(Instance.AsJSValue)[Name]).apply(TJSObject(Instance.AsJSValue), AArgs);
+  ReturnValue := TJSFunction(TJSObject(Instance.AsJSValue)[MethodTypeInfo.Name]).apply(TJSObject(Instance.AsJSValue), AArgs);
 
   if Assigned(ReturnType) then
     TValue.Make(ReturnValue, ReturnType.Handle, Result)
