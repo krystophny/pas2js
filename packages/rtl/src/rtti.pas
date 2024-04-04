@@ -1141,7 +1141,13 @@ begin
 
   case Kind of
     tkBool: Result := BoolToStr(AsBoolean, True);
-    tkClass: Result := AsObject.ClassName;
+    tkClass:
+    begin
+      if Assigned(AsObject) then
+        Result := AsObject.ClassName
+      else
+        Result := '(empty)';
+    end;
     tkClassRef: Result := AsClass.ClassName;
     tkEnumeration: Result := GetEnumName(TTypeInfoEnum(TypeInfo), AsOrdinal);
     tkFloat: Result := FloatToStr(AsExtended, AFormatSettings);
