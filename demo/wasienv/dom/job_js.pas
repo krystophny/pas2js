@@ -21,6 +21,8 @@ const
   MaxSafeIntDouble =  $1fffffffffffff; //  9007199254740991
 
 Type
+  TDOMHighResTimeStamp = Int64;
+
   PJOBObjectID = ^TJOBObjectID;
 
   EJSObject = class(Exception);
@@ -494,6 +496,12 @@ type
   TJSString = class(TJSObject,IJSString)
   public
     class function Cast(const Intf: IJSObject): IJSString; overload;
+  end;
+  
+  IJSIterator = interface (IJSObject) ['{21E331BA-7B57-42DD-8DCE-B26FEA85C639}']
+  end;
+  
+  TJSIteraror = class(TJSObject,IJSIterator)
   end;
 
   { IJSArray }
