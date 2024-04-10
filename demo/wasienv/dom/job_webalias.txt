@@ -15,3 +15,6 @@ Error=IJSError
 Promise=IJSPromise
 TextEncoder=IJSTextEncode
 TextDecoder=IJSTextDecoder
+Float32List=IJSFloat32Array
+Int32List=IJSInt32Array
+UInt32List=IJSUInt32Array
