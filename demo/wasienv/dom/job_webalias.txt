@@ -7,6 +7,7 @@ RegExp=IJSRegExp
 String=IJSString
 Array=IJSArray
 ArrayBuffer=IJSArrayBuffer
+ArrayBufferView=IJSArrayBufferView
 TypedArray=IJSTypedArray
 BufferSource=IJSBufferSource
 DataView=IJSDataView

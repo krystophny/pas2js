@@ -640,12 +640,27 @@ type
     ['{A1612EED-4F05-46C0-90BE-ACD511B15E89}']
   end;
 
+
   { TJSArrayBuffer }
 
   TJSArrayBuffer = class(TJSObject,IJSArrayBuffer)
   public
     class function Cast(const Intf: IJSObject): IJSArrayBuffer; overload;
   end;
+
+  { IJSArrayBufferView }
+  
+  IJSArrayBufferView = interface(IJSObject)
+    ['{A1612EED-4F05-46C0-90BE-ACD511B1598E}']
+  end;
+  
+  { TJSArrayBufferView }
+  
+  TJSArrayBufferView = class(TJSObject,IJSArrayBufferView)
+  public
+    class function Cast(const Intf: IJSObject): IJSArrayBufferView; overload;
+  end;
+
 
   { IJSTypedArray }
 
@@ -1393,6 +1408,16 @@ class function TJSArrayBuffer.Cast(const Intf: IJSObject): IJSArrayBuffer;
 begin
   Result:=TJSArrayBuffer.Cast(Intf);
 end;
+
+{ TJSArrayBufferView }
+
+class function TJSArrayBuffer.Cast(const Intf: IJSObject): IJSArrayBuffer;
+begin
+  Result:=TJSArrayBufferView.Cast(Intf);
+end;
+
+
+
 
 { TJSArray }
 
