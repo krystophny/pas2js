@@ -2184,7 +2184,7 @@ constructor TVirtualInterface.Create(PIID: PTypeInfo);
     Result :=
       function: JSValue
       begin
-        Result := TVirtualInterface(JSThis['$o']).Invoke(MethodName, TJSValueDynArray(JSValue(JSArguments)));
+        Result := TVirtualInterface(JSThis['$o']).Invoke(MethodName, JSArguments);
       end;
   end;
 
