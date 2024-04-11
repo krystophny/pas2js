@@ -494,7 +494,7 @@ type
   EInvoke = EJS;
 
   TVirtualInterfaceInvokeEvent = reference to procedure(Method: TRttiMethod; const Args: specialize TArray<TValue>; out Result: TValue);
-  TVirtualInterfaceInvokeEventJS = reference to function(const aMethodName: String; const Args: TJSValueDynArray): JSValue;
+  TVirtualInterfaceInvokeEventJS = reference to function(const MethodName: String; const Args: TJSFunctionArguments): JSValue;
 
   { TVirtualInterface: A class that can implement any IInterface. Any method
     call is handled by the OnInvoke event. }
@@ -505,7 +505,7 @@ type
     FOnInvoke: TVirtualInterfaceInvokeEvent;
     FOnInvokeJS: TVirtualInterfaceInvokeEventJS;
 
-    function Invoke(const MethodName: String; const Args: TJSValueDynArray): JSValue;
+    function Invoke(const MethodName: String; const Args: TJSFunctionArguments): JSValue;
   public
     constructor Create(PIID: PTypeInfo); overload;
     constructor Create(PIID: PTypeInfo; const InvokeEvent: TVirtualInterfaceInvokeEvent); overload;
@@ -2253,7 +2253,7 @@ begin
   Result := inherited QueryInterface(iid, obj);
 end;
 
-function TVirtualInterface.Invoke(const MethodName: String; const Args: TJSValueDynArray): JSValue;
+function TVirtualInterface.Invoke(const MethodName: String; const Args: TJSFunctionArguments): JSValue;
 var
   Method: TRttiMethod;
 
