@@ -21,5 +21,6 @@ UInt32List=IJSUInt32Array
 L10nResourceId=DOMString
 L10nRegistry=IJSObject
 L10nArgs=IJSArray
+DocumentL10n=IJSObject
 DOMApplication=IJSObject
 JSString=DOMString
