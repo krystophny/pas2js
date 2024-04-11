@@ -2210,16 +2210,21 @@ begin
   InterfaceMaps := TJSObject.New;
   FInterfaceType := FContext.GetType(PIID) as TRttiInterfaceType;
 
-  InterfaceInfo := FInterfaceType.InterfaceTypeInfo;
-
-  while Assigned(InterfaceInfo) do
+  if Assigned(FInterfaceType) then
   begin
-    InterfaceMaps[InterfaceInfo.InterfaceInfo.GUID] := GenerateNewMap(InterfaceInfo);
+    InterfaceInfo := FInterfaceType.InterfaceTypeInfo;
 
-    InterfaceInfo := InterfaceInfo.Ancestor;
-  end;
+    while Assigned(InterfaceInfo) do
+    begin
+      InterfaceMaps[InterfaceInfo.InterfaceInfo.GUID] := GenerateNewMap(InterfaceInfo);
 
-  JSThis['$intfmaps'] := InterfaceMaps;
+      InterfaceInfo := InterfaceInfo.Ancestor;
+    end;
+
+    JSThis['$intfmaps'] := InterfaceMaps;
+  end
+  else
+    raise EInvalidCast.Create;
 end;
 
 constructor TVirtualInterface.Create(PIID: PTypeInfo; const InvokeEvent: TVirtualInterfaceInvokeEvent);
