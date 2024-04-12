@@ -2725,6 +2725,14 @@ Type
 
 
   TJSXMLHttpRequestEventTarget = class external name 'XMLHttpRequestEventTarget' (TJSEventTarget)
+  public
+    onabort: TJSProgressEventhandler;
+    onerror: TJSProgressEventhandler;
+    onload: TJSProgressEventhandler;
+    onloadend: TJSProgressEventhandler;
+    onloadstart: TJSProgressEventhandler;
+    onprogress: TJSProgressEventhandler;
+    ontimeout: TJSProgressEventhandler;
   end;
 
   TJSXMLHttpRequestUpload = class external name 'XMLHttpRequestUpload' (TJSXMLHttpRequestEventTarget)
