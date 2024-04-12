@@ -123,6 +123,7 @@ type
   TJOBInvokeTypes = set of TJOBInvokeType;
 
   TJSObject = class;
+  TJSArray = class;
   TJSObjectClass = class of TJSObject;
 
   { TJOBCallbackHelper - parse callback arguments and create result }
@@ -142,6 +143,7 @@ type
     function GetVariant: Variant;
     function GetLongInt: longint;
     function GetMaxInt: int64;
+    function GetArray : TJSArray;
 
     function AllocUndefined: PByte;
     function AllocBool(b: boolean): PByte;
@@ -1411,9 +1413,9 @@ end;
 
 { TJSArrayBufferView }
 
-class function TJSArrayBuffer.Cast(const Intf: IJSObject): IJSArrayBuffer;
+class function TJSArrayBufferView.Cast(const Intf: IJSObject): IJSArrayBufferView;
 begin
-  Result:=TJSArrayBufferView.Cast(Intf);
+  Result:=TJSArrayBufferView.JOBCast(Intf);
 end;
 
 
@@ -1828,6 +1830,33 @@ begin
       ObjId:=PLongWord(p)^;
       inc(p,4);
       Result:=aResultClass.JOBCreateFromID(ObjId);
+      Result.JOBObjectIDOwner:=false; // owned by caller (JS code in browser)
+    end
+  else
+    raise EJSArgParse.Create(JOBArgNames[p^]);
+  end;
+  inc(Index);
+end;
+
+function TJOBCallbackHelper.GetArray: TJSArray;
+var
+  ObjId: LongWord;
+begin
+  //writeln('TJOBCallbackHelper.GetObject ',Index,' Count=',Count);
+  Result:=nil;
+  if Index=Count then
+    exit;
+  //writeln('TJOBCallbackHelper.GetObject type=',p^);
+  case p^ of
+  JOBArgUndefined,
+  JOBArgNil:
+    inc(p);
+  JOBArgObject:
+    begin
+      inc(p);
+      ObjId:=PLongWord(p)^;
+      inc(p,4);
+      Result:=TJSArray.JOBCreateFromID(ObjId);
       Result.JOBObjectIDOwner:=false; // owned by caller (JS code in browser)
     end
   else
