@@ -279,6 +279,7 @@ type
   private
     FMaxGapLength: Integer;
     FLow: SizeInt;
+    function GetIsEmpty: Boolean;
   protected
     function DoGetEnumerator: TEnumerator<T>; override;
   public
@@ -305,6 +306,8 @@ type
     function Peek: T;
     procedure Clear;
     procedure TrimExcess; override;
+
+    property IsEmpty: Boolean read GetIsEmpty;
     // Maximum gap (=amount of empty slots in array before first element)
     // before doing a rebase of the list. Defaults to 10.
     Property MaxGapLength : Integer Read FMaxGapLength Write FMaxGapLength;
@@ -1803,6 +1806,11 @@ end;
 function TQueue<T>.GetEnumerator: TEnumerator;
 begin
   Result := TEnumerator.Create(Self);
+end;
+
+function TQueue<T>.GetIsEmpty: Boolean;
+begin
+  Result := Count = 0;
 end;
 
 procedure TQueue<T>.SetCapacity(AValue: SizeInt);
