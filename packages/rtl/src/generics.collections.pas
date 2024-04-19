@@ -1907,15 +1907,16 @@ Var
   I,Spare : integer;
 
 begin
-  Spare:=Capacity-Count;
   if FLow>0 then
-    begin
-    For I:=Flow to FLength do
+  begin
+    For I:=Flow to Pred(FLength) do
       FItems[I-FLow]:=FItems[I];
-    SetLength(FItems,FLength+Spare);
-    FLength:=FLength-Flow+1;
+
+    FLength:=FLength-Flow;
     Flow:=0;
-    end;
+
+    SetLength(FItems, FLength);
+  end;
 end;
 
 procedure TQueue<T>.TrimExcess;
