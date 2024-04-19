@@ -1951,6 +1951,8 @@ begin
 
   if Assigned(ReturnType) then
     TValue.Make(ReturnValue, ReturnType.Handle, Result)
+  else if IsAsyncCall then
+    TValue.Make(ReturnValue, TypeInfo(TJSPromise), Result)
   else if IsConstructor then
     TValue.Make(ReturnValue, Instance.TypeInfo, Result)
 end;
