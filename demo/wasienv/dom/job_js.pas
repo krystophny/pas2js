@@ -21,7 +21,7 @@ const
   MaxSafeIntDouble =  $1fffffffffffff; //  9007199254740991
 
 Type
-  TDOMHighResTimeStamp = Int64;
+//  TDOMHighResTimeStamp = Int64;
 
   PJOBObjectID = ^TJOBObjectID;
 
@@ -239,7 +239,10 @@ type
     function ReadJSPropertyObject(const aName: string; aResultClass: TJSObjectClass): TJSObject; virtual;
     function ReadJSPropertyUtf8String(const aName: string): string; virtual;
     function ReadJSPropertyLongInt(const aName: string): LongInt; virtual;
+    function ReadJSPropertyInt64(const aName: string): Int64; virtual;
     function ReadJSPropertyValue(const aName: string): TJOB_JSValue; virtual;
+    function ReadJSPropertyVariant(const aName: string): Variant; virtual;
+    function ReadJSPropertyMethod(const aName: string): TMethod; virtual;
     // write a property
     procedure WriteJSPropertyBoolean(const aName: string; Value: Boolean); virtual;
     procedure WriteJSPropertyDouble(const aName: string; Value: Double); virtual;
@@ -247,6 +250,10 @@ type
     procedure WriteJSPropertyUtf8String(const aName: string; const Value: String); virtual;
     procedure WriteJSPropertyObject(const aName: string; Value: IJSObject); virtual;
     procedure WriteJSPropertyLongInt(const aName: string; Value: LongInt); virtual;
+    procedure WriteJSPropertyInt64(const aName: string; Value: Int64); virtual;
+    procedure WriteJSPropertyValue(const aName: string; Value: TJOB_JSValue); virtual;
+    procedure WriteJSPropertyVariant(const aName: string; const Value: Variant); virtual;
+    procedure WriteJSPropertyMethod(const aName: string; const Value: TMethod); virtual;
     // create a new object using the new-operator
     function NewJSObject(Const Args: Array of const; aResultClass: TJSObjectClass): TJSObject; virtual;
     // JS members
@@ -332,6 +339,7 @@ type
     function ReadJSPropertyInt64(const aName: string): Int64; virtual;
     function ReadJSPropertyValue(const aName: string): TJOB_JSValue; virtual;
     function ReadJSPropertyVariant(const aName: string): Variant; virtual;
+    function ReadJSPropertyMethod(const aName: string): TMethod; virtual;
     // write a property
     procedure WriteJSPropertyBoolean(const aName: string; Value: Boolean); virtual;
     procedure WriteJSPropertyDouble(const aName: string; Value: Double); virtual;
@@ -342,6 +350,7 @@ type
     procedure WriteJSPropertyInt64(const aName: string; Value: Int64); virtual;
     procedure WriteJSPropertyValue(const aName: string; Value: TJOB_JSValue); virtual;
     procedure WriteJSPropertyVariant(const aName: string; const Value: Variant); virtual;
+    procedure WriteJSPropertyMethod(const aName: string; const Value: TMethod); virtual;
     // create a new object using the new-operator
     function NewJSObject(Const Args: Array of const; aResultClass: TJSObjectClass): TJSObject; virtual;
     // JS members
@@ -503,7 +512,7 @@ type
   IJSIterator = interface (IJSObject) ['{21E331BA-7B57-42DD-8DCE-B26FEA85C639}']
   end;
   
-  TJSIteraror = class(TJSObject,IJSIterator)
+  TJSIterator = class(TJSObject,IJSIterator)
   end;
 
   { IJSArray }
@@ -3167,6 +3176,11 @@ begin
   Result:=InvokeJSVariantResult(aName,[],jiGet);
 end;
 
+function TJSObject.ReadJSPropertyMethod(const aName: string): TMethod;
+begin
+//  Result:=InvokeJSVariantResult(aName,[],jiGet);
+end;
+
 procedure TJSObject.WriteJSPropertyBoolean(const aName: string; Value: Boolean);
 begin
   InvokeJSNoResult(aName,[Value],jiSet);
@@ -3215,6 +3229,12 @@ procedure TJSObject.WriteJSPropertyVariant(const aName: string;
   const Value: Variant);
 begin
   InvokeJSNoResult(aName,[Value],jiSet);
+end;
+
+procedure TJSObject.WriteJSPropertyMethod(const aName: string;
+  const Value: TMethod);
+begin
+  // TODO InvokeJSNoResult(aName,[Value],jiSet);
 end;
 
 function TJSObject.NewJSObject(const Args: array of const;

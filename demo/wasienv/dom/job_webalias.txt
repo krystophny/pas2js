@@ -29,4 +29,4 @@ L10nRegistry=IJSObject
 L10nArgs=IJSArray
 DocumentL10n=IJSObject
 DOMApplication=IJSObject
-JSString=DOMString
+JSString=IJSString
