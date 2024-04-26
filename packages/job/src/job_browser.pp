@@ -10,6 +10,8 @@ unit JOB_Browser;
 {$mode objfpc}
 {$modeswitch externalclass}
 
+{off $DEFINE VerboseJOB}
+
 interface
 
 uses 
@@ -23,6 +25,34 @@ Type
   EJOBBridge = class(Exception);
   TWasmNativeInt = Longword;
   TJOBCallback = function(aCall, aData, aCode, Args: TWasmNativeInt): TWasmNativeInt;
+  TJSObjectFactory = Function(const aName : String; aArgs : TJSValueDynArray) : TJSObject of object;
+  TObjectFactory = Function(const aName : String; aArgs : TJSValueDynArray) : TObject of object;
+
+  TAbstractObjectFactoryReg = Class(TObject)
+    Function CreateObj(const aName : String; aArgs : TJSValueDynArray) : JSValue; virtual; abstract;
+  end;
+
+  { TJSObjectFactoryReg }
+
+  TJSObjectFactoryReg = Class(TAbstractObjectFactoryReg)
+  Private
+    FFunc : TJSObjectFactory;
+  Public
+    Constructor Create(aFunc : TJSObjectFactory);
+    Function CreateObj(const aName : string; aArgs : TJSValueDynArray) : JSValue; override;
+    Property Func : TJSObjectFactory Read FFunc;
+  end;
+
+  { TObjectFactoryReg }
+
+  TObjectFactoryReg = Class(TAbstractObjectFactoryReg)
+  Private
+    FFunc : TObjectFactory;
+  Public
+    Constructor Create(aFunc : TObjectFactory);
+    Function CreateObj(const aName : string; aArgs : TJSValueDynArray) : JSValue; override;
+    Property Func : TObjectFactory Read FFunc;
+  end;
 
   { TJSObjectBridge }
 
@@ -35,6 +65,9 @@ Type
     FFreeLocalIds: TJSArray; // free positions in FLocalObjects
     FStringResult: string;
     FWasiExports: TWASIExports;
+    FFactories : TJSObject;
+
+    function GetObjectConstructor(aObjectName: String): TJSFunction;
     procedure SetWasiExports(const AValue: TWASIExports);
   Protected
     function Invoke_JSResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP: NativeInt; out JSResult: JSValue): TJOBResult; virtual;
@@ -48,6 +81,7 @@ Type
     function Invoke_DoubleResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP, ResultP: NativeInt): TJOBResult; virtual;
     function Invoke_StringResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP, ResultP: NativeInt): TJOBResult; virtual;
     function Invoke_ObjectResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP, ResultP: NativeInt): TJOBResult; virtual;
+    function Create_JSObject(NameP, NameLen,ArgsP : NativeInt): TJOBObjectID; virtual;
     function Invoke_JSValueResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP, ResultP: NativeInt): TJOBResult; virtual;
     function Invoke_ArrayStringResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP, ResultP: NativeInt): TJOBResult; virtual;
     function ReleaseObject(ObjId: TJOBObjectID): TJOBResult; virtual;
@@ -61,6 +95,8 @@ Type
     function FindGlobalObject(const aName: string): TJOBObjectID; virtual; // 0=not found
     function RegisterLocalObject(Obj: TJSObject): TJOBObjectID; virtual;
     Function RegisterGlobalObject(Obj: JSValue; const aName: string): TJOBObjectID; virtual;
+    Procedure RegisterObjectFactory(const aName : string; aFunc : TObjectFactory); overload;
+    Procedure RegisterJSObjectFactory(const aName : string; aFunc : TJSObjectFactory); overload;
     Function GetJOBResult(v: jsvalue): TJOBResult;
     property CallbackHandler: TJOBCallback read FCallbackHandler write FCallbackHandler;
     property WasiExports: TWASIExports read FWasiExports write SetWasiExports;
@@ -106,6 +142,30 @@ asm
   }
 end;
 
+{ TJSObjectFactoryReg }
+
+constructor TJSObjectFactoryReg.Create(aFunc: TJSObjectFactory);
+begin
+  FFunc:=aFunc;
+end;
+
+function TJSObjectFactoryReg.CreateObj(const aName : string; aArgs: TJSValueDynArray): JSValue;
+begin
+  Result:=FFunc(aName,aArgs);
+end;
+
+{ TObjectFactoryReg }
+
+constructor TObjectFactoryReg.Create(aFunc: TObjectFactory);
+begin
+  FFunc:=aFunc;
+end;
+
+function TObjectFactoryReg.CreateObj(const aName: string; aArgs: TJSValueDynArray): JSValue;
+begin
+  Result:=FFunc(aName,aArgs);
+end;
+
 constructor TJSObjectBridge.Create(aEnv: TPas2JSWASIEnvironment);
 begin
   Inherited Create(aEnv);
@@ -137,6 +197,7 @@ begin
   FLocalObjects:=TJSArray.new;
   FLocalObjects.push(nil); // allocate FLocalObjects[0]
   FFreeLocalIds:=TJSArray.new;
+  FFactories:=TJSObject.New;
 end;
 
 function TJSObjectBridge.ImportName: String;
@@ -150,7 +211,24 @@ begin
   if FGlobalNames.hasOwnProperty(aName) then
     raise EJOBBridge.Create('duplicate "'+aName+'"');
   Result:=-(FGlobalObjects.push(Obj)-1);
+  {$IFDEF VERBOSEJOB}
+  Writeln('Registered ',aName,' with ID ',Result);
+  {$ENDIF}
   FGlobalNames[aName]:=Result;
+end;
+
+procedure TJSObjectBridge.RegisterObjectFactory(const aName: string; aFunc: TObjectFactory);
+begin
+  if FFactories.hasOwnProperty(aName) then
+    Raise Exception.CreateFmt('Duplicate object name for factory: %s',[aName]);
+  FFactories[aName]:=TObjectFactoryReg.Create(aFunc);
+end;
+
+procedure TJSObjectBridge.RegisterJSObjectFactory(const aName: string; aFunc: TJSObjectFactory);
+begin
+  if FFactories.hasOwnProperty(aName) then
+    Raise Exception.CreateFmt('Duplicate JS object name for factory: %s',[aName]);
+  FFactories[aName]:=TJSObjectFactoryReg.Create(aFunc);
 end;
 
 procedure TJSObjectBridge.FillImportObject(aObject: TJSObject);
@@ -166,6 +244,7 @@ begin
   aObject[JOBFn_ReleaseObject]:=@ReleaseObject;
   aObject[JOBFn_InvokeJSValueResult]:=@Invoke_JSValueResult;
   aObject[JOBFn_InvokeArrayStringResult]:=@Invoke_ArrayStringResult;
+  aObject[JOBFn_CreateObject]:=@Create_JSObject;
 end;
 
 function TJSObjectBridge.FindObject(ObjId: TJOBObjectID): TJSObject;
@@ -175,7 +254,12 @@ begin
   else
     Result:=TJSObject(FLocalObjects[ObjId]);
   if isUndefined(Result) then
+    begin
+    {$IFDEF VerboseJOB}
+    writeln('TJSObjectBridge.FindObject(',ObjId,') returns Nil');
+    {$ENDIF}
     Result:=nil;
+    end;
 end;
 
 function TJSObjectBridge.FindGlobalObject(const aName: string): TJOBObjectID;
@@ -390,6 +474,65 @@ begin
   Result:=JOBResult_Object;
 end;
 
+function TJSObjectBridge.GetObjectConstructor(aObjectName : String): TJSFunction;
+
+var
+  fn : JSValue;
+
+begin
+  Result:=Nil;
+  if aObjectName<>'' then
+    fn:=Window[aObjectName];
+  if jstypeof(fn)<>'function' then
+    exit;
+  Result:=TJSFunction(fn);
+end;
+
+function TJSObjectBridge.Create_JSObject(NameP, NameLen, ArgsP: NativeInt): TJOBObjectID;
+
+var
+  ObjName : String;
+  Args: TJSValueDynArray;
+  fn: TJSFunction;
+  JSResult : JSValue;
+  View: TJSDataView;
+  aWords: TJSUint16Array;
+
+begin
+  View:=getModuleMemoryDataView();
+  aWords:=TJSUint16Array.New(View.buffer, NameP, NameLen);
+  //writeln('TJSObjectBridge.Invoke_JSResult aBytes=',aBytes);
+  ObjName:=TypedArrayToString(aWords);
+  {$IFDEF VerboseJOB}
+  writeln('Create_JSObject ObjName="',ObjName,'"');
+  {$ENDIF}
+  if FFactories.hasOwnProperty(ObjName) then
+    begin
+    Args:=GetInvokeArguments(View,ArgsP);
+    JSResult:=TAbstractObjectFactoryReg(FFactories[ObjName]).CreateObj(ObjName,Args);
+    end
+  else
+    begin
+    fn:=GetObjectConstructor(ObjName);
+    if not Assigned(fn) then
+      exit(0);
+    if ArgsP=0 then
+      JSResult:=NewObj(fn,nil)
+    else
+      begin
+      Args:=GetInvokeArguments(View,ArgsP);
+      JSResult:=NewObj(fn,Args);
+      end;
+    end;
+  if not (jsTypeOf(JSResult)='object') then
+    Result:=0
+  else
+    Result:=RegisterLocalObject(TJSObject(JSResult));
+  {$IFDEF VerboseJOB}
+  writeln('Create_JSObject ObjName="',ObjName,'" result: ',Result);
+  {$ENDIF}
+end;
+
 function TJSObjectBridge.Invoke_JSValueResult(ObjId: TJOBObjectID; NameP, NameLen,
   Invoke, ArgsP, ResultP: NativeInt): TJOBResult;
 var
@@ -554,6 +697,9 @@ var
     aWords:=TJSUint16Array.New(View.buffer, p,Len);
     inc(p,Len*2);
     Result:=TypedArrayToString(aWords);
+    {$IFDEF VERBOSEJOB}
+    Writeln('ReadString : ',Result);
+    {$ENDIF}
   end;
 
   function ReadUnicodeString: String;
@@ -565,6 +711,9 @@ var
     Ptr:=ReadWasmNativeInt;
     aWords:=TJSUint16Array.New(View.buffer, Ptr,Len);
     Result:=TypedArrayToString(aWords);
+    {$IFDEF VERBOSEJOB}
+    Writeln('ReadUnicodeString : ',Result);
+    {$ENDIF}
   end;
 
   function ReadValue: JSValue; forward;
@@ -730,7 +879,9 @@ begin
   begin
     Arg:=Args[i];
     r:=GetJOBResult(Arg);
+    {$IFDEF VERBOSEJOB}
     writeln('TJSObjectBridge.CreateCallbackArgs ',i,'/',Args.Length,' r=',r);
+    {$ENDIF}
     case r of
     JOBResult_Null:
       begin
@@ -772,7 +923,9 @@ begin
         inc(p);
         NewId:=RegisterLocalObject(TJSObject(Arg));
         TJSArray(TempObjIds).push(NewId);
+        {$IFDEF VERBOSEJOB}
         writeln('TJSObjectBridge.CreateCallbackArgs Object ID=',NewID);
+        {$ENDIF}
         View.setInt32(p, NewId, env.IsLittleEndian);
         inc(p,4);
       end;
@@ -826,7 +979,9 @@ begin
       begin
         ObjId:=View.getInt32(p,env.IsLittleEndian);
         Result:=FindObject(ObjId);
+        {$IFDEF VERBOSEJOB}
         writeln('TJSObjectBridge.EatCallbackResult ObjID=',ObjId,' Result=',Result<>nil);
+        {$ENDIF}
       end;
     else
       Result:=Undefined;
@@ -848,6 +1003,9 @@ begin
   aWords:=TJSUint16Array.New(View.buffer, NameP, NameLen);
   aName:=TypedArrayToString(aWords);
   Result:=FindGlobalObject(aName);
+  {$IFDEF VERBOSEJOB}
+  Writeln('Get_GlobalID (',aName,'): ', Result);
+  {$ENDIF}
 end;
 
 function TJSObjectBridge.GetJOBResult(v: jsvalue): TJOBResult;
