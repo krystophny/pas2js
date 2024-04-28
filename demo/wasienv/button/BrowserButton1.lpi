@@ -42,16 +42,6 @@
           <Item0 Name="PasJSIsProjectHTMLFile" Value="1"/>
         </CustomData>
       </Unit>
-      <Unit>
-        <Filename Value="../../../packages/job/job_browser.pp"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="JOB_Browser"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../../../packages/job/job_shared.pp"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="JOB_Shared"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -61,14 +51,13 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../../packages/job"/>
       <UnitOutputDirectory Value="js"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
         <AllowLabel Value="False"/>
-        <CPPInline Value="False"/>
         <UseAnsiStrings Value="False"/>
+        <CPPInline Value="False"/>
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>

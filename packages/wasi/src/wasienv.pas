@@ -754,25 +754,18 @@ function TWASIHost.CreateWebAssembly(aPath: string; aImportObject: TJSObject
   ): TJSPromise;
 
   Function InstantiateOK(Res : JSValue) : JSValue;
-
   begin
     Result:=res;
   end;
 
   Function InstantiateFail(Res : JSValue) : JSValue;
-
-  var
-    S : String;
-
   begin
     Result:=False;
     console.Log('Instantiating of WebAssembly from '+aPath+' failed '+ValueToMessage(Res));
     DoInstantiateFail(res);
   end;
 
-
   Function ArrayOK(res2 : jsValue) : JSValue;
-
   begin
     DoBeforeInstantiate;
     Result:=TJSWebAssembly.instantiate(TJSArrayBuffer(res2),aImportObject)._then(@InstantiateOK,@InstantiateFail);

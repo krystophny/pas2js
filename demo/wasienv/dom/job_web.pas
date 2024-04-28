@@ -13,7 +13,7 @@ unit JOB_Web;
 
 interface
 
-uses SysUtils, JOB_JS;
+uses SysUtils, JOB.JS;
 
 Type
   // Forward class definitions
