@@ -175,6 +175,7 @@ begin
   RegisterGlobalObject(document,'document');
   RegisterGlobalObject(window,'window');
   RegisterGlobalObject(console,'console');
+  RegisterGlobalObject(CSS,'CSS');
   {$IFDEF WORKER}
   RegisterGlobalObject(caches,'caches');
   {$ENDIF}
