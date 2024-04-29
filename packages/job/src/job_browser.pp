@@ -166,6 +166,9 @@ begin
   Result:=FFunc(aName,aArgs);
 end;
 
+var
+  CSS : TJSObject; external name 'CSS';
+
 constructor TJSObjectBridge.Create(aEnv: TPas2JSWASIEnvironment);
 begin
   Inherited Create(aEnv);
