@@ -1291,8 +1291,16 @@ Type
 
   TJSMediaStreamTrack = class external name 'MediaStreamTrack' (TJSEventTarget)
   end;
+  TJSMediaConstraints = class external name 'Object' (TJSObject)
+    video : boolean;
+    audio : boolean;
+  end;
 
   TJSMediaDevices = class external name 'MediaDevices' (TJSEventTarget)
+    function getDisplayMedia: TJSPromise;
+    function getDisplayMedia(options : TJSObject) : TJSPromise; overload;
+    function getDisplayMedia(options : TJSMediaConstraints) : TJSPromise; overload;
+    Function getUserMedia(aConstraint : TJSOBject) : TJSPromise;
   end;
 
 
