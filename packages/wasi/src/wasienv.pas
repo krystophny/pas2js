@@ -1008,7 +1008,7 @@ Var
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.environ_sizes_get(%d,%d,%d)',[environCount,environBufSize]);
+    DoLog('TPas2JSWASIEnvironment.environ_sizes_get(%d,%d)',[environCount,environBufSize]);
   {$ENDIF}
   view:=getModuleMemoryDataView();
   view.setUint32(environCount, 0, IsLittleEndian);
