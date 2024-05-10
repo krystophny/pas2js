@@ -9,6 +9,9 @@ unit wasienv;
 {$INTERFACES CORBA}
 {$WARN 5024 off}
 {$WARN 4501 off}
+
+{ $DEFINE NO_WASI_DEBUG}
+
 interface
 
 uses
@@ -333,6 +336,7 @@ type
     FImportObject : TJSObject;
     Finstance: TJSWebAssemblyInstance;
     FIsLittleEndian: Boolean;
+    FLogAPI: Boolean;
     FModuleInstanceExports : TJSModulesExports;
     FOnGetConsoleInputBuffer: TGetConsoleInputBufferEvent;
     FOnGetConsoleInputString: TGetConsoleInputStringEvent;
@@ -347,9 +351,13 @@ type
     function getiovs(view: TJSDataView; iovs, iovsLen: NativeInt): TJSArray;
     function GetMemory: TJSWebassemblyMemory;
     procedure SetInstance(AValue: TJSWebAssemblyInstance);
+    procedure SetLogAPI(AValue: Boolean);
   Protected
     Class Var UTF8TextDecoder: TJSTextDecoder;
   Protected
+    Procedure DoLog(Msg : String);
+    Procedure DoLog(Fmt : String; Args : array of const);
+
     class procedure setBigUint64(View: TJSDataView; byteOffset, value: NativeInt; littleEndian: Boolean);
     class procedure setBigInt64(View: TJSDataView; byteOffset, value: NativeInt; littleEndian: Boolean);
     procedure DoConsoleWrite(IsStdErr: Boolean; aBytes: TJSArray); virtual;
@@ -435,6 +443,7 @@ type
     Property Exitcode : Nativeint Read FExitCode;
     // Default is set to the one expected by FPC runtime: wasi_snapshot_preview1
     Property WASIImportName : String Read FWASIImportName Write FWASIImportName;
+    Property LogAPI : Boolean REad FLogAPI Write SetLogAPI;
   end;
 
   { TImportExtension }
@@ -982,6 +991,10 @@ end;
 function TPas2JSWASIEnvironment.fd_prestat_dir_name(fd, pathPtr,
   pathLen: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_prestat_dir_name(%d,%d,%d)',[fd,pathPtr,PathLen]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_prestat_dir_name');
   Result:=WASI_ENOSYS;
 end;
@@ -993,6 +1006,10 @@ Var
   View : TJSDataView;
 
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.environ_sizes_get(%d,%d,%d)',[environCount,environBufSize]);
+  {$ENDIF}
   view:=getModuleMemoryDataView();
   view.setUint32(environCount, 0, IsLittleEndian);
   view.setUint32(environBufSize, 0, IsLittleEndian);
@@ -1002,6 +1019,10 @@ end;
 function TPas2JSWASIEnvironment.environ_get(environ, environBuf: NativeInt
   ): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.environ_get(%d,%d)',[environ,environBuf]);
+  {$ENDIF}
   Result:= WASI_ESUCCESS;
 end;
 
@@ -1012,6 +1033,10 @@ Var
   View : TJSDataView;
 
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.args_sizes_get(%d,%d)',[argc,argvbufsize]);
+  {$ENDIF}
   view:=getModuleMemoryDataView();
   view.setUint32(argc, 0, IsLittleEndian);
   view.setUint32(argvBufSize, 0, IsLittleEndian);
@@ -1020,6 +1045,10 @@ end;
 
 function TPas2JSWASIEnvironment.args_get(argv, argvBuf: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.args_get(%d,%d)',[argv, argvBuf]);
+  {$ENDIF}
   Result:=WASI_ESUCCESS;
 end;
 
@@ -1075,8 +1104,36 @@ begin
     FMemory:=FModuleInstanceExports.Memory;
 end;
 
+procedure TPas2JSWASIEnvironment.SetLogAPI(AValue: Boolean);
+begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if FLogAPI=AValue then Exit;
+  FLogAPI:=AValue;
+  {$ELSE}
+  FLogAPI:=False;
+  {$ENDIF}
+end;
+
+procedure TPas2JSWASIEnvironment.DoLog(Msg: String);
+begin
+  {$IFNDEF NO_WASI_DEBUG}
+  Writeln(Msg);
+  {$ENDIF}
+end;
+
+procedure TPas2JSWASIEnvironment.DoLog(Fmt: String; Args: array of const);
+begin
+  {$IFNDEF NO_WASI_DEBUG}
+  Writeln(Format(Fmt,Args));
+  {$ENDIF}
+end;
+
 function TPas2JSWASIEnvironment.GetTime(aClockID: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.GetTime(%d)',[aClockID]);
+  {$ENDIF}
   Result:=-1;
   Case aClockId of
   WASI_CLOCK_MONOTONIC:
@@ -1097,6 +1154,10 @@ Var
   View : TJSDataView;
 
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_fdstat_get(%d,%d)',[fd,BufPtr]);
+  {$ENDIF}
   view:=getModuleMemoryDataView();
   view.setUint8(bufPtr, fd);
   view.setUint16(bufPtr + 2, 0, IsLittleEndian);
@@ -1108,12 +1169,20 @@ end;
 
 function TPas2JSWASIEnvironment.fd_fdstat_set_flags(fd, flags: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_fdstat_set_flags(%d,%d)',[fd,flags]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_fdstat_set_flags');
   Result:= WASI_ENOSYS;
 end;
 
 function TPas2JSWASIEnvironment.fd_fdstat_set_rights(fd, fsRightsBase, fsRightsInheriting: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_fdstat_set_rights(%d,%d,%d)',[fd,fsRightsBase,fsRightsInheriting]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_fdstat_set_rights');
   Result:= WASI_ENOSYS;
 end;
@@ -1168,6 +1237,10 @@ var
   end;
 
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_write(%d,%d,%d)',[fd,iovs,iovslen,nwritten]);
+  {$ENDIF}
   BufferBytes:=TJSArray.New;
   view:=getModuleMemoryDataView();
   written:=0;
@@ -1182,6 +1255,10 @@ end;
 function TPas2JSWASIEnvironment.fd_pwrite(fd, iovs, iovsLen, offset,
   nwritten: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_prite(%d,%d,%d,%d)',[fd,iovs,iovslen,offset,nwritten]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_pwrite');
   Result:=WASI_ENOSYS;
 end;
@@ -1214,6 +1291,10 @@ Var
   view: TJSDataView;
 
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.clock_res_get(%d,%d)',[clockid,resolution]);
+  {$ENDIF}
   view:=getModuleMemoryDataView;
   setBigUint64(view,resolution, 0,IsLittleEndian);
   Result:=WASI_ESUCCESS;
@@ -1225,6 +1306,10 @@ Var
   view: TJSDataView;
   n : NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.clock_time_get(%d,%d,%d)',[clockid,precision,time]);
+  {$ENDIF}
   view:=getModuleMemoryDataView;
   n:=GetTime(clockId);
   if N=-1 then
@@ -1376,6 +1461,10 @@ end;
 function TPas2JSWASIEnvironment.fd_advise(fd, offset, len, advice: NativeInt
   ): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_advise(%d,%d,%d,%d)',[fd,offset,len,advice]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_advise');
   Result:= WASI_ENOSYS;
 end;
@@ -1383,18 +1472,30 @@ end;
 function TPas2JSWASIEnvironment.fd_allocate(fd, offset, len: NativeInt
   ): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_allocate(%d,%d,%d)',[fd,offset,len]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_allocate');
   Result:= WASI_ENOSYS;
 end;
 
 function TPas2JSWASIEnvironment.fd_close(fd: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_close(%d)',[fd]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_close');
   Result:= WASI_ENOSYS;
 end;
 
 function TPas2JSWASIEnvironment.fd_datasync(fd: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_datasync(%d)',[fd]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_datasync');
   Result:= WASI_ENOSYS;
 end;
@@ -1402,12 +1503,20 @@ end;
 function TPas2JSWASIEnvironment.fd_seek(fd, offset, whence,
   newOffsetPtr: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_seek(%d,%d,%d,%d)',[fd,offset,whence,newOffsetPtr]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_seek');
   Result:= WASI_ENOSYS;
 end;
 
 function TPas2JSWASIEnvironment.fd_sync(fd: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_sync(%d)',[fd]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_sync');
   Result:= WASI_ENOSYS;
 end;
@@ -1415,6 +1524,10 @@ end;
 function TPas2JSWASIEnvironment.fd_pread(fd, iovs, iovsLen, offset,
   nread: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_pread(%d,%d,%d,%d,%d)',[fd,iovs,iovslen,offset,nread]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_pread');
   Result:= WASI_ENOSYS;
 end;
@@ -1497,6 +1610,10 @@ var
   end;
 
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_read(%d,%d,%d,%d)',[fd,iovs,iovslen,nread]);
+  {$ENDIF}
   bytesRead:=0;
   view:=getModuleMemoryDataView();
   if (fd = WASI_STDIN_FILENO) then
@@ -1542,18 +1659,30 @@ end;
 function TPas2JSWASIEnvironment.fd_readdir(fd, bufPtr, bufLen, cookie,
   bufusedPtr: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_readdir(%d,%d,%d,%d,%d)',[fd,bufPtr,buflen,cookie,bufusedptr]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_readdir');
   Result:= WASI_ENOSYS;
 end;
 
 function TPas2JSWASIEnvironment.fd_renumber(afrom, ato: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_renumber(%d,%d)',[aFrom,aTo]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_renumber');
   Result:= WASI_ENOSYS;
 end;
 
 function TPas2JSWASIEnvironment.fd_tell(fd, offsetPtr: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_tell(%d,%d)',[fd,offsetPtr]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_tell');
   Result:= WASI_ENOSYS;
 end;
@@ -1561,6 +1690,10 @@ end;
 function TPas2JSWASIEnvironment.fd_filestat_get(fd, bufPtr: NativeInt
   ): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_filestat_get(%d,%d)',[fd,bufPtr]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_filestat_get');
   Result:= WASI_ENOSYS;
 end;
@@ -1568,6 +1701,10 @@ end;
 function TPas2JSWASIEnvironment.fd_filestat_set_size(fd, stSize: NativeInt
   ): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_filestat_set_size(%d,%d)',[fd,stSize]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_filestat_set_size');
   Result:= WASI_ENOSYS;
 end;
@@ -1575,6 +1712,10 @@ end;
 function TPas2JSWASIEnvironment.fd_filestat_set_times(fd, stAtim, stMtim,
   fstflags: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_filestat_set_times(%d,%d,%d)',[fd,stAtim,stMtim,fstFlags]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_filestat_set_times');
   Result:= WASI_ENOSYS;
 end;
@@ -1582,6 +1723,10 @@ end;
 function TPas2JSWASIEnvironment.path_readlink(fd, pathPtr, pathLen, buf,
   bufLen, bufused: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_readlink(%d,%d,%d,%d,%d,%d)',[fd,PathPtr,PathLen,buf,buflen,bufused]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_readlink');
   Result:= WASI_ENOSYS;
 end;
@@ -1589,6 +1734,10 @@ end;
 function TPas2JSWASIEnvironment.path_create_directory(fd, pathPtr,
   pathLen: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_create_directory(%d,%d,%d)',[fd,PathPtr,PathLen]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_create_directory');
   Result:= WASI_ENOSYS;
 end;
@@ -1596,6 +1745,10 @@ end;
 function TPas2JSWASIEnvironment.path_filestat_get(fd, flags, pathPtr, pathLen,
   bufPtr: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_filestat_get(%d,%d,%d,%d,%d)',[fd,flags,PathPtr,PathLen,bufptr]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_filestat_get');
   Result:= WASI_ENOSYS;
 end;
@@ -1603,6 +1756,10 @@ end;
 function TPas2JSWASIEnvironment.path_link(oldFd, oldFlags, oldPath, oldPathLen,
   newFd, newPath, newPathLen: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_link(%d,%d,%d,%d,%d,%d,%d)',[oldfd,oldFlags,OldPath,OldPathLen,Newfd,NewPath,NewPathLen]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_link');
   Result:= WASI_ENOSYS;
 end;
@@ -1610,6 +1767,10 @@ end;
 function TPas2JSWASIEnvironment.path_remove_directory(fd, pathPtr,
   pathLen: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_remove_directory(%d,%d,%d)',[fd,PathPtr,PathLen]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_remove_directory');
   Result:= WASI_ENOSYS;
 end;
@@ -1617,6 +1778,10 @@ end;
 function TPas2JSWASIEnvironment.path_rename(oldFd, oldPath, oldPathLen, newFd,
   newPath, newPathLen: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_rename(%d,%d,%d,%d,%d,%d)',[oldfd,OldPath,OldPathLen,Newfd,NewPath,NewPathLen]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_rename');
   Result:= WASI_ENOSYS;
 end;
@@ -1624,6 +1789,10 @@ end;
 function TPas2JSWASIEnvironment.path_symlink(oldPath, oldPathLen, fd, newPath,
   newPathLen: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_symlink(%d,%d,%d,%d,%d)',[OldPath,OldPathLen,fd,NewPath,NewPathLen]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_symlink');
   Result:= WASI_ENOSYS;
 end;
@@ -1631,6 +1800,10 @@ end;
 function TPas2JSWASIEnvironment.path_unlink_file(fd, pathPtr, pathLen: NativeInt
   ): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_unlink_file(%d,%d,%d)',[fd,PathPtr,PathLen]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_unlink_file');
   Result:= WASI_ENOSYS;
 end;
@@ -1638,6 +1811,10 @@ end;
 function TPas2JSWASIEnvironment.path_open(dirfd, dirflags, pathPtr, pathLen,
   oflags, fsRightsBase, fsRightsInheriting, fsFlags, fd: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_open(%d,%d,%d,%d,%d,%d,%d,%d,%d)',[dirfd, dirflags, pathPtr, pathLen, oflags, fsRightsBase, fsRightsInheriting, fsFlags, fd]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_open');
   Result:= WASI_ENOSYS;
 end;
@@ -1645,6 +1822,10 @@ end;
 function TPas2JSWASIEnvironment.path_filestat_set_times(fd, fstflags, pathPtr,
   pathLen, stAtim, stMtim: NativeInt): NativeInt;
 begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_filestat_set_times(%d,%d,%d,%d,%d,%d)',[fd,fstflags,PathPtr,PathLen,stAtim,stMtim]);
+  {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_filestat_set_times');
   Result:= WASI_ENOSYS;
 end;
