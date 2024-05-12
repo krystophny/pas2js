@@ -1503,7 +1503,7 @@ Type
 
   { TJSWindow }
 
-  TJSWindow = class external name 'Window' (TJSObject)
+  TJSWindow = class external name 'Window' (TWindowOrWorkerGlobalScope)
   Private
     FClosed: boolean; external name 'closed';
     FConsole : TJSConsole;  external name 'console';
@@ -1661,6 +1661,7 @@ Type
     function showSaveFilePicker: TJSFileSystemFileHandle; async; overload;
     function showSaveFilePicker(options: TJSShowSaveFilePickerOptions): TJSFileSystemFileHandle; async; overload;
     function FileSystemDirectoryHandle: TJSFileSystemDirectoryHandleArray; async;
+
     { public properties }
     property console : TJSConsole Read FConsole;
     property closed : boolean read FClosed;
@@ -2449,6 +2450,7 @@ Type
     Function toDataURL : String; overload;
     Function toDataURL(aMimeType : String) : String; overload;
     Function toDataURL(aMimeType : String; aQuality : Double) : String; overload;
+
   end;
   
 
