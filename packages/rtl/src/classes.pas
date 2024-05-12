@@ -61,6 +61,24 @@ type
   TListStaticCallback = {$IFDEF FPC_DOTTEDUNITS}System.{$ENDIF}Types.TListStaticCallback;
   TAlignment = (taLeftJustify, taRightJustify, taCenter);
 
+  TLeftRight = taLeftJustify..taRightJustify;
+  TVerticalAlignment = (taAlignTop, taAlignBottom, taVerticalCenter);
+  TTopBottom = taAlignTop..taAlignBottom;
+
+  TBiDiMode = (bdLeftToRight,bdRightToLeft,bdRightToLeftNoAlign,bdRightToLeftReadingOnly);
+
+
+  { Types used by standard events }
+  TShiftStateEnum = (ssShift, ssAlt, ssCtrl,
+    ssLeft, ssRight, ssMiddle, ssDouble,
+    // Extra additions
+    ssMeta, ssSuper, ssHyper, ssAltGr, ssCaps, ssNum,
+    ssScroll,ssTriple,ssQuad,ssExtra1,ssExtra2,
+    ssTouch, ssPen, ssHorizontal);
+
+
+  TShiftState = set of TShiftStateEnum;
+
   // Forward class definitions
   TFPList = Class;
   TReader = Class;
