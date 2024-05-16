@@ -1239,7 +1239,7 @@ var
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_write(%d,%d,%d)',[fd,iovs,iovslen,nwritten]);
+    DoLog('TPas2JSWASIEnvironment.fd_write(%d,%d,%d,%d)',[fd,iovs,iovslen,nwritten]);
   {$ENDIF}
   BufferBytes:=TJSArray.New;
   view:=getModuleMemoryDataView();
@@ -1257,7 +1257,7 @@ function TPas2JSWASIEnvironment.fd_pwrite(fd, iovs, iovsLen, offset,
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_prite(%d,%d,%d,%d)',[fd,iovs,iovslen,offset,nwritten]);
+    DoLog('TPas2JSWASIEnvironment.fd_prite(%d,%d,%d,%d,%d)',[fd,iovs,iovslen,offset,nwritten]);
   {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_pwrite');
   Result:=WASI_ENOSYS;
