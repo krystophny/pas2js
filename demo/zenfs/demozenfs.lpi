@@ -61,7 +61,6 @@
     </Parsing>
     <CodeGeneration>
       <TargetOS Value="browser"/>
-      <Subtarget Value="unicodertl"/>
     </CodeGeneration>
     <Linking>
       <Debugging>

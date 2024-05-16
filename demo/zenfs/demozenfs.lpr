@@ -1,12 +1,12 @@
 program demozenfs;
 
 {$mode objfpc}
-{$DEFINE FPC_DOTTEDUNITS}
+
 uses
 {$IFDEF FPC_DOTTEDUNITS}
   Browser.Console, JSApi.JS, Api.ZenFS.Core, Api.ZenFS.Dom;
 {$ELSE}
-  BrowserConsole, JS;
+  BrowserConsole, JS, libzenfs, libzenfsdom;
 {$ENDIF}
 
 Procedure DoTest; async;
@@ -28,7 +28,7 @@ begin
     )
   );
   if ZenFS.existsSync('/something') then
-    Writeln('File already exists')
+    Writeln('Text file already exists')
   else
     begin
     Writeln('Creating new file');
@@ -39,7 +39,9 @@ begin
     Writeln('Read : ',BufStr)
   else
     Writeln('Got buffer with ',Buf.length,' bytes');
-  if Not ZenFS.existsSync('/data.dat') then
+  if ZenFS.existsSync('/data.dat') then
+    Writeln('Binary file already exists')
+  else
     begin
     Writeln('Creating new binary file');
     ArrayBuf:=TJSarrayBuffer.new(3);
@@ -66,5 +68,7 @@ begin
 end;
 
 begin
+  ConsoleStyle:=DefaultCRTConsoleStyle;
+  HookConsole;
   DoTest;
 end.
