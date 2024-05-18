@@ -75,10 +75,15 @@ Type
     mtimeNs : NativeInt;
     ctimeNs : NativeInt;
     birthtimeNs : NativeInt;
-    atime : TJSObject;
-    mtime : TJSObject;
-    ctime : TJSObject;
-    birthtime : TJSObject;
+    dev : NativeInt;
+    blocks : NativeInt;
+    blksize : NativeInt;
+    ino : NativeInt;
+    rdev : NativeInt;
+    nlink : NativeInt;
+    uid : NativeInt;
+    guid : NativeInt;
+    size : NativeInt;
     constructor new;
     constructor new (aStats : TZenFSStats);
     function isFile() : Boolean;
@@ -94,9 +99,52 @@ Type
     function cred(uid, gid: NativeInt) : TZenFSCred;
     procedure chmod(mode: NativeInt);
     procedure chown(uid, gid: NativeInt);
+    atime : TJSDate;
+    mtime : TJSDate;
+    ctime : TJSDate;
+    birthtime : TJSDate;
   end;
   TZenFSStatsCallback = reference to procedure(stats : TZenFSStats);
   TZenFSStatsListener = Procedure (curr : TZenFSStats; prev : TZenFSStats);
+
+  TZenFSBigintStats = Class external name 'ZenFS.BigIntStats' (TJSObject)
+  Public
+    atimeNs : NativeInt;
+    mtimeNs : NativeInt;
+    ctimeNs : NativeInt;
+    birthtimeNs : NativeInt;
+    dev : TJSBigint;
+    blocks : TJSBigint;
+    blksize : TJSBigint;
+    ino : TJSBigint;
+    rdev : TJSBigint;
+    nlink : TJSBigint;
+    uid : TJSBigint;
+    guid : TJSBigint;
+    size : TJSBigint;
+    constructor new;
+    constructor new (aStats : TZenFSStats);
+    function isFile() : Boolean;
+    function isDirectory() : Boolean;
+    function isSymbolicLink() : Boolean;
+    function isSocket() : Boolean;
+    function isBlockDevice() : Boolean;
+    function isCharacterDevice() : Boolean;
+    function isFIFO() : Boolean;
+    function hasAccess(mode: NativeInt;Cred: TZenFSCred) : Boolean;
+    function cred() : TZenFSCred;
+    function cred(uid: NativeInt) : TZenFSCred;
+    function cred(uid, gid: NativeInt) : TZenFSCred;
+    procedure chmod(mode: NativeInt);
+    procedure chown(uid, gid: NativeInt);
+    atime : TJSDate;
+    mtime : TJSDate;
+    ctime : TJSDate;
+    birthtime : TJSDate;
+  end;
+  TZenFSBigintStatsCallback = reference to procedure(stats : TZenFSBigintStats);
+  TZenFSBigintStatsListener = Procedure (curr : TZenFSBigintStats; prev : TZenFSBigintStats);
+
 
   { TZenFSDirent }
 
@@ -174,7 +222,7 @@ Type
     FPath: string; external name 'path';
     FPending: boolean; external name 'pending';
   Public
-    procedure close;
+    procedure close; reintroduce;
     procedure close(Callback : TVoidCallback);
     property pending : boolean read FPending;
     Property bytesWritten : NativeInt read FBytesWritten;
@@ -351,6 +399,23 @@ Type
     (** Disk quota exceeded **)
     EDQUOT = 122;
 
+  end;
+
+  TZenFSErrnoError = class external name 'ZenFS.ErrnoError' (TJSError)
+    constructor New (ErrNo : Integer);
+    constructor New (ErrNo : Integer; Message : String);
+    constructor New (ErrNo : Integer; Message,Path : String);
+    constructor New (ErrNo : Integer; Message,Path,Syscall : String);
+    class function fromJSON (aJSOn : TJSObject) : TZenFSErrnoError;
+    class function With_ (code : String) : TZenFSErrnoError external name 'With';
+    class function With_ (code : String; Path : String) : TZenFSErrnoError external name 'With';
+    class function With_ (code : String; Path, SysCall : String) : TZenFSErrnoError external name 'With';
+    errno : integer;
+    code : string;
+    stack : string;
+    function toJSON : TJSObject;
+    function toString : string; reintroduce;
+    function bufferSize : integer;
   end;
 
   TZenFSFileSystemMetaData = Class external name 'ZenFS.FileSystemMetaData' (TJSObject)
@@ -617,8 +682,11 @@ Type
     function lstatSync(arg1: JSValue;arg2: JSValue) : JSValue;
 
     procedure lutimes(path  : String; aTime : NativeInt; mTime : NativeInt; callback : TVoidCallback);
+    procedure lutimes(path  : String; aTime : TJSDate; mTime : TJSDate; callback : TVoidCallback);
     procedure lutimes(path  : String; aTime : NativeInt; mTime : NativeInt);
+    procedure lutimes(path  : String; aTime : TJSDate; mTime : TJSDate);
     procedure lutimesSync(path  : String; aTime : NativeInt; mTime : NativeInt);
+    procedure lutimesSync(path  : String; aTime : TJSDate; mTime : TJSDate);
 
     procedure mkdir(path  : String; mode : Nativeint; callback : TVoidCallback);
     procedure mkdir(path  : String; mode : Nativeint);
@@ -766,9 +834,9 @@ Type
     Procedure writeFileSync(afile : String; data : TJSDataView); overload;
 
     Function writeSync(fd : NativeInt; buffer : TJSDataView; offset : NativeInt; length : NativeInt; position : NativeInt): NativeInt; overload;
-    Function writeSync(fd : NativeInt; buffer : TJSDataView): NativeInt; overload;
-    Function writeSync(fd : NativeInt; buffer : TJSDataView; offset : NativeInt): NativeInt; overload;
     Function writeSync(fd : NativeInt; buffer : TJSDataView; offset : NativeInt; length : NativeInt): NativeInt; overload;
+    Function writeSync(fd : NativeInt; buffer : TJSDataView; offset : NativeInt): NativeInt; overload;
+    Function writeSync(fd : NativeInt; buffer : TJSDataView): NativeInt; overload;
     Function writeSync(fd : NativeInt; aString : string; position : NativeInt; encoding : String): NativeInt; overload;
     Function writeSync(fd : NativeInt; aString : string): NativeInt; overload;
     Function writeSync(fd : NativeInt; aString : string; position : NativeInt): NativeInt; overload;
@@ -781,6 +849,8 @@ Type
     Property mounts : TJSMap Read FMounts;
   end;
 
+// Using this function is dangerous, it is not part of the API !
+function fd2file(fd : Integer) : TZenFSFile; external name 'fd2file';
 
 var
   ZenFS : TZenFS; external name 'ZenFS';
