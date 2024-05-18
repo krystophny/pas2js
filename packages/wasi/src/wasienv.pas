@@ -4,8 +4,6 @@ unit wasienv;
 
 {$mode ObjFPC}
 {$modeswitch externalclass}
-{$modeswitch functionreferences}
-{$modeswitch anonymousfunctions}
 {$INTERFACES CORBA}
 {$WARN 5024 off}
 {$WARN 4501 off}
@@ -16,299 +14,45 @@ interface
 
 uses
 {$IFDEF FPC_DOTTEDUNITS}
-  System.SysUtils, System.Classes, JSApi.JS, BrowserApi.WebAssembly, System.Types;
+  System.SysUtils, System.Classes, JSApi.JS, BrowserApi.WebAssembly, System.Types, WasiTypes;
 {$ELSE} 
-  SysUtils, Classes, JS, WebAssembly, types;
+  SysUtils, Classes, JS, WebAssembly, types, WasiTypes;
 {$ENDIF}
 
-
 Const
-  WASI_ESUCCESS = 0;
-  WASI_E2BIG = 1;
-  WASI_EACCES = 2;
-  WASI_EADDRINUSE = 3;
-  WASI_EADDRNOTAVAIL = 4;
-  WASI_EAFNOSUPPORT = 5;
-  WASI_EAGAIN = 6;
-  WASI_EALREADY = 7;
-  WASI_EBADF = 8;
-  WASI_EBADMSG = 9;
-  WASI_EBUSY = 10;
-  WASI_ECANCELED = 11;
-  WASI_ECHILD = 12;
-  WASI_ECONNABORTED = 13;
-  WASI_ECONNREFUSED = 14;
-  WASI_ECONNRESET = 15;
-  WASI_EDEADLK = 16;
-  WASI_EDESTADDRREQ = 17;
-  WASI_EDOM = 18;
-  WASI_EDQUOT = 19;
-  WASI_EEXIST = 20;
-  WASI_EFAULT = 21;
-  WASI_EFBIG = 22;
-  WASI_EHOSTUNREACH = 23;
-  WASI_EIDRM = 24;
-  WASI_EILSEQ = 25;
-  WASI_EINPROGRESS = 26;
-  WASI_EINTR = 27;
-  WASI_EINVAL = 28;
-  WASI_EIO = 29;
-  WASI_EISCONN = 30;
-  WASI_EISDIR = 31;
-  WASI_ELOOP = 32;
-  WASI_EMFILE = 33;
-  WASI_EMLINK = 34;
-  WASI_EMSGSIZE = 35;
-  WASI_EMULTIHOP = 36;
-  WASI_ENAMETOOLONG = 37;
-  WASI_ENETDOWN = 38;
-  WASI_ENETRESET = 39;
-  WASI_ENETUNREACH = 40;
-  WASI_ENFILE = 41;
-  WASI_ENOBUFS = 42;
-  WASI_ENODEV = 43;
-  WASI_ENOENT = 44;
-  WASI_ENOEXEC = 45;
-  WASI_ENOLCK = 46;
-  WASI_ENOLINK = 47;
-  WASI_ENOMEM = 48;
-  WASI_ENOMSG = 49;
-  WASI_ENOPROTOOPT = 50;
-  WASI_ENOSPC = 51;
-  WASI_ENOSYS = 52;
-  WASI_ENOTCONN = 53;
-  WASI_ENOTDIR = 54;
-  WASI_ENOTEMPTY = 55;
-  WASI_ENOTRECOVERABLE = 56;
-  WASI_ENOTSOCK = 57;
-  WASI_ENOTSUP = 58;
-  WASI_ENOTTY = 59;
-  WASI_ENXIO = 60;
-  WASI_EOVERFLOW = 61;
-  WASI_EOWNERDEAD = 62;
-  WASI_EPERM = 63;
-  WASI_EPIPE = 64;
-  WASI_EPROTO = 65;
-  WASI_EPROTONOSUPPORT = 66;
-  WASI_EPROTOTYPE = 67;
-  WASI_ERANGE = 68;
-  WASI_EROFS = 69;
-  WASI_ESPIPE = 70;
-  WASI_ESRCH = 71;
-  WASI_ESTALE = 72;
-  WASI_ETIMEDOUT = 73;
-  WASI_ETXTBSY = 74;
-  WASI_EXDEV = 75;
-  WASI_ENOTCAPABLE = 76;
+  SizeInt8     = 1;
+  SizeInt16    = 2;
+  SizeInt32    = 4;
+  SizeInt64    = 8;
+  SizeUInt8    = SizeInt8;
+  SizeUInt16   = SizeInt16;
+  SizeUInt32   = SizeInt32;
+  SizeUInt64   = SizeInt64;
 
-  WASI_SIGABRT = 0;
-  WASI_SIGALRM = 1;
-  WASI_SIGBUS = 2;
-  WASI_SIGCHLD = 3;
-  WASI_SIGCONT = 4;
-  WASI_SIGFPE = 5;
-  WASI_SIGHUP = 6;
-  WASI_SIGILL = 7;
-  WASI_SIGINT = 8;
-  WASI_SIGKILL = 9;
-  WASI_SIGPIPE = 10;
-  WASI_SIGQUIT = 11;
-  WASI_SIGSEGV = 12;
-  WASI_SIGSTOP = 13;
-  WASI_SIGTERM = 14;
-  WASI_SIGTRAP = 15;
-  WASI_SIGTSTP = 16;
-  WASI_SIGTTIN = 17;
-  WASI_SIGTTOU = 18;
-  WASI_SIGURG = 19;
-  WASI_SIGUSR1 = 20;
-  WASI_SIGUSR2 = 21;
-  WASI_SIGVTALRM = 22;
-  WASI_SIGXCPU = 23;
-  WASI_SIGXFSZ = 24;
-
-  WASI_FILETYPE_UNKNOWN = 0;
-  WASI_FILETYPE_BLOCK_DEVICE = 1;
-  WASI_FILETYPE_CHARACTER_DEVICE = 2;
-  WASI_FILETYPE_DIRECTORY = 3;
-  WASI_FILETYPE_REGULAR_FILE = 4;
-  WASI_FILETYPE_SOCKET_DGRAM = 5;
-  WASI_FILETYPE_SOCKET_STREAM = 6;
-  WASI_FILETYPE_SYMBOLIC_LINK = 7;
-
-  WASI_FDFLAG_APPEND = $0001;
-  WASI_FDFLAG_DSYNC = $0002;
-  WASI_FDFLAG_NONBLOCK = $0004;
-  WASI_FDFLAG_RSYNC = $0008;
-  WASI_FDFLAG_SYNC = $0010;
-
-  WASI_RIGHT_FD_DATASYNC             = $0000000000000001;
-  WASI_RIGHT_FD_READ                 = $0000000000000002;
-  WASI_RIGHT_FD_SEEK                 = $0000000000000004;
-  WASI_RIGHT_FD_FDSTAT_SET_FLAGS     = $0000000000000008;
-  WASI_RIGHT_FD_SYNC                 = $0000000000000010;
-  WASI_RIGHT_FD_TELL                 = $0000000000000020;
-  WASI_RIGHT_FD_WRITE                = $0000000000000040;
-  WASI_RIGHT_FD_ADVISE               = $0000000000000080;
-  WASI_RIGHT_FD_ALLOCATE             = $0000000000000100;
-  WASI_RIGHT_PATH_CREATE_DIRECTORY   = $0000000000000200;
-  WASI_RIGHT_PATH_CREATE_FILE        = $0000000000000400;
-  WASI_RIGHT_PATH_LINK_SOURCE        = $0000000000000800;
-  WASI_RIGHT_PATH_LINK_TARGET        = $0000000000001000;
-  WASI_RIGHT_PATH_OPEN               = $0000000000002000;
-  WASI_RIGHT_FD_READDIR              = $0000000000004000;
-  WASI_RIGHT_PATH_READLINK           = $0000000000008000;
-  WASI_RIGHT_PATH_RENAME_SOURCE      = $0000000000010000;
-  WASI_RIGHT_PATH_RENAME_TARGET      = $0000000000020000;
-  WASI_RIGHT_PATH_FILESTAT_GET       = $0000000000040000;
-  WASI_RIGHT_PATH_FILESTAT_SET_SIZE  = $0000000000080000;
-  WASI_RIGHT_PATH_FILESTAT_SET_TIMES = $0000000000100000;
-  WASI_RIGHT_FD_FILESTAT_GET         = $0000000000200000;
-  WASI_RIGHT_FD_FILESTAT_SET_SIZE    = $0000000000400000;
-  WASI_RIGHT_FD_FILESTAT_SET_TIMES   = $0000000000800000;
-  WASI_RIGHT_PATH_SYMLINK            = $0000000001000000;
-  WASI_RIGHT_PATH_REMOVE_DIRECTORY   = $0000000002000000;
-  WASI_RIGHT_PATH_UNLINK_FILE        = $0000000004000000;
-  WASI_RIGHT_POLL_FD_READWRITE       = $0000000008000000;
-  WASI_RIGHT_SOCK_SHUTDOWN           = $0000000010000000;
-
-  RIGHTS_ALL = WASI_RIGHT_FD_DATASYNC or WASI_RIGHT_FD_READ
-  or WASI_RIGHT_FD_SEEK or WASI_RIGHT_FD_FDSTAT_SET_FLAGS or WASI_RIGHT_FD_SYNC
-  or WASI_RIGHT_FD_TELL or WASI_RIGHT_FD_WRITE or WASI_RIGHT_FD_ADVISE
-  or WASI_RIGHT_FD_ALLOCATE or WASI_RIGHT_PATH_CREATE_DIRECTORY
-  or WASI_RIGHT_PATH_CREATE_FILE or WASI_RIGHT_PATH_LINK_SOURCE
-  or WASI_RIGHT_PATH_LINK_TARGET or WASI_RIGHT_PATH_OPEN or WASI_RIGHT_FD_READDIR
-  or WASI_RIGHT_PATH_READLINK or WASI_RIGHT_PATH_RENAME_SOURCE
-  or WASI_RIGHT_PATH_RENAME_TARGET or WASI_RIGHT_PATH_FILESTAT_GET
-  or WASI_RIGHT_PATH_FILESTAT_SET_SIZE or WASI_RIGHT_PATH_FILESTAT_SET_TIMES
-  or WASI_RIGHT_FD_FILESTAT_GET or WASI_RIGHT_FD_FILESTAT_SET_TIMES
-  or WASI_RIGHT_FD_FILESTAT_SET_SIZE or WASI_RIGHT_PATH_SYMLINK
-  or WASI_RIGHT_PATH_UNLINK_FILE or WASI_RIGHT_PATH_REMOVE_DIRECTORY
-  or WASI_RIGHT_POLL_FD_READWRITE or WASI_RIGHT_SOCK_SHUTDOWN;
-
-  RIGHTS_BLOCK_DEVICE_BASE = RIGHTS_ALL;
-  RIGHTS_BLOCK_DEVICE_INHERITING = RIGHTS_ALL;
-
-  RIGHTS_CHARACTER_DEVICE_BASE = RIGHTS_ALL;
-  RIGHTS_CHARACTER_DEVICE_INHERITING = RIGHTS_ALL;
-
-  RIGHTS_REGULAR_FILE_BASE = WASI_RIGHT_FD_DATASYNC or WASI_RIGHT_FD_READ
-                           or WASI_RIGHT_FD_SEEK or WASI_RIGHT_FD_FDSTAT_SET_FLAGS or WASI_RIGHT_FD_SYNC
-                           or WASI_RIGHT_FD_TELL or WASI_RIGHT_FD_WRITE or WASI_RIGHT_FD_ADVISE
-                           or WASI_RIGHT_FD_ALLOCATE or WASI_RIGHT_FD_FILESTAT_GET
-                           or WASI_RIGHT_FD_FILESTAT_SET_SIZE or WASI_RIGHT_FD_FILESTAT_SET_TIMES
-                           or WASI_RIGHT_POLL_FD_READWRITE;
-  RIGHTS_REGULAR_FILE_INHERITING = 00;
-
-  RIGHTS_DIRECTORY_BASE = WASI_RIGHT_FD_FDSTAT_SET_FLAGS
-                        or WASI_RIGHT_FD_SYNC or WASI_RIGHT_FD_ADVISE or WASI_RIGHT_PATH_CREATE_DIRECTORY
-                        or WASI_RIGHT_PATH_CREATE_FILE or WASI_RIGHT_PATH_LINK_SOURCE
-                        or WASI_RIGHT_PATH_LINK_TARGET or WASI_RIGHT_PATH_OPEN or WASI_RIGHT_FD_READDIR
-                        or WASI_RIGHT_PATH_READLINK or WASI_RIGHT_PATH_RENAME_SOURCE
-                        or WASI_RIGHT_PATH_RENAME_TARGET or WASI_RIGHT_PATH_FILESTAT_GET
-                        or WASI_RIGHT_PATH_FILESTAT_SET_SIZE or WASI_RIGHT_PATH_FILESTAT_SET_TIMES
-                        or WASI_RIGHT_FD_FILESTAT_GET or WASI_RIGHT_FD_FILESTAT_SET_TIMES
-                        or WASI_RIGHT_PATH_SYMLINK or WASI_RIGHT_PATH_UNLINK_FILE
-                        or WASI_RIGHT_PATH_REMOVE_DIRECTORY or WASI_RIGHT_POLL_FD_READWRITE;
-  RIGHTS_DIRECTORY_INHERITING = RIGHTS_DIRECTORY_BASE
-                        or RIGHTS_REGULAR_FILE_BASE;
-
-  RIGHTS_SOCKET_BASE = WASI_RIGHT_FD_READ or WASI_RIGHT_FD_FDSTAT_SET_FLAGS
-                     or WASI_RIGHT_FD_WRITE or WASI_RIGHT_FD_FILESTAT_GET
-                     or WASI_RIGHT_POLL_FD_READWRITE or WASI_RIGHT_SOCK_SHUTDOWN;
-
-  RIGHTS_SOCKET_INHERITING = RIGHTS_ALL;
-
-  RIGHTS_TTY_BASE = WASI_RIGHT_FD_READ or WASI_RIGHT_FD_FDSTAT_SET_FLAGS
-                  or WASI_RIGHT_FD_WRITE or WASI_RIGHT_FD_FILESTAT_GET
-                  or WASI_RIGHT_POLL_FD_READWRITE;
-
-  RIGHTS_TTY_INHERITING = 0;
-
-  WASI_CLOCK_MONOTONIC = 0;
-  WASI_CLOCK_PROCESS_CPUTIME_ID = 1;
-  WASI_CLOCK_REALTIME = 2;
-  WASI_CLOCK_THREAD_CPUTIME_ID = 3;
-
-  WASI_EVENTTYPE_CLOCK = 0;
-  WASI_EVENTTYPE_FD_READ = 1;
-  WASI_EVENTTYPE_FD_WRITE = 2;
-
-  WASI_FILESTAT_SET_ATIM = 1 << 0;
-  WASI_FILESTAT_SET_ATIM_NOW = 1 << 1;
-  WASI_FILESTAT_SET_MTIM = 1 << 2;
-  WASI_FILESTAT_SET_MTIM_NOW = 1 << 3;
-
-  WASI_O_CREAT = 1 << 0;
-  WASI_O_DIRECTORY = 1 << 1;
-  WASI_O_EXCL = 1 << 2;
-  WASI_O_TRUNC = 1 << 3;
-
-  WASI_PREOPENTYPE_DIR = 0;
-
-  WASI_DIRCOOKIE_START = 0;
-
-  WASI_STDIN_FILENO = 0;
-  WASI_STDOUT_FILENO = 1;
-  WASI_STDERR_FILENO = 2;
-
-  WASI_WHENCE_CUR = 0;
-  WASI_WHENCE_END = 1;
-  WASI_WHENCE_SET = 2;
-
+  // Pascal aliases
+  SizeShortInt = SizeInt8;
+  SizeByte     = SizeUInt8;
+  SizeSmallInt = SizeInt16;
+  SizeWord     = SizeUInt16;
+  SizeLongInt  = SizeInt32;
+  SizeCardinal = SizeUInt32;
+  SizeQWord    = SizeUInt64;
 
 type
+  TMemBufferArray = Array of TJSUint8Array;
+
   EWasiError = Class(Exception);
 
-  // The imports as expected by WASI
-  IWASI = interface ['{A03AC61B-3C68-4DA8-AC4F-53ED01814673}']
-    // Please keep these sorted !!
-    function args_get(argc, argvBufSize : NativeInt) : NativeInt;
-    function args_sizes_get(argc, argvBufSize : NativeInt) : NativeInt;
-    function clock_res_get(clockId, resolution: NativeInt): NativeInt;
-    function clock_time_get(clockId, precision, time: NativeInt): NativeInt;
-    function environ_get(environ, environBuf : NativeInt) : NativeInt;
-    function environ_sizes_get(environCount, environBufSize : NativeInt) : NativeInt;
-    function fd_advise (fd, offset, len, advice : NativeInt) : NativeInt;
-    function fd_allocate (fd, offset, len : NativeInt) : NativeInt;
-    function fd_close(fd : NativeInt) : NativeInt;
-    function fd_datasync (fd : NativeInt) : NativeInt;
-    function fd_fdstat_get(fd,bufPtr : NativeInt) : NativeInt;
-    function fd_fdstat_set_flags (fd, flags: NativeInt) : NativeInt;
-    function fd_fdstat_set_rights (fd, fsRightsBase, fsRightsInheriting: NativeInt) : NativeInt;
-    function fd_filestat_get(fd, bufPtr : NativeInt) : NativeInt;
-    function fd_filestat_set_size (fd, stSize: NativeInt) : NativeInt;
-    function fd_filestat_set_times (fd, stAtim, stMtim, fstflags: NativeInt) : NativeInt;
-    function fd_pread(fd, iovs, iovsLen, offset, nread : NativeInt) : NativeInt;
-    function fd_prestat_dir_name(fd, pathPtr, pathLen : NativeInt) : NativeInt;
-    function fd_prestat_get(fd, bufPtr: NativeInt) : NativeInt;
-    function fd_pwrite(fd, iovs, iovsLen, offset, nwritten : NativeInt) : NativeInt;
-    function fd_read(fd, iovs, iovsLen, nread : NativeInt) : NativeInt;
-    function fd_readdir(fd, bufPtr, bufLen, cookie, bufusedPtr : NativeInt) : NativeInt;
-    function fd_renumber(afrom,ato : NativeInt) : NativeInt;
-    function fd_seek(fd, offset, whence, newOffsetPtr : NativeInt) : NativeInt;
-    function fd_sync(fd : NativeInt) : NativeInt;
-    function fd_tell(fd, offsetPtr: NativeInt) : NativeInt;
-    function fd_write(fd,iovs,iovsLen,nwritten : NativeInt) : NativeInt;
-    function path_create_directory (fd, pathPtr, pathLen : NativeInt) : NativeInt;
-    function path_filestat_get (fd, flags, pathPtr, pathLen, bufPtr : NativeInt) : NativeInt;
-    function path_filestat_set_times(fd, fstflags, pathPtr, pathLen, stAtim, stMtim : NativeInt) : NativeInt;
-    function path_link (oldFd, oldFlags, oldPath, oldPathLen, newFd, newPath, newPathLen: NativeInt) : NativeInt;
-    function path_open (dirfd, dirflags, pathPtr, pathLen, oflags, fsRightsBase, fsRightsInheriting, fsFlags, fd : NativeInt) : NativeInt;
-    function path_readlink (fd, pathPtr, pathLen, buf, bufLen, bufused : NativeInt) : NativeInt;
-    function path_remove_directory (fd, pathPtr, pathLen : NativeInt) : NativeInt;
-    function path_rename (oldFd, oldPath, oldPathLen, newFd, newPath, newPathLen : NativeInt) : NativeInt;
-    function path_symlink (oldPath, oldPathLen, fd, newPath, newPathLen : NativeInt) : NativeInt;
-    function path_unlink_file (fd, pathPtr, pathLen : NativeInt) : NativeInt;
-    function poll_oneoff(sin, sout, nsubscriptions, nevents : NativeInt) : NativeInt;
-    function proc_exit(rval : NativeInt) : NativeInt;
-    function proc_raise (sig : NativeInt) : NativeInt;
-    function random_get (bufPtr, bufLen: NativeInt) : NativeInt;
-    function sched_yield() : NativeInt;
-    function sock_recv() : NativeInt;
-    function sock_send() : NativeInt;
-    function sock_shutdown() : NativeInt;
+  EWasiFSError = class(Exception)
+  Private
+   FErrorcode : Integer;
+  Public
+   constructor Create(const aErrorCode: Integer; aMsg: String);
+   constructor CreateFmt(const aErrorCode: Integer; aFmt: String; aArgs : Array of const);
+   Property ErrorCode : Integer Read FErrorCode Write FErrorCode;
   end;
+
+  IWASI = WasiTypes.IWASI;
 
   TWASIWriteEvent = Reference to Procedure(Sender : TObject; Const aOutput : String);
 
@@ -324,7 +68,7 @@ type
   end;
 
   TGetConsoleInputBufferEvent = Reference to Procedure(Sender : TObject; Var AInput : TJSUint8Array);
-  TGetConsoleInputStringEvent =Reference to Procedure (Sender : TObject; Var AInput : string);
+  TGetConsoleInputStringEvent = Reference to Procedure (Sender : TObject; Var AInput : string);
 
   TImportExtension = Class;
 
@@ -343,24 +87,32 @@ type
     FOnStdErrorWrite: TWASIWriteEvent;
     FOnStdOutputWrite: TWASIWriteEvent;
     FImportExtensions : TFPList;
+    FWasiFS: IWASIFS;
     FWASIImportName : string;
     FMemory : TJSWebAssemblyMemory;
-    function GetConsoleInputBuffer: TJSUint8Array;
-    function GetFileBuffer(FD: NativeInt): TJSUint8Array;
+    function DoRead(fd: NativeInt; iovs: TWasmMemoryLocation; iovsLen, atPos: NativeInt; nread: TWasmMemoryLocation): NativeInt;
+    function GetConsoleInputBuffer(aMaxSize : Integer): TJSUint8Array;
+    function GetFileBuffer(FD,aMaxLen: NativeInt): TJSUint8Array;
     function GetImportObject: TJSObject;
-    function getiovs(view: TJSDataView; iovs, iovsLen: NativeInt): TJSArray;
+    function getiovs(view: TJSDataView; iovs, iovsLen: NativeInt): TMemBufferArray;
+    function GetTotalIOVsLen(iovs: TMemBufferArray): Integer;
+    function GetIOVsAsBytes(iovs, iovsLen: NativeInt): TJSUInt8array;
     function GetMemory: TJSWebassemblyMemory;
     procedure SetInstance(AValue: TJSWebAssemblyInstance);
     procedure SetLogAPI(AValue: Boolean);
+    procedure WriteFileStatToMem(BufPtr: TWasmMemoryLocation;
+      Info: TWasiFileStat);
   Protected
+    class function ErrorToCode(E: Exception): NativeInt;
     Class Var UTF8TextDecoder: TJSTextDecoder;
+    Class Var UTF8TextEncoder: TJSTextEncoder;
   Protected
     Procedure DoLog(Msg : String);
     Procedure DoLog(Fmt : String; Args : array of const);
 
     class procedure setBigUint64(View: TJSDataView; byteOffset, value: NativeInt; littleEndian: Boolean);
     class procedure setBigInt64(View: TJSDataView; byteOffset, value: NativeInt; littleEndian: Boolean);
-    procedure DoConsoleWrite(IsStdErr: Boolean; aBytes: TJSArray); virtual;
+    procedure DoConsoleWrite(IsStdErr: Boolean; aBytes: TJSUint8Array); virtual;
     procedure GetImports(aImports: TJSObject); virtual;
     Function GetTime(aClockID : NativeInt): NativeInt; virtual;
     function getModuleMemoryDataView : TJSDataView;
@@ -373,37 +125,37 @@ type
     function args_get(argv, argvBuf : NativeInt) : NativeInt; virtual;
     function args_sizes_get(argc, argvBufSize : NativeInt) : NativeInt; virtual;
     function clock_res_get(clockId, resolution: NativeInt): NativeInt; virtual;
-    function clock_time_get(clockId, precision, time: NativeInt): NativeInt; virtual;
+    function clock_time_get(clockId, precision : NativeInt; time: TWasmMemoryLocation): NativeInt; virtual;
     function environ_get(environ, environBuf : NativeInt) : NativeInt; virtual;
     function environ_sizes_get(environCount, environBufSize : NativeInt) : NativeInt; virtual;
     function fd_advise (fd, offset, len, advice : NativeInt) : NativeInt; virtual;
     function fd_allocate (fd, offset, len : NativeInt) : NativeInt; virtual;
     function fd_close(fd : NativeInt) : NativeInt; virtual;
     function fd_datasync (fd : NativeInt) : NativeInt; virtual;
-    function fd_fdstat_get(fd,bufPtr : NativeInt) : NativeInt; virtual;
+    function fd_fdstat_get (fd : NativeInt; bufPtr: TWasmMemoryLocation) : NativeInt; virtual;
     function fd_fdstat_set_flags (fd, flags: NativeInt) : NativeInt; virtual;
     function fd_fdstat_set_rights (fd, fsRightsBase, fsRightsInheriting: NativeInt) : NativeInt; virtual;
-    function fd_filestat_get (fd, bufPtr: NativeInt) : NativeInt; virtual;
+    function fd_filestat_get (fd : NativeInt; bufPtr: TWasmMemoryLocation) : NativeInt; virtual;
     function fd_filestat_set_size (fd, stSize: NativeInt) : NativeInt; virtual;
     function fd_filestat_set_times (fd, stAtim, stMtim, fstflags: NativeInt) : NativeInt; virtual;
-    function fd_pread(fd, iovs, iovsLen, offset, nread : NativeInt) : NativeInt; virtual;
-    function fd_prestat_dir_name(fd, pathPtr, pathLen : NativeInt) : NativeInt; virtual;
-    function fd_prestat_get(fd, bufPtr: NativeInt) : NativeInt; virtual;
+    function fd_pread(fd: NativeInt; iovs : TWasmMemoryLocation; iovsLen, offset: NativeInt; nread : TWasmMemoryLocation) : NativeInt; virtual;
+    function fd_prestat_dir_name(fd : NativeInt; pathPtr : TWasmMemoryLocation; pathLen : NativeInt) : NativeInt; virtual;
+    function fd_prestat_get(fd: NativeInt; bufPtr: TWasmMemoryLocation) : NativeInt; virtual;
     function fd_pwrite(fd, iovs, iovsLen, offset, nwritten : NativeInt) : NativeInt;virtual;
-    function fd_read(fd, iovs, iovsLen, nread : NativeInt) : NativeInt; virtual;
+    function fd_read(fd: NativeInt; iovs : TWasmMemoryLocation; iovsLen: NativeInt; nread : TWasmMemoryLocation) : NativeInt; virtual;
     function fd_readdir(fd, bufPtr, bufLen, cookie, bufusedPtr : NativeInt) : NativeInt; virtual;
     function fd_renumber(afrom,ato : NativeInt) : NativeInt; virtual;
-    function fd_seek(fd, offset, whence, newOffsetPtr : NativeInt) : NativeInt; virtual;
+    function fd_seek(fd, offset, whence : NativeInt; newOffsetPtr : TWasmMemoryLocation) : NativeInt; virtual;
     function fd_sync(fd : NativeInt) : NativeInt; virtual;
-    function fd_tell(fd, offsetPtr: NativeInt) : NativeInt; virtual;
+    function fd_tell(fd: NativeInt; offsetPtr: TWasmMemoryLocation): NativeInt; virtual;
     function fd_write(fd,iovs,iovsLen,nwritten : NativeInt) : NativeInt; virtual;
     function path_create_directory (fd, pathPtr, pathLen : NativeInt) : NativeInt;
-    function path_filestat_get (fd, flags, pathPtr, pathLen, bufPtr : NativeInt) : NativeInt;
+    function path_filestat_get(fd, flags : NativeInt; pathPtr : TWasmMemoryLocation;  pathLen : Nativeint; bufPtr : TWasmMemoryLocation) : NativeInt;
     function path_filestat_set_times(fd, fstflags, pathPtr, pathLen, stAtim, stMtim : NativeInt) : NativeInt;
-    function path_link (oldFd, oldFlags, oldPath, oldPathLen, newFd, newPath, newPathLen: NativeInt) : NativeInt;
-    function path_open (dirfd, dirflags, pathPtr, pathLen, oflags, fsRightsBase, fsRightsInheriting, fsFlags, fd : NativeInt) : NativeInt; virtual;
-    function path_readlink (fd, pathPtr, pathLen, buf, bufLen, bufused : NativeInt) : NativeInt; virtual;
-    function path_remove_directory (fd, pathPtr, pathLen : NativeInt) : NativeInt;
+    function path_link (oldFd, oldFlags : NativeInt; oldPath: TWasmMemoryLocation; oldPathLen, newFd : NativeInt; NewPath: TWasmMemoryLocation; newPathLen: NativeInt) : NativeInt;
+    function path_open (dirfd, dirflags : NativeInt; pathPtr : TWasmMemoryLocation; pathLen, oflags, fsRightsBase, fsRightsInheriting, fsFlags : NativeInt; fd : TWasmMemoryLocation) : NativeInt; virtual;
+    function path_readlink (fd: NativeInt; pathPtr: TWasmMemoryLocation; pathLen: NativeInt; buf: TWasmMemoryLocation; bufLen : NativeInt; bufused : TWasmMemoryLocation) : NativeInt; virtual;
+    function path_remove_directory (fd : NativeInt; pathPtr: TWasmMemoryLocation; pathLen : NativeInt) : NativeInt;
     function path_rename (oldFd, oldPath, oldPathLen, newFd, newPath, newPathLen : NativeInt) : NativeInt;
     function path_symlink (oldPath, oldPathLen, fd, newPath, newPathLen : NativeInt) : NativeInt;
     function path_unlink_file (fd, pathPtr, pathLen : NativeInt) : NativeInt;
@@ -422,14 +174,17 @@ type
     Constructor Create;
     Destructor Destroy; override;
     Function GetUTF8StringFromMem(aLoc, aLen : Longint) : String;
-    Procedure SetMemInfoInt8(aLoc : Integer; aValue : ShortInt);
-    Procedure SetMemInfoInt16(aLoc : Integer; aValue : SmallInt);
-    Procedure SetMemInfoInt32(aLoc : Integer; aValue : Longint);
-    Procedure SetMemInfoInt64(aLoc : Integer; aValue : NativeInt);
-    Procedure SetMemInfoUInt8(aLoc : Integer; aValue : Byte);
-    Procedure SetMemInfoUInt16(aLoc : Integer; aValue : Word);
-    Procedure SetMemInfoUInt32(aLoc : Integer; aValue : Cardinal);
-    Procedure SetMemInfoUInt64(aLoc : Integer; aValue : NativeUint);
+    // Write string as UTF8 string in memory at aLoc, with max aLen bytes.
+    // Return number of bytes written, or -1 if not enough room.
+    function SetUTF8StringInMem(aLoc: TWasmMemoryLocation; aLen: Longint; AString: String): Integer;
+    function SetMemInfoInt8(aLoc : TWasmMemoryLocation; aValue : ShortInt) : TWasmMemoryLocation;
+    function SetMemInfoInt16(aLoc : TWasmMemoryLocation; aValue : SmallInt) : TWasmMemoryLocation;
+    function SetMemInfoInt32(aLoc : TWasmMemoryLocation; aValue : Longint) : TWasmMemoryLocation;
+    function SetMemInfoInt64(aLoc : TWasmMemoryLocation; aValue : NativeInt) : TWasmMemoryLocation;
+    function SetMemInfoUInt8(aLoc : TWasmMemoryLocation; aValue : Byte) : TWasmMemoryLocation;
+    function SetMemInfoUInt16(aLoc : TWasmMemoryLocation; aValue : Word) : TWasmMemoryLocation;
+    function SetMemInfoUInt32(aLoc : TWasmMemoryLocation; aValue : Cardinal) : TWasmMemoryLocation;
+    function SetMemInfoUInt64(aLoc : TWasmMemoryLocation; aValue : NativeUint) : TWasmMemoryLocation;
     // Add imports
     Procedure AddImports(aObject: TJSObject); 
     Property ImportObject : TJSObject Read GetImportObject;
@@ -444,6 +199,7 @@ type
     // Default is set to the one expected by FPC runtime: wasi_snapshot_preview1
     Property WASIImportName : String Read FWASIImportName Write FWASIImportName;
     Property LogAPI : Boolean REad FLogAPI Write SetLogAPI;
+    Property FS : IWASIFS Read FWasiFS Write FWasiFS;
   end;
 
   { TImportExtension }
@@ -922,6 +678,21 @@ begin
   Result.Imports:=aImportObj;
 end;
 
+{ EWasiFSError }
+
+constructor EWasiFSError.Create(const aErrorCode: Integer; aMsg: String);
+begin
+  FErrorcode:=aErrorCode;
+  Inherited Create(aMsg);
+end;
+
+constructor EWasiFSError.CreateFmt(const aErrorCode: Integer; aFmt: String;
+  aArgs: array of const);
+begin
+  FErrorcode:=aErrorCode;
+  Inherited CreateFmt(aFmt,aArgs);
+end;
+
 function TImportExtension.getModuleMemoryDataView : TJSDataView;  
 
 begin
@@ -981,22 +752,78 @@ begin
   Result:=TJSDataView.New(Memory.buffer);
 end;
 
-function TPas2JSWASIEnvironment.fd_prestat_get(fd, bufPtr: NativeInt
-  ): NativeInt;
-begin
-  console.log('Unimplemented: TPas2JSWASIEnvironment.fd_prestat_get');
-  Result:=WASI_EBADF;
-end;
+function TPas2JSWASIEnvironment.fd_prestat_get(fd: NativeInt;
+  bufPtr: TWasmMemoryLocation): NativeInt;
 
-function TPas2JSWASIEnvironment.fd_prestat_dir_name(fd, pathPtr,
-  pathLen: NativeInt): NativeInt;
+var
+  S : String;
+
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_prestat_dir_name(%d,%d,%d)',[fd,pathPtr,PathLen]);
+    Dolog('TPas2JSWASIEnvironment.fd_prestat_get(%d,[%d])',[fd,BufPtr]);
+  {$endif}
+  if Assigned(FS) then
+    begin
+    S:=FS.GetPrestat(fd);
+    if S<>'' then
+      begin
+      // Alignment is 4
+      SetMemInfoInt32(BufPtr,0);
+      SetMemInfoInt32(BufPtr+4,Length(S));
+      Result:=WASI_ESUCCESS;
+      end
+    else
+      Result:=WASI_EBADF;
+    end
+  else
+    begin
+    if (fd=3) then
+      begin
+      // Alignment is 4
+      SetMemInfoInt32(BufPtr,0);
+      SetMemInfoInt32(BufPtr+4,1);
+      Result:=WASI_ESUCCESS;
+      end;
+    Result:=WASI_EBADF;
+    end;
+end;
+
+function TPas2JSWASIEnvironment.fd_prestat_dir_name(fd: NativeInt;
+  pathPtr: TWasmMemoryLocation; pathLen: NativeInt): NativeInt;
+var
+  S : String;
+  Len : Integer;
+
+begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_prestat_dir_name(%d,[%d],%d)',[fd,pathPtr,PathLen]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.fd_prestat_dir_name');
-  Result:=WASI_ENOSYS;
+  if Assigned(FS) then
+    begin
+    S:=FS.GetPrestat(fd);
+    if (S<>'') then
+      begin
+      Len:=Length(s);
+      if Len>PathLen then
+        Len:=PathLen;
+      SetUTF8StringInMem(PathPtr,Len,S);
+      Result:=WASI_ESUCCESS;
+      end
+    else
+      Result:=WASI_EBADF;
+    end
+  else
+    begin
+    if (fd=3) then
+      begin
+      SetUTF8StringInMem(PathPtr,1,'/');
+      Result:=WASI_ESUCCESS;
+      end
+    else
+      Result:=WASI_EBADF;
+    end;
 end;
 
 function TPas2JSWASIEnvironment.environ_sizes_get(environCount,
@@ -1114,6 +941,20 @@ begin
   {$ENDIF}
 end;
 
+class function TPas2JSWASIEnvironment.ErrorToCode(E: Exception): NativeInt;
+
+var
+  EW : EWasiFSError;
+
+begin
+  if E is EWasiFSError then
+    Result:=EW.ErrorCode
+  else
+    Result:=0;
+  if (Result=0) then
+    Result:=WASI_ENOSYS;
+end;
+
 procedure TPas2JSWASIEnvironment.DoLog(Msg: String);
 begin
   {$IFNDEF NO_WASI_DEBUG}
@@ -1148,7 +989,8 @@ begin
 end;
 
 
-function TPas2JSWASIEnvironment.fd_fdstat_get(fd, bufPtr: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.fd_fdstat_get(fd: NativeInt;
+  bufPtr: TWasmMemoryLocation): NativeInt;
 
 Var
   View : TJSDataView;
@@ -1188,7 +1030,7 @@ begin
 end;
 
 function TPas2JSWASIEnvironment.getiovs(view: TJSDataView; iovs,
-  iovsLen: NativeInt): TJSArray;
+  iovsLen: NativeInt): TMemBufferArray;
 
 Var
   I : integer;
@@ -1196,15 +1038,36 @@ Var
   Ptr,Buf,BufLen : Integer;
 
 begin
-  Result:=TJSArray.New;
+  SetLength(Result,iovsLen);
+  Ptr:=iovs;
   For I:=0 to iovsLen-1 do
     begin
-    ptr:=iovs + i * 8;
     buf:=view.getUint32(ptr, IsLittleEndian);
     bufLen:=view.getUint32(ptr + 4, IsLittleEndian);
     ArrayBuf:=TJSUint8Array.New(Memory.buffer, buf, bufLen);
-    Result.Push(ArrayBuf);
+    Result[I]:=ArrayBuf;
+    Inc(ptr,8);
     end;
+end;
+
+function TPas2JSWASIEnvironment.GetTotalIOVsLen(iovs: TMemBufferArray): Integer;
+
+var
+  BufLen : integer;
+
+  function calclen(element : JSValue; index: NativeInt; anArray : TJSArray) : Boolean;
+
+  var
+    iov: TJSUint8Array absolute Element;
+
+  begin
+    buflen:=buflen+iov.byteLength;
+    Result:=true;
+  end;
+
+begin
+  TJSArray(iovs).forEach(@calclen);
+  Result:=buflen;
 end;
 
 function TPas2JSWASIEnvironment.GetMemory: TJSWebassemblyMemory;
@@ -1215,75 +1078,117 @@ begin
     Result:= FModuleInstanceExports.Memory;
 end;
 
-function TPas2JSWASIEnvironment.fd_write(fd, iovs, iovsLen, nwritten: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.GetIOVsAsBytes(iovs, iovsLen : NativeInt) : TJSUInt8array;
 
 var
   view : TJSDataView;
-  written : NativeInt;
-  bufferBytes : TJSArray;
-  Buffers : TJSArray;
+  buflen,Written : Integer;
+  bufferBytes : TJSArrayBuffer;
+  Buffers : TMembufferArray;
+  Buf : TJSUint8Array;
 
   function writev(element : JSValue; index: NativeInt; anArray : TJSArray) : Boolean;
 
   var
-    b : NativeInt;
     iov: TJSUint8Array absolute Element;
 
   begin
-    For b:=0 to iov.byteLength-1 do
-       bufferBytes.push(iov[b]);
-    Inc(Written,iov.byteLength);
+    buf._set(iov,written);
+    inc(written,iov.byteLength);
     Result:=true;
   end;
 
 begin
-  {$IFNDEF NO_WASI_DEBUG}
-  if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_write(%d,%d,%d,%d)',[fd,iovs,iovslen,nwritten]);
-  {$ENDIF}
-  BufferBytes:=TJSArray.New;
   view:=getModuleMemoryDataView();
   written:=0;
+  buflen:=0;
   buffers:=getiovs(view, iovs, iovsLen);
-  buffers.forEach(@writev);
-  if (fd = WASI_STDOUT_FILENO) or (fd = WASI_STDERR_FILENO) then
-    DoConsoleWrite((fd=WASI_STDERR_FILENO),BufferBytes);
-  view.setUint32(nwritten, written, IsLittleEndian);
-  Result:=WASI_ESUCCESS;
+  buflen:=GetTotalIOVsLen(Buffers);
+  BufferBytes:=TJSArrayBuffer.New(buflen);
+  Buf:=TJSUint8Array.New(BufferBytes);
+  TJSArray(buffers).forEach(@writev);
+  Result:=Buf;
 end;
 
-function TPas2JSWASIEnvironment.fd_pwrite(fd, iovs, iovsLen, offset,
-  nwritten: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.fd_write(fd, iovs, iovsLen, nwritten: NativeInt): NativeInt;
+
+var
+  view : TJSDataView;
+  Buf : TJSUint8Array;
+  written : longint;
+
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_prite(%d,%d,%d,%d,%d)',[fd,iovs,iovslen,offset,nwritten]);
+    DoLog('TPas2JSWASIEnvironment.fd_write(%d,[%d],%d,[%d])',[fd,iovs,iovslen,nwritten]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.fd_pwrite');
+  view:=getModuleMemoryDataView();
+  if (fd = WASI_STDOUT_FILENO) or (fd = WASI_STDERR_FILENO) then
+    begin
+    Buf:=GetIOVsAsBytes(iovs,iovsLen);
+    written:=Buf.byteLength;
+    DoConsoleWrite((fd=WASI_STDERR_FILENO),Buf);
+    view.setUint32(nwritten, written, IsLittleEndian);
+    Result:=WASI_ESUCCESS;
+    end
+  else if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    begin
+    Buf:=GetIOVsAsBytes(iovs,iovsLen);
+    Result:=FS.Write(fd,Buf,-1,Written);
+    if Result=WASI_ESUCCESS then
+      view.setUint32(nwritten, written, IsLittleEndian);
+    end;
+
+end;
+
+function TPas2JSWASIEnvironment.fd_pwrite(fd, iovs, iovsLen, offset,  nwritten: NativeInt): NativeInt;
+var
+  view : TJSDataView;
+  Buf : TJSUint8Array;
+  written : longint;
+
+begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_prite(%d,[%d],%d,%d,[%d])',[fd,iovs,iovslen,offset,nwritten]);
+  {$ENDIF}
+  if (fd = WASI_STDOUT_FILENO) or (fd = WASI_STDERR_FILENO) then
+    begin
+    // Normally this cannot happen
+    Buf:=GetIOVsAsBytes(iovs,iovsLen);
+    written:=Buf.byteLength;
+    DoConsoleWrite((fd=WASI_STDERR_FILENO),Buf);
+    view.setUint32(nwritten, written, IsLittleEndian);
+    Result:=WASI_ESUCCESS;
+    end
+  else if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    begin
+    Buf:=GetIOVsAsBytes(iovs,iovsLen);
+    Result:=FS.Write(fd,Buf,-1,Written);
+    if Result=WASI_ESUCCESS then
+      view.setUint32(nwritten, written, IsLittleEndian);
+    end;
   Result:=WASI_ENOSYS;
 end;
 
-procedure TPas2JSWASIEnvironment.DoConsoleWrite(IsStdErr: Boolean;
-  aBytes: TJSArray);
+procedure TPas2JSWASIEnvironment.DoConsoleWrite(IsStdErr: Boolean; aBytes: TJSUint8Array);
 
 Var
   S : String;
+  Evt : TWASIWriteEvent;
 
 begin
-  asm
-    // Result=String.fromCharCode.apply(null, new Uint16Array(a));
-    S=String.fromCharCode.apply(null, aBytes);
-  end;
+  S:=UTF8TextDecoder.decode(aBytes);
   if IsStdErr then
-    begin
-    if Assigned(FOnStdErrorWrite) then
-      FOnStdErrorWrite(Self,S)
-    end
+    evt:=FOnStdErrorWrite
   else
-    begin
-    if Assigned(FOnStdOutputWrite) then
-      FOnStdOutputWrite(Self,S)
-    end
+    evt:=FOnStdOutputWrite;
+  if Assigned(evt) then
+    Evt(Self,S)
 end;
 
 function TPas2JSWASIEnvironment.clock_res_get (clockId, resolution : NativeInt) : NativeInt;
@@ -1300,7 +1205,7 @@ begin
   Result:=WASI_ESUCCESS;
 end;
 
-function TPas2JSWASIEnvironment.clock_time_get(clockId, precision, time: NativeInt) : NativeInt;
+function TPas2JSWASIEnvironment.clock_time_get(clockId, precision: NativeInt; time: TWasmMemoryLocation) : NativeInt;
 
 Var
   view: TJSDataView;
@@ -1308,7 +1213,7 @@ Var
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.clock_time_get(%d,%d,%d)',[clockid,precision,time]);
+    DoLog('TPas2JSWASIEnvironment.clock_time_get(%d,%d,[%x])',[clockid,precision,time]);
   {$ENDIF}
   view:=getModuleMemoryDataView;
   n:=GetTime(clockId);
@@ -1333,6 +1238,49 @@ begin
     end;
   Result:=FImportObject;
 end;
+
+function TPas2JSWASIEnvironment.poll_oneoff(sin, sout, nsubscriptions,
+  nevents: NativeInt): NativeInt;
+begin
+  console.log('Unimplemented: TPas2JSWASIEnvironment.poll_oneoff');
+  Result:= WASI_ENOSYS;
+end;
+
+function TPas2JSWASIEnvironment.proc_exit(rval: NativeInt): NativeInt;
+begin
+  FExitCode:=rval;
+  Result:=WASI_ESUCCESS;
+end;
+
+function TPas2JSWASIEnvironment.proc_raise(sig: NativeInt): NativeInt;
+begin
+  console.log('Unimplemented: TPas2JSWASIEnvironment.proc_raise');
+  Result:=WASI_ENOSYS;
+end;
+
+function TPas2JSWASIEnvironment.sched_yield: NativeInt;
+begin
+  Result:=WASI_ESUCCESS;
+end;
+
+function TPas2JSWASIEnvironment.sock_recv: NativeInt;
+begin
+  console.log('Unimplemented: TPas2JSWASIEnvironment.sock_recv');
+  Result:=WASI_ENOSYS;
+end;
+
+function TPas2JSWASIEnvironment.sock_send: NativeInt;
+begin
+  console.log('Unimplemented: TPas2JSWASIEnvironment.sock_recv');
+  Result:=WASI_ENOSYS;
+end;
+
+function TPas2JSWASIEnvironment.sock_shutdown: NativeInt;
+begin
+  console.log('Unimplemented: TPas2JSWASIEnvironment.sock_shutdown');
+  Result:=WASI_ENOSYS;
+end;
+
 
 procedure TPas2JSWASIEnvironment.GetImports(aImports: TJSObject);
 
@@ -1384,24 +1332,6 @@ begin
   aImports['sock_shutdown']:=@sock_shutdown;
 end;
 
-function TPas2JSWASIEnvironment.poll_oneoff(sin, sout, nsubscriptions,
-  nevents: NativeInt): NativeInt;
-begin
-  console.log('Unimplemented: TPas2JSWASIEnvironment.poll_oneoff');
-  Result:= WASI_ENOSYS;
-end;
-
-function TPas2JSWASIEnvironment.proc_exit(rval: NativeInt): NativeInt;
-begin
-  FExitCode:=rval;
-  Result:=WASI_ESUCCESS;
-end;
-
-function TPas2JSWASIEnvironment.proc_raise(sig: NativeInt): NativeInt;
-begin
-  console.log('Unimplemented: TPas2JSWASIEnvironment.proc_raise');
-  Result:=WASI_ENOSYS;
-end;
 
 function TPas2JSWASIEnvironment.random_get(bufPtr, bufLen: NativeInt ): NativeInt;
 var
@@ -1419,28 +1349,6 @@ begin
   Result:=WASI_ESUCCESS;
 end;
 
-function TPas2JSWASIEnvironment.sched_yield: NativeInt;
-begin
-  Result:=WASI_ESUCCESS;
-end;
-
-function TPas2JSWASIEnvironment.sock_recv: NativeInt;
-begin
-  console.log('Unimplemented: TPas2JSWASIEnvironment.sock_recv');
-  Result:=WASI_ENOSYS;
-end;
-
-function TPas2JSWASIEnvironment.sock_send: NativeInt;
-begin
-  console.log('Unimplemented: TPas2JSWASIEnvironment.sock_recv');
-  Result:=WASI_ENOSYS;
-end;
-
-function TPas2JSWASIEnvironment.sock_shutdown: NativeInt;
-begin
-  console.log('Unimplemented: TPas2JSWASIEnvironment.sock_shutdown');
-  Result:=WASI_ENOSYS;
-end;
 
 procedure TPas2JSWASIEnvironment.SetMemory(aMemory: TJSWebAssemblyMemory);
 begin
@@ -1456,6 +1364,7 @@ begin
   Opts.ignoreBOM:=true;
   Opts.fatal:=True;
   UTF8TextDecoder:=TJSTextDecoder.new ('utf-8',Opts);
+  UTF8TextEncoder:=TJSTextEncoder.new ();
 end;
 
 function TPas2JSWASIEnvironment.fd_advise(fd, offset, len, advice: NativeInt
@@ -1486,8 +1395,15 @@ begin
   if LogAPI then
     DoLog('TPas2JSWASIEnvironment.fd_close(%d)',[fd]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.fd_close');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.Close(fd);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
 function TPas2JSWASIEnvironment.fd_datasync(fd: NativeInt): NativeInt;
@@ -1496,19 +1412,49 @@ begin
   if LogAPI then
     DoLog('TPas2JSWASIEnvironment.fd_datasync(%d)',[fd]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.fd_datasync');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.dataSync(fd);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
-function TPas2JSWASIEnvironment.fd_seek(fd, offset, whence,
-  newOffsetPtr: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.fd_seek(fd, offset, whence: NativeInt; newOffsetPtr : TWasmMemoryLocation): NativeInt;
+
+var
+  lWhence : TSeekWhence;
+  NewPos : integer;
+
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_seek(%d,%d,%d,%d)',[fd,offset,whence,newOffsetPtr]);
+    DoLog('TPas2JSWASIEnvironment.fd_seek(%d,%d,%d,[%x])',[fd,offset,whence,newOffsetPtr]);
   {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_seek');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      lWhence:=swBeginning;
+      Case Whence of
+        __WASI_WHENCE_CUR : lWhence:=swCurrent;
+        __WASI_WHENCE_END : lWhence:=swEnd;
+        __WASI_WHENCE_SET : lWhence:=swBeginning;
+      else
+        Result:=WASI_EINVAL;
+      end;
+      Result:=FS.Seek(fd,Offset,lWhence,NewPos);
+      if Result=WASI_ESUCCESS then
+        Result:=FS.Seek(fd,Offset,lWhence,NewPos);
+      SetMemInfoInt64(newOffsetPtr,NewPos);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
 function TPas2JSWASIEnvironment.fd_sync(fd: NativeInt): NativeInt;
@@ -1517,19 +1463,25 @@ begin
   if LogAPI then
     DoLog('TPas2JSWASIEnvironment.fd_sync(%d)',[fd]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.fd_sync');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.Sync(fd);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
-function TPas2JSWASIEnvironment.fd_pread(fd, iovs, iovsLen, offset,
-  nread: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.fd_pread(fd: NativeInt; iovs : TWasmMemoryLocation; iovsLen, offset: NativeInt; nread : TWasmMemoryLocation) : NativeInt;
+
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_pread(%d,%d,%d,%d,%d)',[fd,iovs,iovslen,offset,nread]);
+    DoLog('TPas2JSWASIEnvironment.fd_pread(%d,[%x],%d,%d,[%x])',[fd,iovs,iovslen,offset,nread]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.fd_pread');
-  Result:= WASI_ENOSYS;
+  Result:=DoRead(fd,iovs,iovslen,offset,nread);
 end;
 
 
@@ -1584,13 +1536,14 @@ begin
   Result:=TJSUint8Array(Result.slice(0,p));
 end;
 
-function TPas2JSWASIEnvironment.fd_read(fd, iovs, iovsLen, nread: NativeInt
-  ): NativeInt;
+function TPas2JSWASIEnvironment.DoRead(fd: NativeInt; iovs: TWasmMemoryLocation; iovsLen, atPos: NativeInt; nread: TWasmMemoryLocation): NativeInt;
+
 var
   view : TJSDataView;
-  bytesRead : NativeInt;
-  bufferBytes : TJSUint8Array;
-  Buffers : TJSArray;
+  avail,bytesRead : Integer;
+  ReadBuffer : TJSUint8Array;
+  WasiBuffers : TMembufferArray;
+  TotalBufSize : Integer;
 
   function readv(element : JSValue; index: NativeInt; anArray : TJSArray) : Boolean;
 
@@ -1600,9 +1553,9 @@ var
 
   begin
     b:=0;
-    While (B<iov.byteLength) and (BytesRead<BufferBytes.Length) do
+    While (B<iov.byteLength) and (BytesRead<avail) do
       begin
-      iov[b]:=BufferBytes[BytesRead];
+      iov[b]:=ReadBuffer[BytesRead];
       inc(b);
       inc(BytesRead);
       end;
@@ -1610,34 +1563,57 @@ var
   end;
 
 begin
-  {$IFNDEF NO_WASI_DEBUG}
-  if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_read(%d,%d,%d,%d)',[fd,iovs,iovslen,nread]);
-  {$ENDIF}
+  TotalBufSize:=0;
   bytesRead:=0;
   view:=getModuleMemoryDataView();
+  Wasibuffers:=getiovs(view, iovs, iovsLen);
+  TotalBufSize:=GetTotalIOVsLen(Wasibuffers);
   if (fd = WASI_STDIN_FILENO) then
     begin
-    BufferBytes:=GetConsoleInputBuffer
+    ReadBuffer:=GetConsoleInputBuffer(TotalBufSize);
+    avail:=ReadBuffer.byteLength;
+    end
+  else if Assigned(FS) then
+    try
+      ReadBuffer:=TJSUint8Array.new(TJSArrayBuffer.New(TotalBufSize));
+      Result:=FS.Read(FD,ReadBuffer,atPos,Avail);
+      if Result<>WASI_ESUCCESS then exit;
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
     end
   else
-    BufferBytes:=GetFileBuffer(FD);
-  if BufferBytes.length>0 then
     begin
-    buffers:=getiovs(view, iovs, iovsLen);
-    buffers.forEach(@readv);
+    ReadBuffer:=GetFileBuffer(FD,TotalBufSize);
+    avail:=ReadBuffer.byteLength;
     end;
+  if (avail>0) then
+    TJSArray(Wasibuffers).forEach(@readv);
   view.setUint32(nread, bytesRead, IsLittleEndian);
   Result:=WASI_ESUCCESS;
 end;
 
-function TPas2JSWASIEnvironment.GetFileBuffer(FD : NativeInt): TJSUint8Array;
+function TPas2JSWASIEnvironment.fd_read(fd: NativeInt;
+  iovs: TWasmMemoryLocation; iovsLen: NativeInt; nread: TWasmMemoryLocation
+  ): NativeInt;
+
+
+begin
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.fd_read(%d,[%x],%d,[%x])',[fd,iovs,iovslen,nread]);
+  {$ENDIF}
+  Result:=DoRead(fd,iovs,iovslen,-1,nread);
+end;
+
+function TPas2JSWASIEnvironment.GetFileBuffer(FD, aMaxLen: NativeInt
+  ): TJSUint8Array;
 
 begin
   Result:=TJSUint8Array.new(0);
 end;
 
-function TPas2JSWASIEnvironment.GetConsoleInputBuffer : TJSUint8Array;
+function TPas2JSWASIEnvironment.GetConsoleInputBuffer(aMaxSize : Integer) : TJSUint8Array;
 
 Var
   S : String;
@@ -1650,6 +1626,7 @@ begin
     begin
     S:='';
     OnGetConsoleInputString(Self,S);
+    S:=Copy(S,1,aMaxSize);
     Result:=toUTF8Array(S);
     end
   else
@@ -1661,7 +1638,7 @@ function TPas2JSWASIEnvironment.fd_readdir(fd, bufPtr, bufLen, cookie,
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_readdir(%d,%d,%d,%d,%d)',[fd,bufPtr,buflen,cookie,bufusedptr]);
+    DoLog('TPas2JSWASIEnvironment.fd_readdir(%d,[%x],%d,%d,[%x])',[fd,bufPtr,buflen,cookie,bufusedptr]);
   {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_readdir');
   Result:= WASI_ENOSYS;
@@ -1677,25 +1654,50 @@ begin
   Result:= WASI_ENOSYS;
 end;
 
-function TPas2JSWASIEnvironment.fd_tell(fd, offsetPtr: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.fd_tell(fd : NativeInt;  offsetPtr: TWasmMemoryLocation): NativeInt;
+
+var
+  NewPos : integer;
+
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_tell(%d,%d)',[fd,offsetPtr]);
+    DoLog('TPas2JSWASIEnvironment.fd_tell(%d,[%x])',[fd,offsetPtr]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.fd_tell');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.Seek(FD,0,swCurrent,NewPos);
+      if Result=WASI_ESUCCESS then
+        SetMemInfoInt32(OffsetPtr,NewPos);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
-function TPas2JSWASIEnvironment.fd_filestat_get(fd, bufPtr: NativeInt
-  ): NativeInt;
+function TPas2JSWASIEnvironment.fd_filestat_get(fd: NativeInt;
+  bufPtr: TWasmMemoryLocation): NativeInt;
+var
+  Info : TWasiFileStat;
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.fd_filestat_get(%d,%d)',[fd,bufPtr]);
+    DoLog('TPas2JSWASIEnvironment.fd_filestat_get(%d,[%x])',[fd,bufPtr]);
   {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_filestat_get');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.StatFD(fd,Info);
+      if Result=WASI_ESUCCESS then
+        WriteFileStatToMem(BufPtr,Info);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
 function TPas2JSWASIEnvironment.fd_filestat_set_size(fd, stSize: NativeInt
@@ -1706,128 +1708,303 @@ begin
     DoLog('TPas2JSWASIEnvironment.fd_filestat_set_size(%d,%d)',[fd,stSize]);
   {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_filestat_set_size');
+
   Result:= WASI_ENOSYS;
 end;
 
 function TPas2JSWASIEnvironment.fd_filestat_set_times(fd, stAtim, stMtim,
   fstflags: NativeInt): NativeInt;
+
+var
+  Flags : TSetTimesFlags;
+
+  Procedure MaybeFlag(src : Integer; Flag :TSetTimesFlag);
+  begin
+    if ((fstflags and Src)=Src) then
+      Include(Flags,Flag);
+  end;
+
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
     DoLog('TPas2JSWASIEnvironment.fd_filestat_set_times(%d,%d,%d)',[fd,stAtim,stMtim,fstFlags]);
   {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.fd_filestat_set_times');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      MaybeFlag(__WASI_FSTFLAGS_ATIM,stfaTime);
+      MaybeFlag(__WASI_FSTFLAGS_ATIM_NOW,stfaTimeNow);
+      MaybeFlag(__WASI_FSTFLAGS_MTIM,stfmTime);
+      MaybeFlag(__WASI_FSTFLAGS_MTIM_NOW,stfmTimeNow);
+      Result:=FS.UTimes(fd,TJSDate.new(stAtim),TJSDate.new(stMTim),Flags);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
-function TPas2JSWASIEnvironment.path_readlink(fd, pathPtr, pathLen, buf,
-  bufLen, bufused: NativeInt): NativeInt;
+
+function TPas2JSWASIEnvironment.path_readlink (fd: NativeInt; pathPtr: TWasmMemoryLocation; pathLen: NativeInt; buf: TWasmMemoryLocation; bufLen : NativeInt; bufused : TWasmMemoryLocation) : NativeInt;
+
+var
+  lTarget, lPath : String;
+  Written : Integer;
+
 begin
+  lPath:=GetUTF8StringFromMem(PathPtr,PathLen);
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.path_readlink(%d,%d,%d,%d,%d,%d)',[fd,PathPtr,PathLen,buf,buflen,bufused]);
+    DoLog('TPas2JSWASIEnvironment.path_readlink(%d,''%s'',[%x],%d,%d,[%x])',[fd,lPath,buf,buflen,bufused]);
   {$ENDIF}
   console.log('Unimplemented: TPas2JSWASIEnvironment.path_readlink');
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.ReadLinkAt(fd,lPath,lTarget);
+      if Result=__WASI_ERRNO_SUCCESS then
+        begin
+        Written:=SetUTF8StringInMem(Buf,BufLen,lTarget);
+        if Written=-1 then
+          Result:=__WASI_ERRNO_2BIG
+        else
+          SetMemInfoInt32(bufUsed,Written);
+        end;
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
+
   Result:= WASI_ENOSYS;
 end;
 
 function TPas2JSWASIEnvironment.path_create_directory(fd, pathPtr,
   pathLen: NativeInt): NativeInt;
+var
+  S : String;
 begin
+  S:=GetUTF8StringFromMem(PathPtr,PathLen);
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.path_create_directory(%d,%d,%d)',[fd,PathPtr,PathLen]);
+    DoLog('TPas2JSWASIEnvironment.path_create_directory(%d,''%s'')',[fd,S]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.path_create_directory');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.MkDirAt(fd,S);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
-function TPas2JSWASIEnvironment.path_filestat_get(fd, flags, pathPtr, pathLen,
-  bufPtr: NativeInt): NativeInt;
+procedure TPas2JSWASIEnvironment.WriteFileStatToMem(
+  BufPtr: TWasmMemoryLocation; Info: TWasiFileStat);
+
+var
+  Loc : TWasmMemoryLocation;
+
 begin
-  {$IFNDEF NO_WASI_DEBUG}
-  if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.path_filestat_get(%d,%d,%d,%d,%d)',[fd,flags,PathPtr,PathLen,bufptr]);
-  {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.path_filestat_get');
-  Result:= WASI_ENOSYS;
+  Loc:=BufPtr;
+  Loc:=SetMemInfoInt64(Loc,Info.dev);
+  Loc:=SetMemInfoUInt64(Loc,Info.Ino);
+  Loc:=SetMemInfoInt8(Loc,Info.filetype);
+  Loc:=SetMemInfoUInt64(Loc,Info.nLink);
+  Loc:=SetMemInfoUInt64(Loc,Info.size);
+  Loc:=SetMemInfoUInt64(Loc,Info.atim);
+  Loc:=SetMemInfoUInt64(Loc,Info.mtim);
+  Loc:=SetMemInfoUInt64(Loc,Info.ctim);
 end;
 
-function TPas2JSWASIEnvironment.path_link(oldFd, oldFlags, oldPath, oldPathLen,
-  newFd, newPath, newPathLen: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.path_filestat_get(fd, flags: NativeInt;
+  pathPtr: TWasmMemoryLocation; pathLen: Nativeint; bufPtr: TWasmMemoryLocation
+  ): NativeInt;
+
+var
+  aPath : String;
+  Info : TWasiFileStat;
+
 begin
+  aPath:=GetUTF8StringFromMem(PathPtr,PathLen);
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.path_link(%d,%d,%d,%d,%d,%d,%d)',[oldfd,oldFlags,OldPath,OldPathLen,Newfd,NewPath,NewPathLen]);
+    DoLog('TPas2JSWASIEnvironment.path_filestat_get(%d,%d,''%s'',[%x])',[fd,flags,aPath,bufptr]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.path_link');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.StatAt(fd,aPath,Info);
+      if Result=WASI_ESUCCESS then
+        WriteFileStatToMem(BufPtr,Info);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
-function TPas2JSWASIEnvironment.path_remove_directory(fd, pathPtr,
-  pathLen: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.path_link (oldFd, oldFlags : NativeInt; oldPath: TWasmMemoryLocation; oldPathLen, newFd : NativeInt; NewPath: TWasmMemoryLocation; newPathLen: NativeInt) : NativeInt;
+
+
+var
+  lOld,lNew : String;
+
 begin
+  lOld:=GetUTF8StringFromMem(oldPath,OldPathLen);
+  lNew:=GetUTF8StringFromMem(newPath,NewPathLen);
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.path_remove_directory(%d,%d,%d)',[fd,PathPtr,PathLen]);
+    DoLog('TPas2JSWASIEnvironment.path_link(%d,%d,''%s'',%d,''%s'')',[oldfd,oldFlags,lOld,Newfd,lNew]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.path_remove_directory');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.LinkAt(Oldfd,lOld,newFD,lNew);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
+end;
+
+function TPas2JSWASIEnvironment.path_remove_directory (fd : NativeInt; pathPtr: TWasmMemoryLocation; pathLen : NativeInt) : NativeInt;
+
+var
+  lPath : String;
+
+begin
+  lPath:=GetUTF8StringFromMem(PathPtr,PathLen);
+  {$IFNDEF NO_WASI_DEBUG}
+  if LogAPI then
+    DoLog('TPas2JSWASIEnvironment.path_remove_directory(%d,''%s'')',[fd,lPath]);
+  {$ENDIF}
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.rmDirAt(fd,lPath);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
 function TPas2JSWASIEnvironment.path_rename(oldFd, oldPath, oldPathLen, newFd,
   newPath, newPathLen: NativeInt): NativeInt;
+var
+  lOld,lNew : String;
 begin
+  lOld:=GetUTF8StringFromMem(oldPath,OldPathLen);
+  lNew:=GetUTF8StringFromMem(newPath,NewPathLen);
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.path_rename(%d,%d,%d,%d,%d,%d)',[oldfd,OldPath,OldPathLen,Newfd,NewPath,NewPathLen]);
+    DoLog('TPas2JSWASIEnvironment.path_rename(%d,''%s'',%d,''%s'')',[oldfd,lOld,Newfd,lnew]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.path_rename');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.RenameAt(Oldfd,lOld,newFD,lNew);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
 function TPas2JSWASIEnvironment.path_symlink(oldPath, oldPathLen, fd, newPath,
   newPathLen: NativeInt): NativeInt;
+var
+  lOld,lNew : String;
 begin
+  lOld:=GetUTF8StringFromMem(oldPath,OldPathLen);
+  lNew:=GetUTF8StringFromMem(newPath,NewPathLen);
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.path_symlink(%d,%d,%d,%d,%d)',[OldPath,OldPathLen,fd,NewPath,NewPathLen]);
+    DoLog('TPas2JSWASIEnvironment.path_symlink(''%s'',%d,''%s'')',[lOld,fd,lNew]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.path_symlink');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.SymLinkAt(fd,lOld,lNew);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
 function TPas2JSWASIEnvironment.path_unlink_file(fd, pathPtr, pathLen: NativeInt
   ): NativeInt;
+var
+  lPath : String;
+
 begin
+  lPath:=GetUTF8StringFromMem(PathPtr,PathLen);
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.path_unlink_file(%d,%d,%d)',[fd,PathPtr,PathLen]);
+    DoLog('TPas2JSWASIEnvironment.path_unlink_file(%d,''%s'')',[fd,lPath]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.path_unlink_file');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.unLinkAt(fd,lPath);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
-function TPas2JSWASIEnvironment.path_open(dirfd, dirflags, pathPtr, pathLen,
-  oflags, fsRightsBase, fsRightsInheriting, fsFlags, fd: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.path_open(dirfd, dirflags: NativeInt;
+  pathPtr: TWasmMemoryLocation; pathLen, oflags, fsRightsBase,
+  fsRightsInheriting, fsFlags: NativeInt; fd: TWasmMemoryLocation): NativeInt;
+
+var
+  lPath : String;
+  lFD : Integer;
+
 begin
+  lPath:=GetUTF8StringFromMem(PathPtr,PathLen);
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.path_open(%d,%d,%d,%d,%d,%d,%d,%d,%d)',[dirfd, dirflags, pathPtr, pathLen, oflags, fsRightsBase, fsRightsInheriting, fsFlags, fd]);
+    DoLog('TPas2JSWASIEnvironment.path_open(%d,%d,''%s'',%d,%d,%d,%d,[%x])',[dirfd, dirflags, lpath, oflags, fsRightsBase, fsRightsInheriting, fsFlags, fd]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.path_open');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.OpenAt(dirfd,dirFlags,lPath,oFlags,fsRightsBase,fsRightsInheriting,fsFlags,lFD);
+      if Result=WASI_ESUCCESS then
+        SetMemInfoInt32(fd,lFD);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
 function TPas2JSWASIEnvironment.path_filestat_set_times(fd, fstflags, pathPtr,
   pathLen, stAtim, stMtim: NativeInt): NativeInt;
+
+var
+  aPath : String;
 begin
+  aPath:=GetUTF8StringFromMem(PathPtr,PathLen);
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.path_filestat_set_times(%d,%d,%d,%d,%d,%d)',[fd,fstflags,PathPtr,PathLen,stAtim,stMtim]);
+    DoLog('TPas2JSWASIEnvironment.path_filestat_set_times(%d,%d,''%s'',%d,%d)',[fd,fstflags,aPath,stAtim,stMtim]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.path_filestat_set_times');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Result:=FS.UTimesAt(fd,aPath,TJSDate.New(stAtim),TJSDate.New(stMtim),False);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
 constructor TPas2JSWASIEnvironment.Create;
@@ -1849,8 +2026,25 @@ begin
   Result:=UTF8TextDecoder.Decode(getModuleMemoryDataView.buffer.slice(aLoc,aLoc+alen));
 end;
 
-procedure TPas2JSWASIEnvironment.SetMemInfoInt8(aLoc: Integer; aValue: ShortInt
-  );
+function TPas2JSWASIEnvironment.SetUTF8StringInMem(aLoc: TWasmMemoryLocation; aLen: Longint; AString: String) : Integer;
+
+var
+  Arr : TJSUint8Array;
+
+begin
+  Arr:=UTF8TextEncoder.Encode(AString);
+  if (Arr.byteLength>aLen) then
+    Result:=-1
+  else
+    begin
+    Arr:=TJSUint8Array.New(getModuleMemoryDataView.buffer,aLoc,aLen);
+    Result:=UTF8TextEncoder.encodeInto(aString,Arr).Written;
+    end;
+end;
+
+
+function TPas2JSWASIEnvironment.SetMemInfoInt8(aLoc: TWasmMemoryLocation; aValue: ShortInt
+  ): TWasmMemoryLocation;
 
 Var
   View : TJSDataView;
@@ -1858,9 +2052,11 @@ Var
 begin
   view:=getModuleMemoryDataView();
   view.setint8(aLoc,aValue);
+  result:=aLoc+SizeInt8;
 end;
 
-procedure TPas2JSWASIEnvironment.SetMemInfoInt16(aLoc: Integer; aValue: SmallInt);
+function TPas2JSWASIEnvironment.SetMemInfoInt16(aLoc: TWasmMemoryLocation;
+  aValue: SmallInt): TWasmMemoryLocation;
 
 Var
   View : TJSDataView;
@@ -1868,9 +2064,11 @@ Var
 begin
   view:=getModuleMemoryDataView();
   view.setint16(aLoc,aValue, IsLittleEndian);
+  Result:=aValue+SizeInt16;
 end;
 
-procedure TPas2JSWASIEnvironment.SetMemInfoInt32(aLoc: Integer; aValue: Longint);
+function TPas2JSWASIEnvironment.SetMemInfoInt32(aLoc: TWasmMemoryLocation;
+  aValue: Longint): TWasmMemoryLocation;
 
 Var
   View : TJSDataView;
@@ -1878,9 +2076,11 @@ Var
 begin
   view:=getModuleMemoryDataView();
   view.setInt32(aLoc,aValue,IsLittleEndian);
+  Result:=aValue+SizeInt32;
 end;
 
-procedure TPas2JSWASIEnvironment.SetMemInfoInt64(aLoc: Integer; aValue: NativeInt);
+function TPas2JSWASIEnvironment.SetMemInfoInt64(aLoc: TWasmMemoryLocation;
+  aValue: NativeInt): TWasmMemoryLocation;
 
 Var
   View : TJSDataView;
@@ -1888,44 +2088,51 @@ Var
 begin
   view:=getModuleMemoryDataView();
   setBigInt64(View,aLoc,aValue,IsLittleEndian);
+  Result:=aLoc+sizeInt64;
 end;
 
-procedure TPas2JSWASIEnvironment.SetMemInfoUInt8(aLoc: Integer; aValue: Byte);
+function TPas2JSWASIEnvironment.SetMemInfoUInt8(aLoc: TWasmMemoryLocation;
+  aValue: Byte): TWasmMemoryLocation;
 Var
   View : TJSDataView;
 
 begin
   view:=getModuleMemoryDataView();
   view.setUInt8(aLoc,aValue);
+  result:=aLoc+SizeUint8;
 end;
 
-procedure TPas2JSWASIEnvironment.SetMemInfoUInt16(aLoc: Integer; aValue: Word);
+function TPas2JSWASIEnvironment.SetMemInfoUInt16(aLoc: TWasmMemoryLocation;
+  aValue: Word): TWasmMemoryLocation;
 Var
   View : TJSDataView;
 
 begin
   view:=getModuleMemoryDataView();
   view.setUint16(aLoc,aValue,IsLittleEndian);
+  result:=aLoc+SizeUint16;
 end;
 
-procedure TPas2JSWASIEnvironment.SetMemInfoUInt32(aLoc: Integer;
-  aValue: Cardinal);
+function TPas2JSWASIEnvironment.SetMemInfoUInt32(aLoc: TWasmMemoryLocation;
+  aValue: Cardinal): TWasmMemoryLocation;
 Var
   View : TJSDataView;
 
 begin
   view:=getModuleMemoryDataView();
   view.setUint32(aLoc,aValue,IsLittleEndian);
+  result:=aLoc+SizeUInt32;
 end;
 
-procedure TPas2JSWASIEnvironment.SetMemInfoUInt64(aLoc: Integer;
-  aValue: NativeUint);
+function TPas2JSWASIEnvironment.SetMemInfoUInt64(aLoc: TWasmMemoryLocation;
+  aValue: NativeUint): TWasmMemoryLocation;
 Var
   View : TJSDataView;
 
 begin
   view:=getModuleMemoryDataView();
   setBigUint64(View,aLoc,aValue,IsLittleEndian);
+  Result:=aLoc+SizeUint64;
 end;
 
 initialization
