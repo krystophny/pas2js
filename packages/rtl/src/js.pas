@@ -424,11 +424,10 @@ type
     constructor new(aElement1 : JSValue); varargs; overload;
     class function _of() : TJSArray; varargs; external name 'of'; 
     class function isArray(a: JSValue) : Boolean;
-{$IFDEF JAVASCRIPT2015}    
     class function from(a : JSValue) : TJSArray;
     class function from(arrayLike : JSValue; mapFunction : TJSMapFunctionCallBack): TJSArray; overload;
     class function from(arrayLike : JSValue; mapFunction : TJSMapFunctionCallBack; thisArg : JSValue): TJSArray; overload;
-{$ENDIF}
+
     function concat(el : JSValue) : TJSArray; varargs;
     function copyWithin(aTarget : NativeInt) : TJSArray;overload; // not in IE
     function copyWithin(aTarget, aStart : NativeInt) : TJSArray;overload; // not in IE
@@ -1056,6 +1055,13 @@ type
     class property POSITIVE_INFINITY: TJSNumber read FPOSITIVE_INFINITY;
   end;
 
+  TJSBigInt = class external name 'BigInt' (TJSObject)
+     constructor new(aValue : JSValue);
+     class function asIntN(Size : Integer;aValue : TJSBigInt) : NativeInt;
+     class function asUIntN(Size : Integer;aValue : TJSBigInt) : NativeInt;
+
+  end;
+
 var
   // JSArguments can be used in procedures/functions to provide access to the 'arguments' array.
   JSArguments: TJSFunctionArguments; external name 'arguments';
@@ -1066,7 +1072,8 @@ var
 
 function Symbol : TJSSymbol;
 function Symbol(Description : String) : TJSSymbol;
-
+function AsNumber(v : JSValue) : Double; assembler;
+function AsIntNumber(v : JSValue) : NativeInt; assembler;
 Function JSValueArrayOf(Args : Array of const) : TJSValueDynArray;
 function new(aElements: TJSValueDynArray) : TJSObject; overload;
 function JSDelete(const Obj: JSValue; const PropName: string): boolean; assembler; overload;
@@ -1095,6 +1102,7 @@ function isNull(const v: JSValue): boolean; assembler;
 function isNumber(const v: JSValue): boolean; external name 'rtl.isNumber';
 function isObject(const v: JSValue): boolean; external name 'rtl.isObject'; // true if not null and a JS Object
 function isRecord(const v: JSValue): boolean; assembler;
+function isBigint(const v: JSValue): boolean; assembler;
 function isString(const v: JSValue): boolean; external name 'rtl.isString';
 function isUndefined(const v: JSValue): boolean; assembler;
 function isDefined(const v: JSValue): boolean; assembler;
@@ -1122,7 +1130,17 @@ Const
 
 implementation
 
-Function JSValueArrayOf(Args : Array of const) : TJSValueDynArray;
+function AsNumber(v: JSValue): Double; assembler;
+asm
+  return Number(v);
+end;
+
+function AsIntNumber(v: JSValue): NativeInt;
+asm
+  return Number(v);
+end;
+
+function JSValueArrayOf(Args: array of const): TJSValueDynArray;
 
 var
   I : Integer;
@@ -1230,6 +1248,11 @@ asm
       && (typeof(v.$clone)==="function")
       && (typeof(v.$eq)==="function")
       && (typeof(v.$assign)==="function");
+end;
+
+function isBigint(const v: JSValue): boolean; assembler;
+asm
+  return typeof(v) === 'bigint';
 end;
 
 function isUndefined(const v: JSValue): boolean; assembler;
