@@ -1177,12 +1177,27 @@ end;
 
 procedure TPas2JSWASIEnvironment.DoConsoleWrite(IsStdErr: Boolean; aBytes: TJSUint8Array);
 
+  Function TryConvert : string;
+
+  begin
+    asm
+      S=String.fromCharCode.apply(null, aBytes);
+    end;
+  end;
+
 Var
   S : String;
   Evt : TWASIWriteEvent;
 
 begin
-  S:=UTF8TextDecoder.decode(aBytes);
+  try
+    S:=UTF8TextDecoder.decode(aBytes);
+  except
+    // Depending on buffer size, FPC can do a flush mid-codepoint.
+    // The resulting bytes will not form a complete codepoint at the end.
+    // So we try to convert what is possible...
+    S:=TryConvert
+  end;
   if IsStdErr then
     evt:=FOnStdErrorWrite
   else
