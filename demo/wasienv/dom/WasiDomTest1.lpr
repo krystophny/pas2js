@@ -11,7 +11,7 @@ uses
   {$IFDEF UseDucet}
   unicodeducet, unicodedata, fpwidestring,
   {$ENDIF}
-  Math, SysUtils, Variants, JOB_Shared, JOB_Web, JOB_JS;
+  Math, SysUtils, Variants, JOB.Shared, JOB_Web, JOB.JS;
 
 type
   EWasiTest = class(Exception);
@@ -1233,7 +1233,7 @@ end;
 // workaround: fpc wasm does not yet support exporting functions from units
 function JOBCallback(const Func: TJOBCallback; Data, Code: Pointer; Args: PByte): PByte;
 begin
-  Result:=JOB_JS.JOBCallback(Func,Data,Code,Args);
+  Result:=JOB.JS.JOBCallback(Func,Data,Code,Args);
 end;
 
 exports

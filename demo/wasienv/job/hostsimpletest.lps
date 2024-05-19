@@ -8,7 +8,7 @@
         <Filename Value="hostsimpletest.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="38"/>
+        <TopLine Value="25"/>
         <CursorPos X="18" Y="53"/>
         <UsageCount Value="31"/>
         <Loaded Value="True"/>
@@ -19,7 +19,7 @@
         <CustomData Count="1">
           <Item0 Name="PasJSIsProjectHTMLFile" Value="1"/>
         </CustomData>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="1"/>
         <CursorPos X="19" Y="16"/>
         <UsageCount Value="31"/>
         <Loaded Value="True"/>
@@ -40,36 +40,32 @@
       <Unit>
         <Filename Value="../../../FPC/Pas2JS/packages/job/src/job_shared.pp"/>
         <UnitName Value="JOB_Shared"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="5"/>
         <CursorPos X="3" Y="36"/>
         <UsageCount Value="16"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="job_browser.pp"/>
         <UnitName Value="JOB_Browser"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="976"/>
         <CursorPos X="20" Y="988"/>
         <UsageCount Value="16"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../../../FPC/Pas2JS/packages/wasi/src/wasihostapp.pas"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="38"/>
         <CursorPos X="5" Y="50"/>
         <UsageCount Value="12"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../../../FPC/Pas2JS/packages/rtl/src/browserconsole.pas"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="150"/>
         <CursorPos Y="178"/>
         <UsageCount Value="11"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../../../FPC/Pas2JS/packages/rtl/src/web.pas"/>
@@ -89,7 +85,7 @@
       </Unit>
       <Unit>
         <Filename Value="wasmsimpletest.lpr"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="2"/>
         <TopLine Value="16"/>
         <CursorPos X="20" Y="19"/>
         <UsageCount Value="10"/>
@@ -97,13 +93,12 @@
       </Unit>
       <Unit>
         <Filename Value="job.js.pas"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="-1"/>
         <CursorPos Y="5"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="29">
+    <JumpHistory HistoryIndex="10">
       <Position>
         <Filename Value="hostsimpletest.lpr"/>
         <Caret Line="51" Column="57" TopLine="35"/>
@@ -137,82 +132,8 @@
         <Caret Line="69" Column="63" TopLine="45"/>
       </Position>
       <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="242" Column="25" TopLine="223"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="91" Column="15" TopLine="73"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="184" Column="16" TopLine="168"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="84" Column="19" TopLine="72"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="506" TopLine="495"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="703" Column="22" TopLine="678"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="772" Column="42" TopLine="764"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="691" Column="22" TopLine="659"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="701" Column="24" TopLine="669"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="796" Column="25" TopLine="764"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="26" Column="9"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="51" Column="8" TopLine="11"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="672" Column="22" TopLine="672"/>
-      </Position>
-      <Position>
-        <Filename Value="job_browser.pp"/>
-        <Caret Line="3" Column="46"/>
-      </Position>
-      <Position>
         <Filename Value="hostsimpletest.lpr"/>
         <Caret Line="55"/>
-      </Position>
-      <Position>
-        <Filename Value="../../../FPC/Pas2JS/packages/rtl/src/browserconsole.pas"/>
-        <Caret Line="59" Column="3" TopLine="37"/>
-      </Position>
-      <Position>
-        <Filename Value="../../../FPC/Pas2JS/packages/rtl/src/browserconsole.pas"/>
-        <Caret Line="132" Column="22" TopLine="132"/>
-      </Position>
-      <Position>
-        <Filename Value="../../../FPC/Pas2JS/packages/rtl/src/browserconsole.pas"/>
-        <Caret Line="48" Column="3" TopLine="19"/>
       </Position>
       <Position>
         <Filename Value="hostsimpletest.lpr"/>

@@ -14,9 +14,11 @@
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
     </General>
-    <CustomData Count="2">
+    <CustomData Count="4">
       <Item0 Name="MaintainHTML" Value="1"/>
-      <Item1 Name="PasJSWebBrowserProject" Value="1"/>
+      <Item1 Name="Pas2JSProject" Value="1"/>
+      <Item2 Name="PasJSLocation" Value="canvas"/>
+      <Item3 Name="PasJSWebBrowserProject" Value="1"/>
     </CustomData>
     <BuildModes>
       <Item Name="Default" Default="True"/>
@@ -48,7 +50,7 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
-    <Target FileExt=".js">
+    <Target>
       <Filename Value="demowasicanvas"/>
     </Target>
     <SearchPaths>
@@ -58,8 +60,8 @@
     <Parsing>
       <SyntaxOptions>
         <AllowLabel Value="False"/>
-        <CPPInline Value="False"/>
         <UseAnsiStrings Value="False"/>
+        <CPPInline Value="False"/>
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>

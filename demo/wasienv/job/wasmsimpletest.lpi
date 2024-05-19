@@ -43,7 +43,7 @@
     <CodeGeneration>
       <TargetCPU Value="wasm32"/>
       <TargetOS Value="wasi"/>
-      <Subtarget Value="unicodertl-browser"/>
+      <Subtarget Value="unicodertl"/>
     </CodeGeneration>
     <Linking>
       <Debugging>
@@ -58,7 +58,7 @@
       <OtherDefines Count="1">
         <Define0 Value="FPC_DOTTEDUNITS"/>
       </OtherDefines>
-      <CompilerPath Value="/home/tixeo/bin/ppcrosswasm32"/>
+      <CompilerPath Value="/usr/lib/fpc/3.3.1/ppcrosswasm32"/>
     </Other>
   </CompilerOptions>
   <Debugging>

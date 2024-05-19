@@ -50,6 +50,7 @@
     </Linking>
     <Other>
       <CustomOptions Value="-CTwasmthreads"/>
+      <CompilerPath Value="/usr/lib/fpc/3.3.1/ppcrosswasm32"/>
     </Other>
   </CompilerOptions>
   <Debugging>
