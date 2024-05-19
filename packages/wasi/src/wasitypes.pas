@@ -34,7 +34,7 @@ Type
     function fd_prestat_get(fd: NativeInt; bufPtr: TWasmMemoryLocation) : NativeInt;
     function fd_pwrite(fd, iovs, iovsLen, offset, nwritten : NativeInt) : NativeInt;
     function fd_read(fd: NativeInt; iovs : TWasmMemoryLocation; iovsLen: NativeInt; nread : TWasmMemoryLocation) : NativeInt;
-    function fd_readdir(fd, bufPtr, bufLen, cookie, bufusedPtr : NativeInt) : NativeInt;
+    function fd_readdir(fd : NativeInt; bufPtr: TWasmMemoryLocation; bufLen, cookie: NativeInt; bufusedPtr : TWasmMemoryLocation) : NativeInt;
     function fd_renumber(afrom,ato : NativeInt) : NativeInt;
     function fd_seek(fd, offset, whence : NativeInt; newOffsetPtr : TWasmMemoryLocation) : NativeInt;
     function fd_sync(fd : NativeInt) : NativeInt;
@@ -646,6 +646,13 @@ type
   end;
   TWasiPreStat = __wasi_prestat_t;
 
+  TDirentType = (dtUnknown,dtFile,dtDirectory,dtSymlink,dtSocket,dtBlockDevice,dtCharacterDevice,dtFIFO);
+  TWasiFSDirent = record
+    ino: NativeInt;
+    name : String;
+    EntryType: TDirentType;
+    next : NativeInt;
+  end;
 
   { EWasiFSError }
 
@@ -673,8 +680,20 @@ type
     function DataSync(FD : Integer) : NativeInt;
     function Seek(FD : integer; Offset : Integer; Whence : TSeekWhence; out NewPos : Integer) : NativeInt;
     Function Read(FD : Integer; Data : TJSUint8Array; AtPos : Integer; Out BytesRead : Integer) : NativeInt;
+    function ReadDir(FD: Integer; Cookie: NativeInt; out DirEnt: TWasiFSDirent): NativeInt;
     Function GetPrestat(FD: Integer) : String;
   end;
+
+Const
+  DirentMap : Array [TDirentType] of Integer =
+                  (__WASI_FILETYPE_UNKNOWN,
+                   __WASI_FILETYPE_REGULAR_FILE,
+                   __WASI_FILETYPE_DIRECTORY,
+                   __WASI_FILETYPE_SYMBOLIC_LINK,
+                   __WASI_FILETYPE_SOCKET_STREAM,
+                   __WASI_FILETYPE_BLOCK_DEVICE,
+                   __WASI_FILETYPE_CHARACTER_DEVICE,
+                   __WASI_FILETYPE_UNKNOWN);
 
 implementation
 

@@ -162,6 +162,7 @@ Type
     function isSocket() : Boolean;
     property path : string read FPath;
   end;
+  TZenFSDirentArray = Array of TZenFSDirent;
 
   TJSDirentCallback = reference to procedure(aDirent : TZenFSDirent);
   TJSDirCloseCallback = reference to procedure;
@@ -741,6 +742,8 @@ Type
 
     Function readdirSync(path : String; options : TZenFSReadDirOptions): TStringDynArray; overload;
     Function readdirSync(path : String): TStringDynArray; overload;
+    Function readdirSyncDirent(path : String; options : TZenFSReadDirOptions): TZenFSDirentArray; external name 'readdirSync';
+
 
     Procedure readlink(path : String; options : String; callback : TStringCallBack); overload;
     Procedure readlink(path : String; callback : TStringCallBack); overload;

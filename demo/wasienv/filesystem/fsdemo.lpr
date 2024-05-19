@@ -10,6 +10,34 @@ Const
   {$Endif}
   OurFile = OurDir+'/test.txt';
 
+Procedure ShowDir(aDir : String);
+
+var
+  Info : TSearchRec;
+  aFileCount : Integer;
+  TotalSize : Int64;
+  S : String;
+begin
+  TotalSize:=0;
+  aFileCount:=0;
+  If FindFirst(aDir+'*',faAnyFile,Info)=0 then
+    try
+      Repeat
+        S:=Info.Name;
+        if (Info.Attr and faDirectory)<>0 then
+          S:=S+'/';
+        if (Info.Attr and faSymLink)<>0 then
+          S:=S+'@';
+        Writeln(FormatDateTime('yyyy-mm-dd"T"hh:nn:ss',Info.TimeStamp),' ',Info.Size:10,' '+S);
+        TotalSize:=TotalSize+Info.Size;
+        inc(aFileCount);
+      until FindNext(Info)<>0;
+    finally
+      FindClose(Info)
+    end;
+  Writeln('Total: ',TotalSize,' bytes in ',aFileCount,' files');
+end;
+
 var
   HasDir : Boolean;
   HasFile: Boolean;
@@ -17,7 +45,6 @@ var
   aSize,FD,byteCount : Integer;
 
 begin
-  S:='Hello, WebAssembly World!';
   HasDir:=DirectoryExists(OurDir);
   if HasDir then
     Writeln('Directory already exists: ',OurDir)
@@ -25,6 +52,8 @@ begin
     Writeln('Created new directory: ',OurDir)
   else
     Writeln('Failed to create directory: ',OurDir);
+  Writeln('Contents of root:');
+  ShowDir('/');
   HasFile:=FileExists(OurFile);
   If HasFile then
     Writeln('File exists: ',OurFile)
@@ -37,12 +66,15 @@ begin
     else
       begin
       Writeln('Got fileHandle: ',FD);
+      S:='Hello, WebAssembly World!';
       ByteCount:=FileWrite(FD,S[1],Length(S));
       Writeln('Wrote ',byteCount,' bytes to file. Expected: ',Length(S));
       FileClose(FD);
       Writeln('Closed file');
       end;
     end;
+  Writeln('Contents of ',OurDir,':');
+  ShowDir(ourdir+'/');
   If FileExists(OurFile) then
     begin
     Writeln('Opening file: ',OurFile);

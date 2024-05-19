@@ -23,8 +23,8 @@ end;
 procedure TMyApplication.RunWasm;
 
 begin
-  // Writeln('Enabling logging');
-  // WasiEnvironment.LogAPI:=True;
+//  Writeln('Enabling logging');
+//  WasiEnvironment.LogAPI:=True;
   await(tjsobject,  ZenFS.configure(
     new(
       ['mounts', new([
@@ -33,6 +33,10 @@ begin
       ])
     )
   );
+  if not ZenFS.existsSync('/tmp') then
+    begin
+    ZenFS.mkdirSync('/tmp',777);
+    end;
   FS:=TWASIZenFS.Create;
   WasiEnvironment.FS:=FS;
   StartWebAssembly('fsdemo.wasm');

@@ -143,7 +143,7 @@ type
     function fd_prestat_get(fd: NativeInt; bufPtr: TWasmMemoryLocation) : NativeInt; virtual;
     function fd_pwrite(fd, iovs, iovsLen, offset, nwritten : NativeInt) : NativeInt;virtual;
     function fd_read(fd: NativeInt; iovs : TWasmMemoryLocation; iovsLen: NativeInt; nread : TWasmMemoryLocation) : NativeInt; virtual;
-    function fd_readdir(fd, bufPtr, bufLen, cookie, bufusedPtr : NativeInt) : NativeInt; virtual;
+    function fd_readdir(fd : NativeInt; bufPtr: TWasmMemoryLocation; bufLen, cookie: NativeInt; bufusedPtr : TWasmMemoryLocation) : NativeInt; virtual;
     function fd_renumber(afrom,ato : NativeInt) : NativeInt; virtual;
     function fd_seek(fd, offset, whence : NativeInt; newOffsetPtr : TWasmMemoryLocation) : NativeInt; virtual;
     function fd_sync(fd : NativeInt) : NativeInt; virtual;
@@ -1434,7 +1434,6 @@ begin
   if LogAPI then
     DoLog('TPas2JSWASIEnvironment.fd_seek(%d,%d,%d,[%x])',[fd,offset,whence,newOffsetPtr]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.fd_seek');
   if not Assigned(FS) then
     Result:=WASI_ENOSYS
   else
@@ -1633,15 +1632,51 @@ begin
     Result:=TJSUint8Array.New(0);
 end;
 
-function TPas2JSWASIEnvironment.fd_readdir(fd, bufPtr, bufLen, cookie,
-  bufusedPtr: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.fd_readdir(fd: NativeInt; bufPtr: TWasmMemoryLocation; bufLen, cookie: NativeInt;
+  bufusedPtr: TWasmMemoryLocation): NativeInt;
+
+var
+  Dirent : TWasiFSDirent;
+  NameArray : TJSUint8Array;
+  NameLen : integer;
+  Ptr : TWasmMemoryLocation;
+  Res,Used : Integer;
+
+
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
     DoLog('TPas2JSWASIEnvironment.fd_readdir(%d,[%x],%d,%d,[%x])',[fd,bufPtr,buflen,cookie,bufusedptr]);
   {$ENDIF}
-  console.log('Unimplemented: TPas2JSWASIEnvironment.fd_readdir');
-  Result:= WASI_ENOSYS;
+  if not Assigned(FS) then
+    Result:=WASI_ENOSYS
+  else
+    try
+      Res:=FS.ReadDir(FD,AsIntNumber(Cookie),Dirent);
+      Result:=WASI_ESUCCESS;
+      Ptr:=BufPtr;
+      While ((Ptr-BufPtr)<BufLen) and (Res=WASI_ESUCCESS) do
+        begin
+        NameArray:=UTF8TextEncoder.encode(Dirent.name);
+        NameLen:=NameArray.byteLength;
+        Ptr:=SetMemInfoUInt64(Ptr,Dirent.Next);
+        Ptr:=SetMemInfoUInt64(Ptr,Dirent.ino);
+        Ptr:=SetMemInfoInt32(Ptr,NameLen);
+        Ptr:=SetMemInfoInt32(Ptr,DirentMap[Dirent.EntryType]);
+        if SetUTF8StringInMem(Ptr,BufLen-18,Dirent.Name)<>-1 then
+          begin
+          Ptr:=Ptr+NameLen;
+          Cookie:=Dirent.Next;
+          Res:=FS.ReadDir(FD,AsIntNumber(Cookie),Dirent)
+          end
+        else
+          Res:=WASI_ENOMEM;
+        end;
+      SetMemInfoInt32(bufusedPtr,Ptr-BufPtr);
+    except
+      On E : Exception do
+        Result:=ErrorToCode(E);
+    end;
 end;
 
 function TPas2JSWASIEnvironment.fd_renumber(afrom, ato: NativeInt): NativeInt;
@@ -1811,12 +1846,12 @@ begin
   Loc:=BufPtr;
   Loc:=SetMemInfoInt64(Loc,Info.dev);
   Loc:=SetMemInfoUInt64(Loc,Info.Ino);
-  Loc:=SetMemInfoInt8(Loc,Info.filetype);
+  Loc:=SetMemInfoUInt64(Loc,Info.filetype);
   Loc:=SetMemInfoUInt64(Loc,Info.nLink);
   Loc:=SetMemInfoUInt64(Loc,Info.size);
-  Loc:=SetMemInfoUInt64(Loc,Info.atim);
-  Loc:=SetMemInfoUInt64(Loc,Info.mtim);
-  Loc:=SetMemInfoUInt64(Loc,Info.ctim);
+  Loc:=SetMemInfoUInt64(Loc,Info.atim*1000*1000);
+  Loc:=SetMemInfoUInt64(Loc,Info.mtim*1000*1000);
+  Loc:=SetMemInfoUInt64(Loc,Info.ctim*1000*1000);
 end;
 
 function TPas2JSWASIEnvironment.path_filestat_get(fd, flags: NativeInt;
@@ -2064,7 +2099,7 @@ Var
 begin
   view:=getModuleMemoryDataView();
   view.setint16(aLoc,aValue, IsLittleEndian);
-  Result:=aValue+SizeInt16;
+  Result:=aLoc+SizeInt16;
 end;
 
 function TPas2JSWASIEnvironment.SetMemInfoInt32(aLoc: TWasmMemoryLocation;
@@ -2076,7 +2111,7 @@ Var
 begin
   view:=getModuleMemoryDataView();
   view.setInt32(aLoc,aValue,IsLittleEndian);
-  Result:=aValue+SizeInt32;
+  Result:=aLoc+SizeInt32;
 end;
 
 function TPas2JSWASIEnvironment.SetMemInfoInt64(aLoc: TWasmMemoryLocation;

@@ -5,21 +5,26 @@ unit wasizenfs;
 interface
 
 uses
-  JS, libzenfs, Wasitypes;
+  SysUtils, JS, libzenfs, Wasitypes;
 
 Type
+  EWASIZenFS = class(Exception);
 
   { TWASIZenFS }
-
   TWASIZenFS = class (TObject,IWasiFS)
   private
     FRoot : TZenFSDir;
+    FDirMap : TJSMap;
   protected
+    function AllocateDirFD(aDir: TZenFSDirentArray): Integer;
+    function IsDirEnt(FD : Integer) : TZenFSDirentArray;
+    Procedure RemoveDirent(FD : integer);
     function PrependFD(FD: Integer; aPath: String): string;
     class function ExceptToError(E : TJSObject) : Integer;
     class function ZenFSDateToWasiTimeStamp(aDate: TJSDate): Nativeint;
     class function ZenStatToWasiStat(ZSTat: TZenFSStats): TWasiFileStat;
   Public
+    constructor create;
     Function MkDirAt(FD : Integer; const aPath : String) : NativeInt;
     Function RmDirAt(FD : Integer; const aPath : String) : NativeInt;
     function StatAt(FD : Integer; const aPath : String; var stat: TWasiFileStat) : NativeInt;
@@ -38,6 +43,7 @@ Type
     function DataSync(FD : Integer) : NativeInt;
     function Seek(FD : integer; Offset : Integer; Whence : TSeekWhence; out NewPos : Integer) : NativeInt;
     Function Read(FD : Integer; Data : TJSUint8Array; AtPos : Integer; Out BytesRead : Integer) : NativeInt;
+    function ReadDir(FD: Integer; Cookie: NativeInt; out DirEnt: TWasiFSDirent): NativeInt;
     Function GetPrestat(FD: Integer) : String;
   end;
 
@@ -47,6 +53,33 @@ const
   ResOK = __WASI_ERRNO_SUCCESS;
 
 { TWASIZenFS }
+
+function TWASIZenFS.AllocateDirFD(aDir : TZenFSDirentArray): Integer;
+var
+  I : integer;
+
+begin
+  I:=4;
+  While (I<100) and (FDirMap.has(i)) do
+    Inc(I);
+  if I=100 then
+    Raise EWASIZenFS.Create('Too many directories');
+  FDirMap.&set(I,aDir);
+  Result:=I;
+end;
+
+function TWASIZenFS.IsDirEnt(FD: Integer): TZenFSDirentArray;
+begin
+  if FDirMap.has(FD) then
+    Result:=TZenFSDirentArray(FDirMap.get(FD))
+  else
+    Result:=Nil;
+end;
+
+procedure TWASIZenFS.RemoveDirent(FD: integer);
+begin
+  FDirMap.delete(FD);
+end;
 
 function TWASIZenFS.PrependFD(FD: Integer; aPath: String) : string;
 
@@ -114,6 +147,11 @@ begin
   Result.atim:=ZenFSDateToWasiTimeStamp(ZStat.aTime);
   Result.mtim:=ZenFSDateToWasiTimeStamp(ZStat.mTime);
   Result.ctim:=ZenFSDateToWasiTimeStamp(ZStat.cTime);
+end;
+
+constructor TWASIZenFS.create;
+begin
+  FDirMap:=TJSMap.new;
 end;
 
 function TWASIZenFS.StatAt(FD: Integer; const aPath: String;
@@ -231,9 +269,16 @@ end;
 
 function TWASIZenFS.Close(FD : Integer): NativeInt;
 
+
 begin
   try
-    ZenFS.closeSync(fd);
+    if IsDirEnt(FD)<>Nil then
+      begin
+      RemoveDirent(FD);
+      Result:=WASI_ESUCCESS;
+      end
+    else
+      ZenFS.closeSync(fd);
     Result:=resOK;
   except
     on E : TJSObject do
@@ -344,6 +389,38 @@ begin
   end;
 end;
 
+function TWASIZenFS.ReadDir(FD: Integer; Cookie : NativeInt; out DirEnt: TWasiFSDirent): NativeInt;
+
+var
+  DirEnts : TZenFSDirentArray;
+  ZDirEntry : TZenFSDirent;
+
+begin
+  DirEnts:=IsDirEnt(FD);
+  if Not Assigned(DirEnts) then
+    Exit(WASI_EBADF);
+  if (Cookie<0) or (Cookie>=Length(Dirents)) then
+    Exit(WASI_ENOENT);
+  ZDirEntry:=Dirents[Cookie];
+  DirEnt.name:=ZDirEntry.path;
+  if ZDirEntry.isFile() then
+    Dirent.EntryType:=dtFile
+  else if ZDirEntry.isDirectory() then
+    Dirent.EntryType:=dtDirectory
+  else if ZDirEntry.isSymbolicLink() then
+    Dirent.EntryType:=dtSymlink
+  else if ZDirEntry.isFIFO() then
+    Dirent.EntryType:=dtFIFO
+  else if ZDirEntry.isBlockDevice() then
+    Dirent.EntryType:=dtBlockDevice
+  else if ZDirEntry.isCharacterDevice() then
+    Dirent.EntryType:=dtCharacterDevice
+  else if ZDirEntry.isSocket() then
+    Dirent.EntryType:=dtSocket;
+  Dirent.Next:=Cookie+1;
+  Result:=ResOK;
+end;
+
 function TWASIZenFS.GetPrestat(FD: Integer): String;
 begin
   if (FD=3) then
@@ -376,6 +453,8 @@ var
   lFlags : String;
   Rights : NativeInt;
   Reading,Writing : Boolean;
+  Dir : TZenFSDirentArray;
+  Opts : TZenFSReadDirOptions;
 
   Function HasFlag(aFlag : Integer) : Boolean;
   begin
@@ -397,26 +476,37 @@ var
 begin
   if (fdFlags<>0) and (fsFlags<>0) then ;
   lPath:=PrependFD(FD,aPath);
-  Rights:=AsIntNumber(fsRightsBase);
-  Writing:=HasFlag(__WASI_OFLAGS_CREAT) or HasRight(__WASI_RIGHTS_FD_WRITE);
-  Reading:=HasRight(__WASI_RIGHTS_FD_READ);
-  if Writing then
+  if Not HasFlag(__WASI_OFLAGS_DIRECTORY) then
     begin
-    if HasFlag(__WASI_OFLAGS_TRUNC) then
-      lFLags:='w'
+    Rights:=AsIntNumber(fsRightsBase);
+    Writing:=HasFlag(__WASI_OFLAGS_CREAT) or HasRight(__WASI_RIGHTS_FD_WRITE);
+    Reading:=HasRight(__WASI_RIGHTS_FD_READ);
+    if Writing then
+      begin
+      if HasFlag(__WASI_OFLAGS_TRUNC) then
+        lFLags:='w'
+      else
+        lFLags:='a';
+      if HasFlag(__WASI_OFLAGS_EXCL) then
+        lFLags:=lFLags+'x';
+      if Reading then
+        lFLags:=lFLags+'+';
+      end
     else
-      lFLags:='a';
-    if HasFlag(__WASI_OFLAGS_EXCL) then
-      lFLags:=lFLags+'x';
-    if Reading then
-      lFLags:=lFLags+'+';
-    end
-  else
-    begin
-    lFlags:='r';
+      begin
+      lFlags:='r';
+      end;
     end;
   try
-    OpenFD:=ZenFS.openSync(lPath,lFlags);
+    if HasFlag(__WASI_OFLAGS_DIRECTORY) then
+      begin
+      Opts:=TZenFSReadDirOptions.New;
+      Opts.withFileTypes:=True;
+      Dir:=ZenFS.readdirSyncDirent(lpath,Opts);
+      OpenFD:=AllocateDirFD(Dir);
+      end
+    else
+      OpenFD:=ZenFS.openSync(lPath,lFlags);
     Result:=resOK;
   except
     on E : TJSObject do
