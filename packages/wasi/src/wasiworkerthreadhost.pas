@@ -622,7 +622,7 @@ end;
 
 function TWorkerWASIHostApplication.GetLocation: String;
 begin
-  Result:={$IFDEF FPC_DOTTEDUNITS}BrowserApi.Worker.{$ELSE}}WebWorker.{$ENDIF}Location.pathname;
+  Result:={$IFDEF FPC_DOTTEDUNITS}BrowserApi.Worker.{$ELSE}WebWorker.{$ENDIF}Location.pathname;
 end;
 
 constructor TWorkerWASIHostApplication.Create(aOwner: TComponent);
