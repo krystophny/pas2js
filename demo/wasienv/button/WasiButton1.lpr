@@ -5,7 +5,7 @@ library WasiButton1;
 {$codepage UTF8}
 
 uses
-  SysUtils, JOB.Shared, JOB_Web, JOB.JS;
+  NoThreads, SysUtils, JOB.Shared, JOB_Web, JOB.JS;
 
 type
 

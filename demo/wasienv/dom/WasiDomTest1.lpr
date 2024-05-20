@@ -11,7 +11,7 @@ uses
   {$IFDEF UseDucet}
   unicodeducet, unicodedata, fpwidestring,
   {$ENDIF}
-  Math, SysUtils, Variants, JOB.Shared, JOB_Web, JOB.JS;
+  NoThreads, Math, SysUtils, Variants, JOB.Shared, JOB_Web, JOB.JS;
 
 type
   EWasiTest = class(Exception);
