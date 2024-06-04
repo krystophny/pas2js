@@ -887,7 +887,8 @@ begin
 
   // allocate wasm memory
   Result:=WasiExports.AllocMem(Len);
-
+  // Need to reget the memory buffer, since it can have changed by the allocmem.
+  view:=getModuleMemoryDataView();
   // write
   p:=Result;
   View.setUint8(p,Args.Length);
