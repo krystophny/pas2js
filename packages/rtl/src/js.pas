@@ -497,7 +497,7 @@ type
     Property byteLength : NativeInt Read fLength;
   end;
 
-  TJSBufferSource = class external name 'BufferSource'
+  TJSBufferSource = class external name 'BufferSource' (TJSObject)
   end;
 
   { TJSTypedArray }
