@@ -268,9 +268,15 @@ end;
 
 function TJSObjectBridge.FindGlobalObject(const aName: string): TJOBObjectID;
 begin
-  if not FGlobalNames.hasOwnProperty(aName) then
-    exit(0);
-  Result:=NativeInt(FGlobalNames[aName]);
+  // this one is special, it needs to be re-registered every time
+  if aName='InstanceMemory' then
+    Exit(RegisterLocalObject(TJSUint8Array.New(getModuleMemoryDataView.buffer)));
+  else
+    begin
+    if not FGlobalNames.hasOwnProperty(aName) then
+      exit(0);
+    Result:=NativeInt(FGlobalNames[aName]);
+    end;
 end;
 
 function TJSObjectBridge.RegisterLocalObject(Obj: TJSObject): TJOBObjectID;
