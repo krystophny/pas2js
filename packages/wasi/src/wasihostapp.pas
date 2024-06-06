@@ -8,9 +8,9 @@ interface
 
 uses
 {$IFDEF FPC_DOTTEDUNITS}
-  System.Classes, System.SysUtils, Fcl.App.Browser, JSApi.JS, BrowserApi.WebAssembly, Wasi.Env;
+  System.Classes, System.SysUtils, Fcl.App.Browser, JSApi.JS, BrowserApi.WebAssembly, Wasi.Env, BrowserApi.Web, System.Types;
 {$ELSE} 
-  Classes, SysUtils, browserapp, js, webassembly, wasienv;
+  Classes, SysUtils, browserapp, js, webassembly, wasienv, web, types;
 {$ENDIF}
 
 Type
@@ -44,6 +44,9 @@ Type
   public
     Constructor Create(aOwner : TComponent); override;
     Destructor Destroy; override;
+    function PreLoadFiles(aFiles : Array of string) : TPreLoadFilesResult; async;
+    function PreLoadFiles(aFiles : TPreLoadFileDynArray) : TPreLoadFilesResult; async;
+    function PreLoadFilesIntoDirectory(aDirectory: String; aFiles: array of string): TPreLoadFilesResult; async;
     // Load and start webassembly. If DoRun is true, then Webassembly entry point is called.
     // If aBeforeStart is specified, then it is called prior to calling run, and can disable running.
     // If aAfterStart is specified, then it is called after calling run. It is not called is running was disabled.
@@ -183,6 +186,24 @@ destructor TBrowserWASIHostApplication.Destroy;
 begin
   FreeAndNil(FHost);
   inherited Destroy;
+end;
+
+function TBrowserWASIHostApplication.PreLoadFiles(aFiles: array of string): TPreLoadFilesResult;
+
+begin
+  Result:=Await(WasiEnvironment.PreloadFiles(aFiles));
+end;
+
+function TBrowserWASIHostApplication.PreLoadFiles(aFiles : TPreLoadFileDynArray) : TPreLoadFilesResult;
+
+begin
+  Result:=Await(WasiEnvironment.PreloadFiles(aFiles));
+end;
+
+function TBrowserWASIHostApplication.PreLoadFilesIntoDirectory(aDirectory : String; aFiles: array of string): TPreLoadFilesResult;
+
+begin
+  Result:=Await(WasiEnvironment.PreloadFilesIntoDirectory(aDirectory,aFiles));
 end;
 
 function TBrowserWASIHostApplication.StartWebAssembly(aPath: string; DoRun: Boolean;

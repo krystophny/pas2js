@@ -41,6 +41,23 @@ Const
 type
   TMemBufferArray = Array of TJSUint8Array;
 
+  TPreLoadFile = record
+    url : String;
+    localname : string;
+  end;
+  TPreLoadFileDynArray = Array of TPreLoadFile;
+
+  TLoadFileFailure = record
+    url : String;
+    error : string;
+  end;
+  TLoadFileFailureDynArray = Array of TLoadFileFailure;
+
+  TPreLoadFilesResult = record
+    failedurls : TLoadFileFailureDynArray;
+    loadcount : integer;
+  end;
+
   EWasiError = Class(Exception);
 
   EWasiFSError = class(Exception)
@@ -76,6 +93,8 @@ type
 
   TPas2JSWASIEnvironment = class (TObject,IWASI)
   Private
+    FArguments: TStrings;
+    FEnvironment: TStrings;
     FExitCode: Nativeint;
     FImportObject : TJSObject;
     Finstance: TJSWebAssemblyInstance;
@@ -98,6 +117,8 @@ type
     function GetTotalIOVsLen(iovs: TMemBufferArray): Integer;
     function GetIOVsAsBytes(iovs, iovsLen: NativeInt): TJSUInt8array;
     function GetMemory: TJSWebassemblyMemory;
+    procedure SetArguments(AValue: TStrings);
+    procedure SetEnvironment(AValue: TStrings);
     procedure SetInstance(AValue: TJSWebAssemblyInstance);
     procedure SetLogAPI(AValue: Boolean);
     procedure WriteFileStatToMem(BufPtr: TWasmMemoryLocation;
@@ -122,12 +143,12 @@ type
     // IWASI calls
     // !! Please keep these sorted !!
 
-    function args_get(argv, argvBuf : NativeInt) : NativeInt; virtual;
-    function args_sizes_get(argc, argvBufSize : NativeInt) : NativeInt; virtual;
+    function args_get(argv, argvBuf : TWasmMemoryLocation) : NativeInt; virtual;
+    function args_sizes_get(argc, argvBufSize : TWasmMemoryLocation) : NativeInt; virtual;
     function clock_res_get(clockId, resolution: NativeInt): NativeInt; virtual;
     function clock_time_get(clockId, precision : NativeInt; time: TWasmMemoryLocation): NativeInt; virtual;
-    function environ_get(environ, environBuf : NativeInt) : NativeInt; virtual;
-    function environ_sizes_get(environCount, environBufSize : NativeInt) : NativeInt; virtual;
+    function environ_get(environ, environBuf : TWasmMemoryLocation) : NativeInt; virtual;
+    function environ_sizes_get(environCount, environBufSize : TWasmMemoryLocation) : NativeInt; virtual;
     function fd_advise (fd, offset, len, advice : NativeInt) : NativeInt; virtual;
     function fd_allocate (fd, offset, len : NativeInt) : NativeInt; virtual;
     function fd_close(fd : NativeInt) : NativeInt; virtual;
@@ -189,6 +210,11 @@ type
     Procedure AddImports(aObject: TJSObject); 
     Property ImportObject : TJSObject Read GetImportObject;
     Property IsLittleEndian : Boolean Read FIsLittleEndian Write FIsLittleEndian;
+    // Filesystem
+    function PreLoadFiles(aFiles: array of string): TPreLoadFilesResult; async;
+    function PreLoadFiles(aFiles: TPreLoadFileDynArray): TPreLoadFilesResult; async;
+    function PreLoadFilesIntoDirectory(aDirectory : String; aFiles: array of string): TPreLoadFilesResult; async;
+
     Property OnStdOutputWrite : TWASIWriteEvent Read FOnStdOutputWrite Write FOnStdOutputWrite;
     Property OnStdErrorWrite : TWASIWriteEvent Read FOnStdErrorWrite Write FOnStdErrorWrite;
     Property OnGetConsoleInputBuffer : TGetConsoleInputBufferEvent Read FOnGetConsoleInputBuffer Write FOnGetConsoleInputBuffer;
@@ -200,6 +226,8 @@ type
     Property WASIImportName : String Read FWASIImportName Write FWASIImportName;
     Property LogAPI : Boolean REad FLogAPI Write SetLogAPI;
     Property FS : IWASIFS Read FWasiFS Write FWasiFS;
+    Property Arguments : TStrings Read FArguments Write SetArguments;
+    Property Environment : TStrings Read FEnvironment Write SetEnvironment;
   end;
 
   { TImportExtension }
@@ -747,6 +775,7 @@ begin
    FImportExtensions.Remove(aExtension);
 end;
 
+
 function TPas2JSWASIEnvironment.getModuleMemoryDataView: TJSDataView;
 begin
   Result:=TJSDataView.New(Memory.buffer);
@@ -827,55 +856,78 @@ begin
 end;
 
 function TPas2JSWASIEnvironment.environ_sizes_get(environCount,
-  environBufSize: NativeInt): NativeInt;
+  environBufSize: TWasmMemoryLocation): NativeInt;
 
 Var
   View : TJSDataView;
+  Size : integer;
 
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.environ_sizes_get(%d,%d)',[environCount,environBufSize]);
+    DoLog('TPas2JSWASIEnvironment.environ_sizes_get([%x],[%x])',[environCount,environBufSize]);
   {$ENDIF}
   view:=getModuleMemoryDataView();
-  view.setUint32(environCount, 0, IsLittleEndian);
-  view.setUint32(environBufSize, 0, IsLittleEndian);
+  view.setUint32(environCount, Environment.Count, IsLittleEndian);
+  Size:=0;
+  // the LF will be counted for null terminators
+  if Environment.Count>0 then
+    Size:=Length(Environment.Text)+1;
+  view.setUint32(environBufSize, Size, IsLittleEndian);
   Result:= WASI_ESUCCESS;
 end;
 
-function TPas2JSWASIEnvironment.environ_get(environ, environBuf: NativeInt
-  ): NativeInt;
+function TPas2JSWASIEnvironment.environ_get(environ, environBuf: TWasmMemoryLocation): NativeInt;
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.environ_get(%d,%d)',[environ,environBuf]);
+    DoLog('TPas2JSWASIEnvironment.environ_get([%x],[%x])',[environ,environBuf]);
   {$ENDIF}
   Result:= WASI_ESUCCESS;
 end;
 
-function TPas2JSWASIEnvironment.args_sizes_get(argc, argvBufSize: NativeInt
-  ): NativeInt;
+function TPas2JSWASIEnvironment.args_sizes_get(argc, argvBufSize: TWasmMemoryLocation): NativeInt;
 
 Var
   View : TJSDataView;
-
+  Size : Integer;
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.args_sizes_get(%d,%d)',[argc,argvbufsize]);
+    DoLog('TPas2JSWASIEnvironment.args_sizes_get([%x],[%x])',[argc,argvbufsize]);
   {$ENDIF}
   view:=getModuleMemoryDataView();
-  view.setUint32(argc, 0, IsLittleEndian);
-  view.setUint32(argvBufSize, 0, IsLittleEndian);
+  view.setUint32(argc, Arguments.Count, IsLittleEndian);
+  // the LF will be counted for null terminators
+  Size:=0;
+  if Arguments.Count>0 then
+    Size:=Length(Arguments.Text)+1;
+  view.setUint32(argvBufSize, Size , IsLittleEndian);
   Result:=WASI_ESUCCESS;
 end;
 
-function TPas2JSWASIEnvironment.args_get(argv, argvBuf: NativeInt): NativeInt;
+function TPas2JSWASIEnvironment.args_get(argv, argvBuf: TWasmMemoryLocation): NativeInt;
+
+var
+  Ptr : TWasmMemoryLocation;
+  PtrV : TWasmMemoryLocation;
+  S : String;
+  i : Integer;
+
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
-    DoLog('TPas2JSWASIEnvironment.args_get(%d,%d)',[argv, argvBuf]);
+    DoLog('TPas2JSWASIEnvironment.args_get([%x],[%x])',[argv, argvBuf]);
   {$ENDIF}
+  Ptr:=ArgvBuf;
+  PtrV:=ArgV;
+  for I:=0 to Arguments.Count-1 do
+    begin
+    S:=Arguments[I];
+    PtrV:=SetMemInfoUInt32(PtrV,Ptr);
+    Ptr:=Ptr+SetUTF8StringInMem(Ptr,Length(S),S);
+    Ptr:=SetMemInfoUInt8(Ptr,0);
+    end;
   Result:=WASI_ESUCCESS;
 end;
 
@@ -1076,6 +1128,18 @@ begin
     Result:=FMemory
   else }
     Result:= FModuleInstanceExports.Memory;
+end;
+
+procedure TPas2JSWASIEnvironment.SetArguments(AValue: TStrings);
+begin
+  if FArguments=AValue then Exit;
+  FArguments.Assign(AValue);
+end;
+
+procedure TPas2JSWASIEnvironment.SetEnvironment(AValue: TStrings);
+begin
+  if FEnvironment=AValue then Exit;
+  FEnvironment.Assign(AValue);
 end;
 
 function TPas2JSWASIEnvironment.GetIOVsAsBytes(iovs, iovsLen : NativeInt) : TJSUInt8array;
@@ -2062,10 +2126,14 @@ begin
   FIsLittleEndian:=True;
   // Default expected by FPC runtime
   WASIImportName:='wasi_snapshot_preview1';
+  FArguments:=TStringList.Create;
+  FEnvironment:=TStringList.Create;
 end;
 
 destructor TPas2JSWASIEnvironment.Destroy;
 begin
+  FreeAndNil(FEnvironment);
+  FreeAndNil(FArguments);
   FreeAndNil(FImportExtensions);
   inherited Destroy;
 end;
@@ -2184,6 +2252,115 @@ begin
   setBigUint64(View,aLoc,aValue,IsLittleEndian);
   Result:=aLoc+SizeUint64;
 end;
+
+function TPas2JSWASIEnvironment.PreLoadFiles(aFiles: array of string): TPreLoadFilesResult;
+
+var
+  I,Idx,Len : Integer;
+  FileArray : TPreLoadFileDynArray;
+
+begin
+  if not assigned(FS) then
+    Raise EWasiError.Create('No filesystem available');
+  Len:=Length(aFiles);
+  if (Len mod 2)=1 then
+    Raise EWasiError.Create('Number of arguments must be even: pairs of url, local');
+ SetLength(FileArray,Len div 2);
+ I:=0;
+ Idx:=0;
+ while I<Len do
+   begin
+   FileArray[Idx].Url:=aFiles[i];
+   FileArray[Idx].localname:=aFiles[i+1];
+   Inc(I,2);
+   Inc(Idx);
+   end;
+  Result:=Await(PreloadFiles(FileArray));
+end;
+
+function TPas2JSWASIEnvironment.PreLoadFiles(aFiles: TPreLoadFileDynArray): TPreLoadFilesResult;
+
+var
+  I,res,failcount : Integer;
+  Resp: TJSResponse;
+  blob : TJSBlob;
+  buf : TJSarrayBuffer;
+  Data : TJSUint8Array;
+  Fails : TLoadFileFailureDynArray;
+
+  procedure AddFailure(aUrl,aError: String);
+
+  begin
+    fails[FailCount].url:=aUrl;
+    fails[FailCount].error:=aError;
+    inc(Failcount);
+  end;
+
+begin
+  if not assigned(FS) then
+    Raise EWasiError.Create('No filesystem available');
+  Res:=0;
+  failcount:=0;
+  SetLength(Fails,Length(aFiles));
+  For I:=0 to Length(afiles)-1 do
+    try
+      resp:=await(fetch(aFiles[I].url));
+      blob:=await(resp.blob);
+      buf:=await(TJSArrayBuffer,blob.arrayBuffer);
+      FS.PreloadFile(aFiles[i].localname,TJSDataView.new(Buf));
+      inc(Res);
+    except
+      on E : Exception do
+        AddFailure(aFiles[i].Url,E.Message);
+      on JE : TJSError do
+        AddFailure(aFiles[i].Url,JE.Message);
+      on OE : TJSObject do
+        AddFailure(aFiles[i].Url,TJSJSON.Stringify(OE));
+    end;
+  SetLength(Fails,FailCount);
+  Result.failedurls:=Fails;
+  Result.LoadCount:=Res;
+end;
+
+function TPas2JSWASIEnvironment.PreLoadFilesIntoDirectory(aDirectory: String; aFiles: array of string): TPreLoadFilesResult;
+
+  function ExtractFileFromURL(aURL : String) : string;
+
+  var
+    S : String;
+    URLObj : TJSURL;
+
+  begin
+    if aUrl.StartsWith('http://',true) or aUrl.StartsWith('https://',true) then
+      begin
+      UrlObj:=TJSURL.new(aURL);
+      S:=UrlObj.PathName
+      end
+    else
+      S:=aURL;
+    Result:=ExtractFileName(S);
+  end;
+
+var
+  I,Len : Integer;
+  FileArray : TPreLoadFileDynArray;
+
+begin
+  if not assigned(FS) then
+    Raise EWasiError.Create('No filesystem available');
+ Len:=Length(aFiles);
+ SetLength(FileArray,Len);
+ aDirectory:=IncludeTrailingPathDelimiter(aDirectory);
+ I:=0;
+ while I<Len do
+   begin
+   FileArray[I].Url:=aFiles[i];
+   FileArray[I].localname:=aDirectory+ExtractFileFromURL(aFiles[i]);
+   Inc(I);
+   end;
+  Result:=Await(PreloadFiles(FileArray));
+end;
+
 
 initialization
 

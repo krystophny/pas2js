@@ -45,6 +45,7 @@ Type
     Function Read(FD : Integer; Data : TJSUint8Array; AtPos : Integer; Out BytesRead : Integer) : NativeInt;
     function ReadDir(FD: Integer; Cookie: NativeInt; out DirEnt: TWasiFSDirent): NativeInt;
     Function GetPrestat(FD: Integer) : String;
+    Procedure PreLoadFile(aPath : String; aData : TJSDataView);
   end;
 
 implementation
@@ -428,6 +429,11 @@ begin
     FRoot:=ZenFS.OpenDirSync('/');
     Result:='/';
     end;
+end;
+
+procedure TWASIZenFS.PreLoadFile(aPath: String; aData: TJSDataView);
+begin
+  ZenFS.WriteFileSync(aPath,aData);
 end;
 
 function TWASIZenFS.UnLinkAt(FD: Integer; const aPath: String): NativeInt;
