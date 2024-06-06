@@ -8,6 +8,7 @@ library WasiDomTest1;
 {off $DEFINE UseDucet}
 
 uses
+  nothreads,
   {$IFDEF UseDucet}
   unicodeducet, unicodedata, fpwidestring,
   {$ENDIF}
