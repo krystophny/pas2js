@@ -12,13 +12,13 @@ Type
   // The imports as expected by WASI
   IWASI = interface ['{A03AC61B-3C68-4DA8-AC4F-53ED01814673}']
     // Please keep these sorted !!
-    function args_get(argc, argvBufSize : NativeInt) : NativeInt;
-    function args_sizes_get(argc, argvBufSize : NativeInt) : NativeInt;
+    function args_get(argv, argvBuf : TWasmMemoryLocation) : NativeInt;
+    function args_sizes_get(argc, argvBufSize : TWasmMemoryLocation) : NativeInt;
     function clock_res_get(clockId, resolution: NativeInt): NativeInt;
 
     function clock_time_get(clockId, precision : NativeInt; time: TWasmMemoryLocation): NativeInt;
-    function environ_get(environ, environBuf : NativeInt) : NativeInt;
-    function environ_sizes_get(environCount, environBufSize : NativeInt) : NativeInt;
+    function environ_get(environ, environBuf : TWasmMemoryLocation) : NativeInt;
+    function environ_sizes_get(environCount, environBufSize : TWasmMemoryLocation) : NativeInt;
     function fd_advise (fd, offset, len, advice : NativeInt) : NativeInt;
     function fd_allocate (fd, offset, len : NativeInt) : NativeInt;
     function fd_close(fd : NativeInt) : NativeInt;
@@ -682,6 +682,7 @@ type
     Function Read(FD : Integer; Data : TJSUint8Array; AtPos : Integer; Out BytesRead : Integer) : NativeInt;
     function ReadDir(FD: Integer; Cookie: NativeInt; out DirEnt: TWasiFSDirent): NativeInt;
     Function GetPrestat(FD: Integer) : String;
+    Procedure PreLoadFile(aPath : String; aData : TJSDataView);
   end;
 
 Const
