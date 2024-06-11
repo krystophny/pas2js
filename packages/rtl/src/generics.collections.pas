@@ -185,6 +185,7 @@ type
   private
     function GetItem(AIndex: SizeInt): T;
     procedure SetItem(AIndex: SizeInt; const AValue: T);
+    function GetIsEmpty: Boolean;
   public
     type
       TEnumerator = class(TCustomListEnumerator<T>);
@@ -236,6 +237,7 @@ type
     function BinarySearch(const AItem: T; out AIndex: SizeInt; const AComparer: IComparer<T>): Boolean; overload;
 
     property Count: SizeInt read FLength write SetCount;
+    property IsEmpty: Boolean read GetIsEmpty;
     property Items[Index: SizeInt]: T read GetItem write SetItem; default;
   end;
 
@@ -888,6 +890,11 @@ end;
 function TList<T>.DoGetEnumerator: TEnumerator<T>;
 begin
   Result := GetEnumerator;
+end;
+
+function TList<T>.GetIsEmpty: Boolean;
+begin
+  Result := Count = 0;
 end;
 
 function TList<T>.GetItem(AIndex: SizeInt): T;
