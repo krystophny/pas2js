@@ -32,15 +32,15 @@ Type
 
   TBrowserLoadHelper = Class (TLoadHelper)
   Public
-    Class Procedure LoadText(aURL : String; aSync : Boolean; OnLoaded : TTextLoadedCallBack; OnError : TErrorCallBack); override;
-    Class Procedure LoadBytes(aURL : String; aSync : Boolean; OnLoaded : TBytesLoadedCallBack; OnError : TErrorCallBack); override;
+    Class Procedure LoadText(aURL : String; aSync : Boolean; aOnLoaded : TTextLoadedCallBack; aOnError : TErrorCallBack); override;
+    Class Procedure LoadBytes(aURL : String; aSync : Boolean; aOnLoaded : TBytesLoadedCallBack; aOnError : TErrorCallBack); override;
   end;
 
 implementation
 
 { TBrowserLoadHelper }
 
-class procedure TBrowserLoadHelper.LoadText(aURL: String; aSync: Boolean; OnLoaded: TTextLoadedCallBack; OnError: TErrorCallBack);
+class procedure TBrowserLoadHelper.LoadText(aURL: String; aSync: Boolean; aOnLoaded: TTextLoadedCallBack; aOnError: TErrorCallBack);
 
   function doFetchOK(response : JSValue) : JSValue;
 
@@ -51,14 +51,14 @@ class procedure TBrowserLoadHelper.LoadText(aURL: String; aSync: Boolean; OnLoad
     Result:=False;
     If (Res.status<>200) then
       begin
-      If Assigned(OnError) then
-        OnError('Error '+IntToStr(Res.Status)+ ': '+Res.StatusText)
+      If Assigned(aOnError) then
+        aOnError('Error '+IntToStr(Res.Status)+ ': '+Res.StatusText)
       end
     else
       Res.Text._then(
         function (value : JSValue) : JSValue
           begin
-          OnLoaded(String(value));
+          aOnLoaded(String(value));
           end
       );
   end;
@@ -67,7 +67,7 @@ class procedure TBrowserLoadHelper.LoadText(aURL: String; aSync: Boolean; OnLoad
 
   begin
     Result:=False;
-    OnError('Error 999: unknown error: '+TJSJSON.Stringify(response));
+    aOnError('Error 999: unknown error: '+TJSJSON.Stringify(response));
   end;
 
 begin
@@ -79,29 +79,30 @@ begin
       open('GET', aURL, False);
       AddEventListener('load',Procedure (oEvent: JSValue)
         begin
-        OnLoaded(responseText);
+        aOnLoaded(responseText);
         end
       );
       AddEventListener('error',Procedure (oEvent: JSValue)
         begin
-        if Assigned(OnError) then
-          OnError(TJSError(oEvent).Message);
+        if Assigned(aOnError) then
+          aOnError(TJSError(oEvent).Message);
         end
       );
       send();
       end;
 end;
 
-class procedure TBrowserLoadHelper.LoadBytes(aURL: String; aSync: Boolean; OnLoaded: TBytesLoadedCallBack; OnError: TErrorCallBack);
+class procedure TBrowserLoadHelper.LoadBytes(aURL: String; aSync: Boolean; aOnLoaded: TBytesLoadedCallBack; aOnError: TErrorCallBack);
 
   function doFetchFail(response : JSValue) : JSValue;
 
   begin
     Result:=False;
-    if isObject(Response) and (TJSObject(Response) is TJSError) then
-      OnError('Error 999: '+TJSError(Response).Message)
-    else
-      OnError('Error 999: unknown error');
+    if assigned(aOnError) then
+      if isObject(Response) and (TJSObject(Response) is TJSError) then
+        aOnError('Error 999: '+TJSError(Response).Message)
+      else
+        aOnError('Error 999: unknown error');
   end;
 
 
@@ -114,8 +115,8 @@ class procedure TBrowserLoadHelper.LoadBytes(aURL: String; aSync: Boolean; OnLoa
     Result:=False;
     If (Res.status<>200) then
       begin
-      If Assigned(OnError) then
-        OnError('Error '+IntToStr(Res.Status)+ ': '+Res.StatusText)
+      If Assigned(aOnError) then
+        aOnError('Error '+IntToStr(Res.Status)+ ': '+Res.StatusText)
       end
     else
       Res.Blob._then(
@@ -123,7 +124,7 @@ class procedure TBrowserLoadHelper.LoadBytes(aURL: String; aSync: Boolean; OnLoa
           begin
           TJSBlob(Value).ArrayBuffer._then(function(arr : JSValue) : JSValue
             begin
-            OnLoaded(TJSArrayBuffer(arr))
+            aOnLoaded(TJSArrayBuffer(arr))
             end
           ).Catch(@DoFetchFail);
           end
@@ -153,16 +154,19 @@ begin
       open('GET', aURL, False);
       AddEventListener('load',Procedure (oEvent: JSValue)
         begin
-        if Status<>200 then
-          OnError('Error '+IntToStr(Status)+ ': '+StatusText)
+        if (Status<>200) then
+          begin
+          if assigned(aOnError) then
+            aOnError('Error '+IntToStr(Status)+ ': '+StatusText)
+          end  
         else
-          OnLoaded(StringToArrayBuffer(responseText));
+          aOnLoaded(StringToArrayBuffer(responseText));
         end
       );
       AddEventListener('error',Procedure (oEvent: JSValue)
         begin
-        if Assigned(OnError) then
-          OnError(TJSError(oEvent).Message);
+        if Assigned(aOnError) then
+          aOnError(TJSError(oEvent).Message);
         end
       );
       send();
