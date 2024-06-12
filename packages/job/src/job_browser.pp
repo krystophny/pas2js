@@ -11,6 +11,7 @@ unit JOB_Browser;
 {$modeswitch externalclass}
 
 {off $DEFINE VerboseJOB}
+{off $define VerboseJOBCallback}
 
 interface
 
@@ -270,7 +271,7 @@ function TJSObjectBridge.FindGlobalObject(const aName: string): TJOBObjectID;
 begin
   // this one is special, it needs to be re-registered every time
   if aName='InstanceMemory' then
-    Exit(RegisterLocalObject(TJSUint8Array.New(getModuleMemoryDataView.buffer)));
+    Exit(RegisterLocalObject(TJSUint8Array.New(getModuleMemoryDataView.buffer)))
   else
     begin
     if not FGlobalNames.hasOwnProperty(aName) then
@@ -652,23 +653,22 @@ var
   p: NativeInt;
 
   function ReadWasmNativeInt: TWasmNativeInt;
+
   begin
     Result:=View.getInt32(p,env.IsLittleEndian);
     inc(p,4);
   end;
 
+
   function ReadArgMethod: TProxyFunc;
+
   var
     aCall, aData, aCode: TWasmNativeInt;
-    i: Integer;
-  begin
-    aCall:=ReadWasmNativeInt;
-    aData:=ReadWasmNativeInt;
-    aCode:=ReadWasmNativeInt;
+    Obj : TJSObject absolute Result;
 
-    Result:=function: jsvalue
+    function MethodCallBack: jsvalue;
       var
-        Args, ResultP: TWasmNativeInt;
+        i, Args, ResultP: TWasmNativeInt;
         TempObjIds: TJOBObjectIDArray;
       begin
         {$IFDEF VerboseJOBCallback}
@@ -677,7 +677,7 @@ var
         Args:=CreateCallbackArgs(View,JSArguments,TempObjIds);
         try
           {$IFDEF VerboseJOBCallback}
-          writeln('TJSObjectBridge Callback: calling Wasm...');
+          writeln('TJSObjectBridge Callback: calling Wasm with');
           {$ENDIF}
           ResultP:=CallbackHandler(aCall,aData,aCode,Args); // this frees Args, and may detach View
           View:=getModuleMemoryDataView();
@@ -696,6 +696,13 @@ var
             ReleaseObject(TempObjIds[i]);
         end;
       end;
+
+  begin
+    aCall:=ReadWasmNativeInt;
+    aData:=ReadWasmNativeInt;
+    aCode:=ReadWasmNativeInt;
+
+    Result:=@MethodCallBack;
   end;
 
   function ReadString: String;
@@ -869,6 +876,7 @@ var
   s: String;
   NewId: TJOBObjectID;
   p: LongWord;
+
 begin
   Result:=0;
   if Args.Length=0 then exit;
