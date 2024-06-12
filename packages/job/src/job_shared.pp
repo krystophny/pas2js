@@ -33,7 +33,7 @@ const
   JOBResult_Symbol = 13;
   JOBResult_ArrayOfString = 14;
 
-  JOBResultLast = 14;
+  JOBResultLast = JOBResult_ArrayOfString;
 
   JOBResult_Names: array[0..JOBResultLast] of string = (
     'None',
