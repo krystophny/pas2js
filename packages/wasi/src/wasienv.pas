@@ -238,14 +238,15 @@ type
     FEnv : TPas2JSWASIEnvironment;
     FInstanceExports: TWASIExports;
   Protected
-    function getModuleMemoryDataView : TJSDataView;  
+    procedure SetInstanceExports(const AValue: TWASIExports); virtual;
+    function getModuleMemoryDataView : TJSDataView;
   Public
     Constructor Create(aEnv : TPas2JSWASIEnvironment); virtual;
     Destructor Destroy; override;
     Procedure FillImportObject(aObject : TJSObject); virtual; abstract;
     Function ImportName : String; virtual; abstract;
     Property Env : TPas2JSWASIEnvironment Read FEnv;
-    Property InstanceExports : TWASIExports Read FInstanceExports Write FInstanceExports;
+    Property InstanceExports : TWASIExports Read FInstanceExports Write SetInstanceExports;
   end;
 
   TRunWebassemblyProc = reference to Procedure(aExports : TWASIExports);
@@ -723,6 +724,12 @@ constructor EWasiFSError.CreateFmt(const aErrorCode: Integer; aFmt: String;
 begin
   FErrorcode:=aErrorCode;
   Inherited CreateFmt(aFmt,aArgs);
+end;
+
+procedure TImportExtension.SetInstanceExports(const AValue: TWASIExports);
+begin
+  if FInstanceExports=AValue then Exit;
+  FInstanceExports:=AValue;
 end;
 
 function TImportExtension.getModuleMemoryDataView : TJSDataView;  

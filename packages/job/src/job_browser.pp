@@ -65,12 +65,11 @@ Type
     FLocalObjects: TJSArray;
     FFreeLocalIds: TJSArray; // free positions in FLocalObjects
     FStringResult: string;
-    FWasiExports: TWASIExports;
     FFactories : TJSObject;
 
     function GetObjectConstructor(aObjectName: String): TJSFunction;
-    procedure SetWasiExports(const AValue: TWASIExports);
   Protected
+    procedure SetInstanceExports(const AValue: TWasiExports); override;
     function Invoke_JSResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP: NativeInt; out JSResult: JSValue): TJOBResult; virtual;
     function GetInvokeArguments(View: TJSDataView; ArgsP: NativeInt): TJSValueDynArray; virtual;
     function CreateCallbackArgs(View: TJSDataView; const Args: TJSFunctionArguments; TempObjIds: TJOBObjectIDArray): TWasmNativeInt; virtual;
@@ -100,7 +99,6 @@ Type
     Procedure RegisterJSObjectFactory(const aName : string; aFunc : TJSObjectFactory); overload;
     Function GetJOBResult(v: jsvalue): TJOBResult;
     property CallbackHandler: TJOBCallback read FCallbackHandler write FCallbackHandler;
-    property WasiExports: TWASIExports read FWasiExports write SetWasiExports;
   end;
 
 Implementation
@@ -299,12 +297,11 @@ begin
   {$ENDIF}
 end;
 
-procedure TJSObjectBridge.SetWasiExports(const AValue: TWASIExports);
+procedure TJSObjectBridge.SetInstanceExports(const AValue: TWasiExports);
 begin
-  if FWasiExports=AValue then Exit;
-  FWasiExports:=AValue;
-  if FWasiExports<>nil then
-    CallbackHandler:=TJOBCallback(FWasiExports.functions[JOBFn_CallbackHandler])
+  Inherited;
+  if Avalue<>nil then
+    CallbackHandler:=TJOBCallback(aValue.functions[JOBFn_CallbackHandler])
   else
     CallbackHandler:=nil;
 end;
@@ -900,7 +897,7 @@ begin
   end;
 
   // allocate wasm memory
-  Result:=WasiExports.AllocMem(Len);
+  Result:=InstanceExports.AllocMem(Len);
   // Need to reget the memory buffer, since it can have changed by the allocmem.
   view:=getModuleMemoryDataView();
   // write
@@ -1020,7 +1017,7 @@ begin
     end;
   finally
     //writeln('TJSObjectBridge.EatCallbackResult freeing result...');
-    WasiExports.freeMem(ResultP);
+    InstanceExports.freeMem(ResultP);
   end;
 end;
 
