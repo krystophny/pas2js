@@ -207,7 +207,8 @@ type
     function SetMemInfoUInt32(aLoc : TWasmMemoryLocation; aValue : Cardinal) : TWasmMemoryLocation;
     function SetMemInfoUInt64(aLoc : TWasmMemoryLocation; aValue : NativeUint) : TWasmMemoryLocation;
     // Add imports
-    Procedure AddImports(aObject: TJSObject); 
+    Procedure AddImports(aObject: TJSObject);
+    procedure SetExports(aExports : TWasiExports);
     Property ImportObject : TJSObject Read GetImportObject;
     Property IsLittleEndian : Boolean Read FIsLittleEndian Write FIsLittleEndian;
     // Filesystem
@@ -235,6 +236,7 @@ type
   TImportExtension = class (TObject)
   Private
     FEnv : TPas2JSWASIEnvironment;
+    FInstanceExports: TWASIExports;
   Protected
     function getModuleMemoryDataView : TJSDataView;  
   Public
@@ -243,6 +245,7 @@ type
     Procedure FillImportObject(aObject : TJSObject); virtual; abstract;
     Function ImportName : String; virtual; abstract;
     Property Env : TPas2JSWASIEnvironment Read FEnv;
+    Property InstanceExports : TWASIExports Read FInstanceExports Write FInstanceExports;
   end;
 
   TRunWebassemblyProc = reference to Procedure(aExports : TWASIExports);
@@ -479,6 +482,7 @@ begin
   FExported:=aDescr.Exported;
   WasiEnvironment.Instance:=aDescr.Instance;
   WasiEnvironment.SetMemory(aDescr.Memory);
+  WasiEnvironment.SetExports(FExported);
   // We do this here, so in the event, the FPreparedStartDescriptor Is ready.
   DoAfterInstantiate;
 end;
@@ -758,6 +762,19 @@ begin
       O:=TJSObject.New;
       Ext.FillImportObject(O);
       aObject[Ext.ImportName]:=O;
+      end;
+end;
+
+procedure TPas2JSWASIEnvironment.SetExports(aExports: TWasiExports);
+Var
+  Ext : TImportExtension;
+  I : Integer;
+begin
+  if Assigned(FImportExtensions) then
+    For I:=0 to FImportExtensions.Count-1 do
+      begin
+      Ext:=TImportExtension(FImportExtensions[i]);
+      Ext.InstanceExports:=aExports;
       end;
 end;
 
