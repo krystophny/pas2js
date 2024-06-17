@@ -2515,6 +2515,7 @@ Type
 
   // Opaque objects
   TJSCanvasGradient = class external name 'CanvasGradient'  (TJSObject)
+    procedure addColorStop(offset : double; aColor : string);
   end;
 
   TJSCanvasPattern = class external name 'CanvasPattern'  (TJSObject)
@@ -2644,6 +2645,7 @@ Type
     procedure rect(x,y,awidth,aheight: TCanvasCoordType); overload;
     procedure restore;
     procedure rotate(anAngle : double);
+    procedure roundRect(x,y,width,height : double; Radii : TJSArray);
     procedure save;
     procedure scale(x,y : double);
     procedure setLineDash(segments : TJSArray); overload;
