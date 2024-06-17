@@ -902,12 +902,26 @@ begin
 end;
 
 function TPas2JSWASIEnvironment.environ_get(environ, environBuf: TWasmMemoryLocation): NativeInt;
+
+var
+  S : String;
+  I : Integer;
+  PtrV,Ptr : Integer;
 begin
   {$IFNDEF NO_WASI_DEBUG}
   if LogAPI then
     DoLog('TPas2JSWASIEnvironment.environ_get([%x],[%x])',[environ,environBuf]);
   {$ENDIF}
-  Result:= WASI_ESUCCESS;
+  Ptr:=EnvironBuf;
+  PtrV:=environ;
+  for I:=0 to Environment.Count-1 do
+    begin
+    S:=Environment[I];
+    PtrV:=SetMemInfoUInt32(PtrV,Ptr);
+    Ptr:=Ptr+SetUTF8StringInMem(Ptr,Length(S),S);
+    Ptr:=SetMemInfoUInt8(Ptr,0);
+    end;
+  Result:=WASI_ESUCCESS;
 end;
 
 function TPas2JSWASIEnvironment.args_sizes_get(argc, argvBufSize: TWasmMemoryLocation): NativeInt;
@@ -2146,12 +2160,18 @@ begin
 end;
 
 constructor TPas2JSWASIEnvironment.Create;
+
+var
+  I : Integer;
+
 begin
   FIsLittleEndian:=True;
   // Default expected by FPC runtime
   WASIImportName:='wasi_snapshot_preview1';
   FArguments:=TStringList.Create;
   FEnvironment:=TStringList.Create;
+  For I:=0 to GetEnvironmentVariableCount-1 do
+    FEnvironment.Add(GetEnvironmentString(i));
 end;
 
 destructor TPas2JSWASIEnvironment.Destroy;
