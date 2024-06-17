@@ -37,8 +37,6 @@ Type
   TMyApplication = class(TBrowserWASIHostApplication)
   Private
     FWADomBridge : TJSObjectBridge;
-    function OnBeforeStart(Sender: TObject;
-      aDescriptor: TWebAssemblyStartDescriptor): Boolean;
   Public
     constructor Create(aOwner : TComponent); override;
     procedure DoRun; override;
@@ -142,12 +140,6 @@ end;
 
 { TMyApplication }
 
-function TMyApplication.OnBeforeStart(Sender: TObject;
-  aDescriptor: TWebAssemblyStartDescriptor): Boolean;
-begin
-  FWADomBridge.WasiExports:=aDescriptor.Exported;
-  Result:=true;
-end;
 
 constructor TMyApplication.Create(aOwner: TComponent);
 begin
@@ -164,7 +156,7 @@ procedure TMyApplication.DoRun;
 begin
   // Your code here
   Terminate;
-  StartWebAssembly('WasiDomTest1.wasm',true,@OnBeforeStart);
+  StartWebAssembly('WasiDomTest1.wasm',true);
 end;
 
 var
