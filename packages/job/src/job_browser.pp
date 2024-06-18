@@ -830,9 +830,14 @@ var
     JOBArgObject:
       begin
         ObjID:=ReadWasmNativeInt;
-        Obj:=FindObject(ObjID);
-        if Obj=nil then
-          raise EJOBBridge.Create('20220825000904: invalid JSObject '+IntToStr(ObjID));
+        if ObjID=0 then
+          Obj:=Nil
+        else
+          begin
+          Obj:=FindObject(ObjID);
+          if Obj=nil then
+            raise EJOBBridge.Create('20220825000904: invalid JSObject '+IntToStr(ObjID));
+          end;
         Result:=Obj;
       end;
     JOBArgMethod:
