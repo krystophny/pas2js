@@ -951,7 +951,8 @@ begin
         View.setUint8(p,JOBArgObject);
         inc(p);
         NewId:=RegisterLocalObject(TJSObject(Arg));
-        TJSArray(TempObjIds).push(NewId);
+        // Do not free these objects after the call, as they may be saved by the webassembly
+        // TJSArray(TempObjIds).push(NewId);
         {$IFDEF VERBOSEJOB}
         writeln('TJSObjectBridge.CreateCallbackArgs Object ID=',NewID);
         {$ENDIF}
