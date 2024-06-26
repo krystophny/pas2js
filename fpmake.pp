@@ -335,6 +335,7 @@ begin
       AddPackageFiles(P.InstallFiles,'kurento',UnitDir);   
       AddPackageFiles(P.InstallFiles,'vscode',UnitDir);   
       AddPackageFiles(P.InstallFiles,'webwidget',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'zenfs',UnitDir);   
       // Demo files
       DemoDir:=IncludeTrailingPathDelimiter(Defaults.ExamplesInstallDir);
       AddDemoFiles(P.InstallFiles,'fcldb',DemoDir);
