@@ -267,9 +267,11 @@ end;
 
 function TJSObjectBridge.FindGlobalObject(const aName: string): TJOBObjectID;
 begin
-  // this one is special, it needs to be re-registered every time
+  // these two are special, it needs to be re-registered every time
   if aName='InstanceMemory' then
     Exit(RegisterLocalObject(TJSUint8Array.New(getModuleMemoryDataView.buffer)))
+  else if aName='InstanceBuffer' then
+    Exit(RegisterLocalObject(getModuleMemoryDataView.buffer))
   else
     begin
     if not FGlobalNames.hasOwnProperty(aName) then
