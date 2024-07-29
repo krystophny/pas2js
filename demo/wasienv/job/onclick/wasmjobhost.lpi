@@ -10,7 +10,7 @@
         <Runnable Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="BrowserDomTest1"/>
+      <Title Value="WASM JOB - OnClick demo host program"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
     </General>
@@ -42,16 +42,6 @@
           <Item0 Name="PasJSIsProjectHTMLFile" Value="1"/>
         </CustomData>
       </Unit>
-      <Unit>
-        <Filename Value="../../../packages/job/job_browser.pp"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="JOB_Browser"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../../../packages/job/job_shared.pp"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="JOB_Shared"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -61,7 +51,6 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../../packages/job"/>
       <UnitOutputDirectory Value="js"/>
     </SearchPaths>
     <Parsing>

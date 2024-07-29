@@ -3,7 +3,7 @@ program wasmjobhost;
 {$mode objfpc}
 
 uses
-  BrowserConsole, JS, Types, Classes, SysUtils, Web, WasiEnv, WasiHostApp, JOB_Browser, JOB_Shared;
+  BrowserConsole, JS, Types, Classes, SysUtils, Web, WasiEnv, WasiHostApp, job_browser;
 
 var
   wasmFilename : string; external name 'wasmFilename';
