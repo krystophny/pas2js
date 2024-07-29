@@ -569,20 +569,32 @@ function TWASIHost.CreateWebAssembly(aPath: string; aImportObject: TJSObject
     Result:=TJSWebAssembly.instantiate(TJSArrayBuffer(res2),aImportObject)._then(@InstantiateOK,@InstantiateFail);
   end;
 
-  function fetchOK(res : jsValue) : JSValue;
-  begin
-    Result:=TJSResponse(Res).arrayBuffer._then(@ArrayOK,Nil);
-  end;
-
   function DoFail(res : jsValue) : JSValue;
   begin
     Result:=False;
-    console.Log('Loading of WebAssembly from '+aPath+' failed '+ValueToMessage(Res));
+    console.Log('Loading of WebAssembly from URL "'+aPath+'" failed: '+ValueToMessage(Res));
     DoLoadFail(res);
   end;
 
+  function fetchOK(res : jsValue) : JSValue;
+
+  var
+    Resp : TJSResponse absolute res;
+    err : TJSError;
+
+  begin
+    if (Resp.status div 100)<>2 then
+      begin
+      DoLoadFail(res);
+      Raise TJSError.new('Loading of WebAssembly from URL "'+aPath+'" failed: status: '+IntToStr(Resp.status)+' '+Resp.statusText);
+      end
+    else
+      Result:=TJSResponse(Res).arrayBuffer._then(@ArrayOK,Nil);
+  end;
+
+
 begin
-  Result:=fetch(aPath)._then(@fetchOK,@DoFail).Catch(@DoFail);
+  Result:=fetch(aPath)._then(@fetchOK,@DoFail);//.Catch(@DoFail);
 end;
 
 function TWASIHost.CreateWasiEnvironment: TPas2JSWASIEnvironment;
@@ -679,6 +691,8 @@ Var
     Result:=True;
     Console.Log('Failed to create webassembly. Reason:');
     Console.Debug(aValue);
+    if isObject(aValue) then
+      Raise TJSError(aValue);
   end;
 
 begin
@@ -686,7 +700,7 @@ begin
   // Clear current descriptor.
   FPreparedStartDescriptor:=Default(TWebAssemblyStartDescriptor);
   WASD:=InitStartDescriptor(GetMemory,GetTable,Nil);
-  Result:=CreateWebAssembly(aPath,WASD.Imports)._then(@initEnv,@DoFail).catch(@DoFail);
+  Result:=CreateWebAssembly(aPath,WASD.Imports)._then(@initEnv,@DoFail);
 end;
 
 procedure TWASIHost.RunPreparedDescriptor;
