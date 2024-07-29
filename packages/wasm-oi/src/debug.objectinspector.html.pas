@@ -27,6 +27,7 @@ Type
 
   { THTMLTreeBuilder }
   TObjectSelectedEvent = procedure(Sender : TObject; aObjectId : Integer) of object;
+  TMemberVisibilities = Set of TMemberVisibility;
 
   THTMLTreeBuilder = class(TObject)
   private
@@ -98,7 +99,7 @@ Type
   TOIColumn = (ocName,ocValue,ocKind,ocVisibility);
   TOIColumns = set of TOIColumn;
 
-  TOIOption = (ooHidePropertiesWithoutValue,ooShowCaption);
+  TOIOption = (ooHidePropertiesWithoutValue,ooShowCaption,ooShowConfigPanel);
   TOIOptions = set of TOIOption;
 
   { THTMLObjectInspector }
@@ -114,22 +115,31 @@ Type
     FCaption: String;
     FOnRefresh: TNotifyEvent;
     FOptions: TOIOptions;
+    FPropertyVisibilities: TMemberVisibilities;
+    FSuffix: String;
     FVisibleColumns: TOIColumns;
     FObjectID: integer;
     FParentElement : TJSHTMLElement;
     FTableElement : TJSHTMLTableElement;
     FCaptionElement : TJSHTMLElement;
+    FConfigPanel : TJSHTMLElement;
+    function AppendEl(aParent: TJSHTMLElement; aTag: String; const aID: String; const aInnerText: String=''): TJSHTMLElement;
+    function AppendSpan(aParent: TJSHTMLElement; const aInnerText: String=''): TJSHTMLElement;
+    function CreateEl(aTag: String; const aID: String; const aInnerText: String=''): TJSHTMLElement;
     function GetParentElement: TJSHTMLElement;
     function GetParentElementID: String;
     procedure RenderCaption(aEl: TJSHTMLElement);
     procedure SetBorder(AValue: Boolean);
     procedure SetCaption(AValue: String);
     procedure SetOptions(AValue: TOIOptions);
+    procedure SetPropertyVisibilities(AValue: TMemberVisibilities);
     procedure SetVisibleColumns(AValue: TOIColumns);
     procedure SetParentElementID(AValue: String);
+    procedure ToggleConfig(aEvent: TJSEvent);
   protected
     procedure DisplayChanged;
     procedure Refresh;
+    function CreateConfigPanel() : TJSHTMLElement; virtual;
     function CreateTable(aParent : TJSHTMLElement) : TJSHTMLTableElement; virtual;
     procedure SetObjectID(AValue: integer); virtual;
     procedure SetParentElement(AValue: TJSHTMLElement);virtual;
@@ -145,11 +155,13 @@ Type
     procedure AddProperty(aIndex : Integer; aVisibility : TMemberVisibility; aKind : TTypeKind; aFlags : TPropDataFlags; const aName,aValue : String);
     procedure AddProperty(aPropData: TOIPropData);
     Property ParentElement : TJSHTMLElement Read GetParentElement Write SetParentElement;
+    Property Suffix : String Read FSuffix Write FSuffix;
   Published
     Property ObjectID : integer Read FObjectID Write SetObjectID;
     Property ParentElementID : String Read GetParentElementID Write SetParentElementID;
     Property Border : Boolean Read FBorder Write SetBorder;
     property VisibleColumns : TOIColumns read FVisibleColumns write SetVisibleColumns;
+    property PropertyVisibilities : TMemberVisibilities Read FPropertyVisibilities Write SetPropertyVisibilities;
     Property Options : TOIOptions Read FOptions Write SetOptions;
     property BeforeAddProperty : TBeforeAddPropertyEvent Read FBeforeAddProperty Write FBeforeAddProperty;
     property AfterAddProperty : TAfterAddPropertyEvent Read FAfterAddProperty Write FAfterAddProperty;
@@ -181,8 +193,8 @@ var
 
 begin
   El:=TJSHTMLElement(event.targetElement.parentElement);
-  El.classList.toggle('expanded');
-  El.classList.toggle('collapsed');
+  El.classList.toggle('ot-expanded');
+  El.classList.toggle('ot-collapsed');
 end;
 
 procedure THTMLTreeBuilder.HandleItemSelect(Event : TJSEvent);
@@ -195,11 +207,11 @@ var
 begin
   // List element
   El:=TJSHTMLElement(event.targetElement.parentElement);
-  lList:=FRootElement.querySelectorAll('li.selected');
+  lList:=FRootElement.querySelectorAll('li.ot-selected');
   for I:=0 to lList.length-1 do
     if El<>lList.item(I) then
-      TJSHtmlElement(lList.item(I)).classList.remove('selected');
-  El.classList.add('selected');
+      TJSHtmlElement(lList.item(I)).classList.remove('ot-selected');
+  El.classList.add('ot-selected');
   if Assigned(FOnObjectSelect) then
     begin
     lSelectID:=StrToIntDef(el.dataset['objectId'],-1);
@@ -221,7 +233,7 @@ begin
     if FRootElement=Nil then
       begin
       FRootElement:=TJSHTMLElement(Document.createElement('ul'));
-      FRootElement.className:='tree-nested';
+      FRootElement.className:='ot-tree-nested';
       FParentElement.appendChild(FRootElement);
       end;
     aParent:=FParentElement;
@@ -232,25 +244,25 @@ begin
       Raise EHTMLTreeBuilder.CreateFmt('Invalid parent item type: %s',[aParent.tagName]);
     if Not StartCollapsed then
       begin
-      aParent.ClassList.remove('collapsed');
-      aParent.ClassList.add('expanded');
+      aParent.ClassList.remove('ot-collapsed');
+      aParent.ClassList.add('ot-expanded');
       end;
     end;
-  List:=TJSHTMLELement(aParent.querySelector('ul.tree-nested'));
+  List:=TJSHTMLELement(aParent.querySelector('ul.ot-tree-nested'));
   if List=Nil then
     begin
     List:=TJSHTMLElement(Document.createElement('ul'));
-    List.className:='tree-nested';
+    List.className:='ot-tree-nested';
     aParent.appendChild(List);
     end;
   Item:=TJSHTMLElement(Document.createElement('li'));
-  Item.className:='tree-item collapsed';
+  Item.className:='ot-tree-item ot-collapsed';
   Item.dataset['objectId']:=IntToStr(aID);
   Span:=TJSHTMLElement(Document.createElement('span'));
   Span.InnerText:=aCaption;
-  Span.className:='tree-item-caption' ;
-  Span.addEventListener('click',@HandleItemCollapse);
-  Span.addEventListener('dblclick',@HandleItemSelect);
+  Span.className:='ot-tree-item-caption' ;
+  Span.addEventListener('dblclick',@HandleItemCollapse);
+  Span.addEventListener('click',@HandleItemSelect);
   Item.appendChild(Span);
   List.AppendChild(Item);
   Result:=Item;
@@ -323,14 +335,14 @@ var
 begin
   aParent.InnerHTML:='';
   DC:=TJSHTMLElement(document.createElement('div'));
-  DC.className:='otCaption';
+  DC.className:='ot-caption';
   aParent.AppendChild(DC);
   FCaptionElement:=DC;
   if Not (otShowCaption in Options) then
-    DC.classList.Add('otHidden');
+    DC.classList.Add('ot-hidden');
   RenderCaption(DC);
   DT:=TJSHTMLElement(document.createElement('div'));
-  DT.className:='otTree';
+  DT.className:='ot-tree';
   aParent.AppendChild(DT);
   Result:=DT;
 end;
@@ -429,6 +441,13 @@ begin
   DisplayChanged;
 end;
 
+procedure THTMLObjectInspector.SetPropertyVisibilities(AValue: TMemberVisibilities);
+begin
+  if FPropertyVisibilities=AValue then Exit;
+  FPropertyVisibilities:=AValue;
+  DisplayChanged;
+end;
+
 procedure THTMLObjectInspector.SetVisibleColumns(AValue: TOIColumns);
 begin
   if FVisibleColumns=AValue then Exit;
@@ -473,17 +492,127 @@ begin
     FonRefresh(Self);
 end;
 
-Procedure THTMLObjectInspector.RenderCaption(aEl : TJSHTMLElement);
+function THTMLObjectInspector.AppendSpan(aParent: TJSHTMLElement; const aInnerText: String): TJSHTMLElement;
+begin
+  Result:=CreateEl('span','',aInnerText);
+  aParent.AppendChild(Result);
+end;
+
+function THTMLObjectInspector.CreateEl(aTag: String; const aID: String; const aInnerText: String): TJSHTMLElement;
+
+begin
+  Result:=TJSHTMLElement(Document.CreateElement(aTag));
+  if aID<>'' then
+    Result.id:=aID;
+  if aInnerText<>'' then
+    Result.InnerText:=aInnerText;
+end;
+
+function THTMLObjectInspector.AppendEl(aParent: TJSHTMLElement; aTag: String; const aID: String; const aInnerText: String
+  ): TJSHTMLElement;
+
+begin
+  Result:=CreateEl(aTag,aID,aInnerText);
+  aParent.AppendChild(Result);
+end;
+
+function THTMLObjectInspector.CreateConfigPanel(): TJSHTMLElement;
+
+  Function AppendCheckbox(aParent : TJSHTMLElement; aName,aLabel : String; aOrd : Integer; isChecked: Boolean) : TJSHTMLInputElement;
+
+  var
+    Tmp : TJSHTMLElement;
+
+  begin
+    Tmp:=AppendSpan(aParent,'');
+    Tmp.ClassName:='oi-checkbox-row';
+    Result:=TJSHTMLInputElement(AppendEl(Tmp,'input','cb'+aName+Suffix));
+    Result.Checked:=isChecked;
+    Result._type:='checkbox';
+    Result.dataset['ord']:=IntToStr(aOrd);
+    Tmp:=AppendEl(Tmp,'label','',aLabel);
+    Tmp['for']:='cb'+aName;
+  end;
+
+var
+  Tmp,CBDiv,CBhead,CBCol,cbRow : TJSHTMLElement;
+  CB : TJSHTMLInputElement;
+  Vis : TMemberVisibility;
+
+begin
+  Result:=CreateEl('div','oiConfig'+Suffix);
+  Result.classList.add('oi-config-panel-closed');
+
+  appendEl(Result,'h5','Use the checkboxes to show/hide fields in the table:');
+  CBDiv:=appendEl(Result,'div','');
+  CBDiv.ClassName:='oi-checkbox-div';
+  // Col 1
+  CBCol:=appendEl(CBDiv,'div','');
+  CBCol.ClassName:='oi-checkbox-col';
+  CBHead:=AppendEl(CBCol,'div','');
+  CBHead.ClassName:='oi-checkbox-header';
+  AppendSpan(CBHead,'Columns');
+  AppendCheckBox(CBCol,'PropertyName','Property name',Ord(ocName),ocName in VisibleColumns);
+  AppendCheckBox(CBCol,'PropertyVisibility','Visibility',Ord(ocVisibility),ocVisibility in VisibleColumns);
+  AppendCheckBox(CBCol,'PropertyKind','Kind',Ord(ocKind),ocKind in VisibleColumns);
+  AppendCheckBox(CBCol,'PropertyValue','Value',Ord(ocValue),ocValue in VisibleColumns);
+  // Col 2
+  CBCol:=appendEl(CBDiv,'div','');
+  CBCol.ClassName:='oi-checkbox-col';
+  CBHead:=AppendEl(CBCol,'div','');
+  CBHead.ClassName:='oi-checkbox-header';
+  AppendSpan(CBHead,'Visibilities');
+  For Vis in TMemberVisibility do
+    AppendCheckBox(CBCol,'PropVis'+VisibilityNames[Vis],VisibilityNames[Vis],Ord(Vis),Vis in PropertyVisibilities);
+  Tmp:=AppendEl(Result,'div','');
+  Tmp.classname:='oi-checkbox-last';
+  AppendCheckBox(Tmp,'noShowNoValue','Hide properties without value',0,ooHidePropertiesWithoutValue in Options);
+
+
+(*
+
+    <div class="checkbox-last">
+      <span class="width-300">
+        <input
+          type="checkbox"
+          id="colPublishedCheckbox"
+          name="cbxPublished"
+          unchecked
+        />
+        <label for="cbxPublished">Hide properties without value</label>
+      </span>
+    </div>
+  </div>
+
+*)
+end;
+
+procedure THTMLObjectInspector.RenderCaption(aEl: TJSHTMLElement);
 
 begin
   aEl.innerText:=Caption;
+end;
+
+procedure THTMLObjectInspector.ToggleConfig(aEvent : TJSEvent);
+
+begin
+  if not FConfigPanel.classList.toggle('oi-config-panel-open') then
+    begin
+    aEvent.TargetElement.innerHTML:='&#x2699;';
+    FConfigPanel.classList.add('oi-config-panel-closed');
+    end
+  else
+    begin
+    aEvent.TargetElement.innerHTML:='&#x25b4;';
+    FConfigPanel.classList.remove('oi-config-panel-closed');
+    end
 end;
 
 function THTMLObjectInspector.CreateTable(aParent : TJSHTMLElement): TJSHTMLTableElement;
 
 
 var
-  DP,DC,P,R,C : TJSHTMLElement;
+  CS,DP,DC,P,R,C : TJSHTMLElement;
 
   function AddHeader(aText,aClass : string) : TJSHTMLTableCellElement;
   begin
@@ -497,32 +626,47 @@ begin
   if (ooShowCaption in Options) and (Caption<>'') then
     begin
     DP:=TJSHTMLElement(Document.createElement('div'));
-    DP.className:='oiWrapper';
+    DP.className:='oi-wrapper';
     aParent.AppendChild(DP);
     DC:=TJSHTMLElement(Document.createElement('div'));
-    DC.className:='oiCaption';
-    RenderCaption(DC);
+    DC.className:='oi-caption';
+    CS:=TJSHTMLElement(Document.createElement('span'));
+    DC.AppendChild(CS);
+    RenderCaption(CS);
     DP.AppendChild(DC);
     FCaptionElement:=DC;
+    FConfigPanel:=nil;
+    if ooShowConfigPanel in Options then
+      begin
+      CS:=TJSHTMLElement(Document.createElement('span'));
+      CS.innerHTML:='&#x2699;';
+      CS.className:='oi-icon-btn';
+      CS.addEventListener('click',@ToggleConfig);
+      DC.AppendChild(CS);
+      FConfigPanel:=CreateConfigPanel;
+      DP.appendChild(FConfigPanel);
+      end
     end
   else
     begin
+    FConfigPanel:=nil;
     FCaptionElement:=DC;
     DP:=aParent;
     end;
+
   Result:=TJSHTMLTableElement(Document.createElement('TABLE'));
-  Result.ClassName:='objectInspectorTable';
+  Result.ClassName:='oi-table';
   P:=TJSHTMLTableElement(Document.createElement('THEAD'));
   Result.appendChild(P);
   R:=TJSHTMLTableRowElement(Document.createElement('TR'));
   if ocName in VisibleColumns then
-    addHeader('Property Name','oiPropertyName');
+    addHeader('Property Name','oi-property-name');
   if ocVisibility in VisibleColumns then
-    addHeader('Visibility','oiPropertyVisibility');
+    addHeader('Visibility','oi-property-visibility');
   if ocKind in VisibleColumns then
-    addHeader('Kind','oiPropertyKind');
+    addHeader('Kind','oi-property-kind');
   if ocValue in VisibleColumns then
-    addHeader('Value','oiPropertyValue');
+    addHeader('Value','oi-property-value');
   P.appendChild(R);
   P:=TJSHTMLTableElement(Document.createElement('TBODY'));
   Result.border:=IntToStr(Ord(Border));
@@ -651,8 +795,9 @@ constructor THTMLObjectInspector.Create(aOwner: TComponent);
 begin
   inherited Create(aOwner);
   Caption:='Property inspector';
-  Options:=[ooShowCaption,ooHidePropertiesWithoutValue];
+  Options:=[ooShowCaption,ooShowConfigPanel,ooHidePropertiesWithoutValue];
   VisibleColumns:=[ocName,ocValue];
+  PropertyVisibilities:=[Low(TMemberVisibility)..High(TMemberVisibility)];
 end;
 
 destructor THTMLObjectInspector.destroy;
