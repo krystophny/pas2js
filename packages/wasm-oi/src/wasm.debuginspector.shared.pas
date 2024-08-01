@@ -20,7 +20,7 @@ unit wasm.debuginspector.shared;
 interface
 
 {$IFDEF PAS2JS}
-uses rtti;
+uses typinfo, rtti;
 {$ENDIF}
 
 Const

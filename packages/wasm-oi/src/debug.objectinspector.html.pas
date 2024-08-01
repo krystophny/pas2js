@@ -61,12 +61,15 @@ type
   private
     FBuilder: THTMLTreeBuilder;
     FCaption: String;
+    FOnRefresh: TNotifyEvent;
     FOptions: TOTOptions;
     FParentElement,
     FCaptionElement : TJSHTMLElement;
+    FRootObjectID: Integer;
     function GetOnObjectSelected: TObjectSelectedEvent;
     function GetParentElement: TJSHTMLElement;
     function GetParentElementID: String;
+    procedure HandleRefresh(aEvent: TJSEvent);
     procedure SetCaption(AValue: String);
     procedure SetOnObjectSelected(AValue: TObjectSelectedEvent);
     procedure SetOptions(AValue: TOTOptions);
@@ -87,6 +90,8 @@ type
     Property OnObjectSelected : TObjectSelectedEvent Read GetOnObjectSelected Write SetOnObjectSelected;
     Property Caption : String Read FCaption Write SetCaption;
     Property Options : TOTOptions Read FOptions Write SetOptions;
+    Property OnRefresh : TNotifyEvent Read FOnRefresh Write FOnRefresh;
+    Property RootObjectID : Integer Read FRootObjectID;
   end;
 
   TPropDataFlag = (pdfNoValue,pdfError);
@@ -316,6 +321,12 @@ begin
     Result:='';
 end;
 
+procedure THTMLObjectTree.HandleRefresh(aEvent: TJSEvent);
+begin
+  If Assigned(FOnRefresh) then
+    FOnRefresh(Self);
+end;
+
 procedure THTMLObjectTree.SetCaption(AValue: String);
 begin
   if FCaption=AValue then Exit;
@@ -345,17 +356,24 @@ end;
 function THTMLObjectTree.BuildWrapper(aParent : TJSHTMLElement) : TJSHTMLElement;
 
 var
-  DW,DC,DT : TJSHTMLElement;
+  RI,SC,DW,DC,DT : TJSHTMLElement;
 
 begin
   aParent.InnerHTML:='';
   DC:=TJSHTMLElement(document.createElement('div'));
   DC.className:='ot-caption';
+  SC:=TJSHTMLElement(document.createElement('span'));
+  DC.AppendChild(SC);
+  RI:=TJSHTMLElement(document.createElement('div'));
+  RI.className:='ot-icon-btn';
+  RI.InnerHTML:='&#x27F3';
+  RI.AddEventListener('click',@HandleRefresh);
+  DC.AppendChild(RI);
   aParent.AppendChild(DC);
-  FCaptionElement:=DC;
+  FCaptionElement:=SC;
   if Not (otShowCaption in Options) then
     DC.classList.Add('ot-hidden');
-  RenderCaption(DC);
+  RenderCaption(SC);
   DT:=TJSHTMLElement(document.createElement('div'));
   DT.className:='ot-tree';
   aParent.AppendChild(DT);
@@ -409,12 +427,16 @@ begin
   if aParentID<>0 then
     lParent:=FBuilder.FindObjectItem(aParentID)
   else
+    begin
     lParent:=Nil;
+    FRootObjectID:=AID;
+    end;
   FBuilder.AddItem(lParent,aCaption,aID);
 end;
 
 procedure THTMLObjectTree.Clear;
 begin
+  FRootObjectID:=0;
   FBuilder.Clear;
 end;
 
@@ -711,6 +733,7 @@ begin
     DC:=TJSHTMLElement(Document.createElement('div'));
     DC.className:='oi-caption';
     CS:=TJSHTMLElement(Document.createElement('span'));
+    CS.className:='oi-caption-lbl';
     DC.AppendChild(CS);
     RenderCaption(CS);
     Result.AppendChild(DC);
