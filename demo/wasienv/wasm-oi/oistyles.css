@@ -5,7 +5,7 @@
 
 /* 
  * 
- * Object Yree
+ * Object Tree
  * 
  */
 
@@ -19,8 +19,20 @@
   justify-content: space-between;
   border-bottom-style: solid;
   border-bottom-width: 1px;
-
 }
+
+.ot-caption-lbl {
+  flex-grow: 1;
+  text-align: center;
+}
+
+/* Object tree caption button */
+.ot-icon-btn {
+  padding: 1px 10px;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
 
 ot-hidden {
   display: none;
