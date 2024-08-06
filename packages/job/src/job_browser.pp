@@ -55,6 +55,9 @@ Type
     Property Func : TObjectFactory Read FFunc;
   end;
 
+  TCallbackErrorJSEventHandler = reference to procedure(Sender : TObject; Error : TJSError; Args : TJSFunctionArguments; var ReRaise : Boolean);
+  TCallbackErrorPasEventHandler = reference to procedure(Sender : TObject; Error : Exception; Args : TJSFunctionArguments; var ReRaise : Boolean);
+
   { TJSObjectBridge }
 
   TJSObjectBridge = class(TImportExtension)
@@ -64,6 +67,8 @@ Type
     FGlobalNames: TJSObject; // name to id
     FLocalObjects: TJSArray;
     FFreeLocalIds: TJSArray; // free positions in FLocalObjects
+    FOnCallBackJSError: TCallbackErrorJSEventHandler;
+    FOnCallBackPasError: TCallbackErrorPasEventHandler;
     FStringResult: string;
     FFactories : TJSObject;
 
@@ -99,6 +104,8 @@ Type
     Procedure RegisterJSObjectFactory(const aName : string; aFunc : TJSObjectFactory); overload;
     Function GetJOBResult(v: jsvalue): TJOBResult;
     property CallbackHandler: TJOBCallback read FCallbackHandler write FCallbackHandler;
+    property OnCallBackJSError : TCallbackErrorJSEventHandler read FOnCallBackJSError Write FOnCallBackJSError;
+    property OnCallBackPasError : TCallbackErrorPasEventHandler read FOnCallBackPasError Write FOnCallBackPasError;
   end;
 
 Implementation
@@ -664,6 +671,7 @@ var
   var
     aCall, aData, aCode: TWasmNativeInt;
     Obj : TJSObject absolute Result;
+    ReRaise : Boolean;
 
     function MethodCallBack: jsvalue;
       var
@@ -678,7 +686,27 @@ var
           {$IFDEF VerboseJOBCallback}
           writeln('TJSObjectBridge Callback: calling Wasm with');
           {$ENDIF}
-          ResultP:=CallbackHandler(aCall,aData,aCode,Args); // this frees Args, and may detach View
+          try
+            ResultP:=CallbackHandler(aCall,aData,aCode,Args); // this frees Args, and may detach View
+          except
+            on JE : TJSError do
+              begin
+              ReRaise:=True;
+              if Assigned(OnCallBackJSError) then
+                OnCallBackJSError(Self,JE,JSArguments,ReRaise);
+              if ReRaise then
+                Raise;
+              end;
+            on E : Exception do
+              begin
+              ReRaise:=True;
+              if Assigned(OnCallBackPasError) then
+                OnCallBackPasError(Self,E,JSArguments,ReRaise);
+              if ReRaise then
+                Raise;
+              end;
+          end;
+
           View:=getModuleMemoryDataView();
           {$IFDEF VerboseJOBCallback}
           writeln('TJSObjectBridge Callback: called Wasm Call=',aCall,' Data=',aData,' Code=',aCode,' ResultP=',ResultP,' getting Result...');
