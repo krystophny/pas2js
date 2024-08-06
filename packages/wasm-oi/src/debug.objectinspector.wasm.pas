@@ -30,19 +30,19 @@ type
   TWasmPointer = longint;
 
   { TWasmObjectInspectorApi }
+  THandleInspectorEvent = (hieTreeSelect,hieTreeRefresh,hieInspectorRefresh);
+  THandleInspectorEvents = Set of THandleInspectorEvent;
 
   TWasmObjectInspectorApi = class(TImportExtension)
   private
+    FHandleEvents: THandleInspectorEvents;
     FHandleObjectSelection: Boolean;
     FHandleRefresh: Boolean;
     FInspector: THTMLObjectInspector;
     FLogAPICalls: Boolean;
     FObjectTree: THTMLObjectTree;
-    procedure DoRefreshTree(Sender: TObject);
-    procedure DoSelectObject(Sender: TObject; aObjectId: Integer);
     procedure RaiseOILastError(const aOperation: String);
-    procedure SetHandleHandleRefresh(AValue: Boolean);
-    procedure SetHandleObjectSelection(AValue: Boolean);
+    procedure SetHandleEvents(AValue: THandleInspectorEvents);
     procedure SetInspector(AValue: THTMLObjectInspector);
     procedure SetLogAPICalls(AValue: Boolean);
     procedure SetObjectTree(AValue: THTMLObjectTree);
@@ -50,6 +50,10 @@ type
   protected
     procedure Logcall(Const aMsg : string);
     procedure LogCall(Const aFmt : string; aArgs : Array of const);
+    // Callbacks from object tree/inspector
+    procedure DoRefreshInspector(Sender: TObject); virtual;
+    procedure DoRefreshTree(Sender: TObject); virtual;
+    procedure DoSelectObject(Sender: TObject; aObjectId: Integer); virtual;
     // Inspector allocation/deallocation commands
     function InspectorAllocate(aID: TWasmPointer): TWasmOIResult;
     function InspectorDeAllocate(aID: TInspectorID): TWasmOIResult;
@@ -61,7 +65,7 @@ type
     function TreeSetCaption(aInspectorID: TInspectorID; aCaption : TWasmPointer; aCaptionLen : Longint): TWasmOIResult;
     function TreeAddObject(aInspectorID: TInspectorID; ObjectData : PObjectData): TWasmOIResult;
     function TreeClear(aInspectorID: TInspectorID) : TWasmOIResult;
-    Procedure HookObjectTree;
+    procedure HookEvents;
     Function GetTree(aInspectorID : TInspectorID) : THTMLObjectTree;
     Function GetInspector(aInspectorID : TInspectorID) : THTMLObjectInspector;
   Public
@@ -71,8 +75,7 @@ type
     Procedure GetObjectProperties(aObjectID : Integer);
     Property DefaultObjectTree : THTMLObjectTree Read FObjectTree Write SetObjectTree;
     property DefaultInspector : THTMLObjectInspector Read FInspector Write SetInspector;
-    Property HandleObjectSelection : Boolean Read FHandleObjectSelection Write SetHandleObjectSelection;
-    Property HandleTreeRefresh : Boolean Read FHandleRefresh Write SetHandleHandleRefresh;
+    property HandleInspectorEvents : THandleInspectorEvents Read FHandleEvents Write SetHandleEvents;
     property LogAPICalls : Boolean read FLogAPICalls write SetLogAPICalls;
   end;
 
@@ -106,7 +109,7 @@ begin
   FObjectTree:=AValue;
   if assigned(FObjectTree) then
     FObjectTree.Clear;
-  HookObjectTree;
+  HookEvents;
 end;
 
 procedure TWasmObjectInspectorApi.Logcall(const aMsg: string);
@@ -150,16 +153,30 @@ begin
   Raise EWasmOI.Create(S);
 end;
 
-procedure TWasmObjectInspectorApi.SetHandleHandleRefresh(AValue: Boolean);
+procedure TWasmObjectInspectorApi.SetHandleEvents(AValue: THandleInspectorEvents
+  );
 begin
-  if FHandleRefresh=AValue then Exit;
-  FHandleRefresh:=AValue;
-  HookObjectTree;
+  if FHandleEvents=AValue then Exit;
+  FHandleEvents:=AValue;
+  HookEvents;
 end;
+
 
 procedure TWasmObjectInspectorApi.DoSelectObject(Sender: TObject; aObjectId: Integer);
 begin
   GetObjectProperties(aObjectID);
+end;
+
+procedure TWasmObjectInspectorApi.DoRefreshInspector(Sender: TObject);
+
+var
+  OI : THTMLObjectInspector absolute Sender;
+  ObjID : Integer;
+
+begin
+  ObjID:=OI.ObjectID;
+  if ObjID<>0 then
+    GetObjectProperties(ObjID);
 end;
 
 procedure TWasmObjectInspectorApi.DoRefreshTree(Sender: TObject);
@@ -169,13 +186,6 @@ begin
   if (FObjectTree.RootObjectID=0) then
     Exit;
   ShowObjectTree(FObjectTree.RootObjectID);
-end;
-
-procedure TWasmObjectInspectorApi.SetHandleObjectSelection(AValue: Boolean);
-begin
-  if FHandleObjectSelection=AValue then Exit;
-  FHandleObjectSelection:=AValue;
-  HookObjectTree
 end;
 
 procedure TWasmObjectInspectorApi.ShowObjectTree(aObjectID: Integer);
@@ -269,7 +279,7 @@ begin
   else
     begin
     Result:=WASMOI_SUCCESS;
-    OI.Caption:=lCaption;
+    OI.ObjectCaption:=lCaption;
     end;
 end;
 
@@ -297,19 +307,24 @@ begin
     end;
 end;
 
-procedure TWasmObjectInspectorApi.HookObjectTree;
+procedure TWasmObjectInspectorApi.HookEvents;
 begin
   if not Assigned(FObjectTree) then
     Exit;
-  if HandleObjectSelection then
+  if hieTreeSelect in HandleInspectorEvents then
     FObjectTree.OnObjectSelected:=@DoSelectObject
   else
     FObjectTree.OnObjectSelected:=Nil;
-  if HandleTreeRefresh then
+  if hieTreeRefresh in HandleInspectorEvents then
     FObjectTree.OnRefresh:=@DoRefreshTree
   else
     FObjectTree.OnRefresh:=Nil;
+  if hieInspectorRefresh in HandleInspectorEvents then
+    FInspector.OnRefreshObject:=@DoRefreshInspector
+  else
+    FInspector.OnRefreshObject:=Nil;
 end;
+
 
 function TWasmObjectInspectorApi.InspectorClear(aInspectorID: TInspectorID): TWasmOIResult;
 

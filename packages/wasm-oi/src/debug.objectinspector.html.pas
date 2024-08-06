@@ -16,6 +16,7 @@
 unit debug.objectinspector.html;
 
 {$mode ObjFPC}
+{$modeswitch advancedrecords}
 
 interface
 
@@ -32,25 +33,59 @@ Type
 
 const
   AllMemberVisibilities = [low(TMemberVisibility)..High(TMemberVisibility)];
+  DefaultRefreshHTML =  '&#x27F3';
+  DefaultDetailsHTML = '&#x27A1;';
+  DefaultConfigureHTML = '&#x2699;';
+  DefaultBackHTML = '&#x2B05';
+  DefaultCollapseHTML = '&#x25b4;';
 
 type
 
+  { TIconHTML }
+
+  TIconHTML = Class(TPersistent)
+  private
+    FOnChange: TNotifyEvent;
+    FRefresh: String;
+    FOwner : TComponent;
+    procedure SetRefresh(AValue: String);
+  protected
+    constructor Create(aOwner : TComponent); virtual;
+    function GetOwner: TPersistent; override;
+    Procedure Changed; virtual;
+    property OnChange: TNotifyEvent Read FOnChange Write FOnChange;
+  public
+    procedure Assign(Source: TPersistent); override;
+  Published
+    Property Refresh : String Read FRefresh Write SetRefresh;
+  end;
+
+  TObjectTreeIconHTML = class(TIconHTML);
+
+
   THTMLTreeBuilder = class(TObject)
   private
+    FIcons: TObjectTreeIconHTML;
     FOnObjectSelect: TObjectSelectedEvent;
     FParentElement: TJSHTMLElement;
     FRootElement : TJSHTMLElement;
     FStartCollapsed: Boolean;
     procedure HandleItemCollapse(Event: TJSEvent);
     procedure HandleItemSelect(Event: TJSEvent);
+    procedure SetIcons(AValue: TObjectTreeIconHTML);
     procedure SetParentElement(AValue: TJSHTMLElement);
+  protected
+    function CreateIcons(aOwner :TComponent) : TObjectTreeIconHTML; virtual;
   Public
+    constructor Create(aOwner : TComponent);
+    Destructor destroy; override;
     Function AddItem(aParent : TJSHTMLElement; aCaption : String; aID : Integer) : TJSHTMLElement;
     Function FindObjectItem(aID : Integer) : TJSHTMLElement;
     procedure Clear;
     Property ParentElement : TJSHTMLElement Read FParentElement Write SetParentElement;
     Property OnObjectSelected : TObjectSelectedEvent Read FOnObjectSelect Write FOnObjectSelect;
     Property StartCollapsed : Boolean Read FStartCollapsed Write FStartCollapsed;
+    Property Icons : TObjectTreeIconHTML Read FIcons Write SetIcons;
   end;
 
   { THTMLObjectTree }
@@ -66,16 +101,19 @@ type
     FParentElement,
     FCaptionElement : TJSHTMLElement;
     FRootObjectID: Integer;
+    function GetIconHtml: TObjectTreeIconHTML;
     function GetOnObjectSelected: TObjectSelectedEvent;
     function GetParentElement: TJSHTMLElement;
     function GetParentElementID: String;
     procedure HandleRefresh(aEvent: TJSEvent);
     procedure SetCaption(AValue: String);
+    procedure SetIconHTML(AValue: TObjectTreeIconHTML);
     procedure SetOnObjectSelected(AValue: TObjectSelectedEvent);
     procedure SetOptions(AValue: TOTOptions);
     procedure SetParentElement(AValue: TJSHTMLElement);
     procedure SetParentElementID(AValue: String);
   Protected
+    function CreateBuilder: THTMLTreeBuilder; virtual;
     function BuildWrapper(aParent: TJSHTMLElement): TJSHTMLElement;
     procedure RenderCaption(aEl: TJSHTMLELement);
   Public
@@ -91,8 +129,32 @@ type
     Property Caption : String Read FCaption Write SetCaption;
     Property Options : TOTOptions Read FOptions Write SetOptions;
     Property OnRefresh : TNotifyEvent Read FOnRefresh Write FOnRefresh;
+    Property Icons : TObjectTreeIconHTML Read GetIconHtml Write SetIconHTML;
     Property RootObjectID : Integer Read FRootObjectID;
   end;
+
+  { TPropertyInspectorIconHTML }
+
+  TPropertyInspectorIconHTML = class(TIconHTML)
+  private
+    FBack: String;
+    FCollapse: String;
+    FConfigure: String;
+    FDetails: String;
+    procedure SetBack(AValue: String);
+    procedure SetCollapse(AValue: String);
+    procedure SetConfigure(AValue: String);
+    procedure SetDetails(AValue: String);
+  Public
+    constructor Create(aOwner : TComponent); override;
+    procedure Assign(Source: TPersistent); override;
+  Published
+    Property Configure : String Read FConfigure Write SetConfigure;
+    Property Back : String Read FBack Write SetBack;
+    Property Details : String Read FDetails Write SetDetails;
+    Property Collapse : String Read FCollapse Write SetCollapse;
+  end;
+
 
   TPropDataFlag = (pdfNoValue,pdfError);
   TPropDataFlags = Set of TPropDataFlag;
@@ -113,10 +175,41 @@ type
   TOIOption = (ooHidePropertiesWithoutValue,ooShowCaption,ooShowConfigPanel);
   TOIOptions = set of TOIOption;
 
+  TInspectorObject = record
+    Caption : String;
+    ObjectID : Integer;
+  end;
+
+  { TInspectorObjectStack }
+
+  TInspectorObjectStack = record
+  Public
+    const
+      ArrayDelta = 10;
+  private
+    Objects: Array of TInspectorObject;
+    Count : Integer;
+    function GetCurrent: TInspectorObject;
+    function GetFullCaption: String;
+    function GetIsEmpty: Boolean;
+  public
+    constructor Create(initialSize : Integer);
+    Procedure Clear;
+    procedure Push(aObj : TInspectorObject);
+    procedure SetCurrentObjectID(aObjectID : Integer);
+    procedure SetCurrentCaption(aCaption : string);
+    function Pop : TInspectorObject;
+    property IsEmpty : Boolean Read GetIsEmpty;
+    property Current : TInspectorObject read GetCurrent;
+    property FUllCaption : String Read GetFullCaption;
+  end;
+
+
   { THTMLObjectInspector }
 
   TBeforeAddPropertyEvent = procedure (Sender : TObject; aData : TOIPropData; var aAllow : Boolean) of object;
   TAfterAddPropertyEvent = procedure (Sender : TObject; aData : TOIPropData) of object;
+
 
   THTMLObjectInspector = class(TComponent)
   private
@@ -124,30 +217,33 @@ type
     FBeforeAddProperty: TBeforeAddPropertyEvent;
     FBorder: Boolean;
     FCaption: String;
+    FIcons: TPropertyInspectorIconHTML;
     FOnRefresh: TNotifyEvent;
+    FOnRefreshObject: TNotifyEvent;
     FOptions: TOIOptions;
     FPropertyVisibilities: TMemberVisibilities;
     FSuffix: String;
     FVisibleColumns: TOIColumns;
-    FObjectID: integer;
     FParentElement : TJSHTMLElement;
     FTableElement : TJSHTMLTableElement;
     FCaptionElement : TJSHTMLElement;
     FConfigPanel : TJSHTMLElement;
     FWrapperElement : TJSHTMLElement;
     FProperties : Array of TOIPropData;
-    function AppendEl(aParent: TJSHTMLElement; aTag: String; const aID: String; const aInnerText: String=''): TJSHTMLElement;
-    function AppendSpan(aParent: TJSHTMLElement; const aInnerText: String=''): TJSHTMLElement;
-    function CreateEl(aTag: String; const aID: String; const aInnerText: String=''): TJSHTMLElement;
-    function CreateWrapper(aParent: TJSHTMLElement): TJSHTMLElement;
+    FObjectStack : TInspectorObjectStack;
+    FFullCaption : String;
+    FBackElement : TJSHTMLElement;
+    function GetFullCaption: String;
+    function GetObjectCaption: String;
+    function GetObjectID: integer;
     function GetParentElement: TJSHTMLElement;
     function GetParentElementID: String;
-    procedure HandleColumnVisibility(aEvent: TJSEvent);
-    procedure HandleOptionsClick(aEvent: TJSEvent);
-    procedure HandlePropertyVisibility(aEvent: TJSEvent);
-    procedure RenderCaption(aEl: TJSHTMLElement);
+    procedure RenderCaption;
     procedure SetBorder(AValue: Boolean);
     procedure SetCaption(AValue: String);
+    procedure SetFullCaption(AValue: String);
+    procedure SetIcons(AValue: TPropertyInspectorIconHTML);
+    procedure SetObjectCaption(AValue: String);
     procedure SetOptions(AValue: TOIOptions);
     procedure SetPropertyVisibilities(AValue: TMemberVisibilities);
     procedure SetVisibleColumns(AValue: TOIColumns);
@@ -155,7 +251,14 @@ type
     procedure ToggleConfig(aEvent: TJSEvent);
   protected
     procedure DisplayChanged;
-    procedure Refresh;
+    procedure Refresh; virtual; // Display only
+    procedure RefreshObject; virtual; // Object only
+    function CreateIcons: TPropertyInspectorIconHTML; virtual;
+    function AppendEl(aParent: TJSHTMLElement; aTag: String; const aID: String; const aInnerText: String=''): TJSHTMLElement;
+    function AppendSpan(aParent: TJSHTMLElement; const aInnerText: String=''): TJSHTMLElement;
+    function CreateEl(aTag: String; const aID: String; const aInnerText: String=''): TJSHTMLElement;
+    function CreateCaption(aParent: TJSHTMLElement): TJSHTMLElement; virtual;
+    function CreateWrapper(aParent: TJSHTMLElement): TJSHTMLElement; virtual;
     function CreateConfigPanel() : TJSHTMLElement; virtual;
     function CreateTable(aParent : TJSHTMLElement) : TJSHTMLTableElement; virtual;
     procedure SetObjectID(AValue: integer); virtual;
@@ -164,8 +267,17 @@ type
     function CreateNameCell(aPropData: TOIPropData): TJSHTMLTableCellElement; virtual;
     function CreateValueCell(aPropData: TOIPropData; const aKindName: string): TJSHTMLTableCellElement; virtual;
     function CreateVisibilityCell(aPropData: TOIPropData): TJSHTMLTableCellElement; virtual;
+    // Various event handlers
+    procedure HandleBack(aEvent: TJSHTMLElement); virtual;
+    procedure HandleColumnVisibility(aEvent: TJSEvent); virtual;
+    procedure HandleOptionsClick(aEvent: TJSEvent); virtual;
+    procedure HandlePropertyDetails(aEvent: TJSEvent); virtual;
+    procedure HandlePropertyVisibility(aEvent: TJSEvent); virtual;
+    procedure HandleRefresh(aEvent: TJSHTMLElement); virtual;
     function ShowProperty(aPropData: TOIPropData): boolean; virtual;
     procedure DoAddProperty(aPropData: TOIPropData); virtual;
+    procedure PushObject(aObjectID : Integer; const aCaption : String);
+    function PopObject : Integer;
   Public
     constructor Create(aOwner : TComponent); override;
     destructor destroy; override;
@@ -175,7 +287,7 @@ type
     Property ParentElement : TJSHTMLElement Read GetParentElement Write SetParentElement;
     Property Suffix : String Read FSuffix Write FSuffix;
   Published
-    Property ObjectID : integer Read FObjectID Write SetObjectID;
+    Property ObjectID : integer Read GetObjectID Write SetObjectID;
     Property ParentElementID : String Read GetParentElementID Write SetParentElementID;
     Property Border : Boolean Read FBorder Write SetBorder;
     property VisibleColumns : TOIColumns read FVisibleColumns write SetVisibleColumns;
@@ -184,7 +296,10 @@ type
     property BeforeAddProperty : TBeforeAddPropertyEvent Read FBeforeAddProperty Write FBeforeAddProperty;
     property AfterAddProperty : TAfterAddPropertyEvent Read FAfterAddProperty Write FAfterAddProperty;
     property OnRefresh : TNotifyEvent Read FOnRefresh write FOnRefresh;
-    Property Caption : String Read FCaption Write SetCaption;
+    property OnRefreshObject : TNotifyEvent Read FOnRefreshObject write FOnRefreshObject;
+    Property FullCaption : String Read GetFullCaption Write SetFullCaption;
+    Property ObjectCaption : String Read GetObjectCaption Write SetObjectCaption;
+    Property Icons : TPropertyInspectorIconHTML Read FIcons Write SetIcons;
   end;
 
 
@@ -195,6 +310,46 @@ uses js;
 const
   VisibilityNames : Array[TMemberVisibility] of string = ('Private','Protected','Public','Published');
 
+{ TIconHTML }
+
+procedure TIconHTML.SetRefresh(AValue: String);
+begin
+  if FRefresh=AValue then Exit;
+  FRefresh:=AValue;
+  Changed;
+end;
+
+constructor TIconHTML.Create(aOwner: TComponent);
+begin
+  FOwner:=aOwner;
+  FRefresh:=DefaultRefreshHTML;
+end;
+
+function TIconHTML.GetOwner: TPersistent;
+begin
+  Result:=FOwner;
+end;
+
+procedure TIconHTML.Changed;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
+end;
+
+procedure TIconHTML.Assign(Source: TPersistent);
+
+var
+  Src : TIconHTML absolute Source;
+
+begin
+  if Source is TIconHTML then
+    begin
+    FRefresh:=Src.Refresh;
+    end
+  else
+    inherited Assign(Source);
+end;
+
 
 { THTMLTreeBuilder }
 
@@ -204,6 +359,22 @@ begin
   FParentElement:=AValue;
   FParentElement.innerHTML:='';
   FRootElement:=nil;
+end;
+
+constructor THTMLTreeBuilder.Create(aOwner: TComponent);
+begin
+  FIcons:=CreateIcons(aOwner);
+end;
+
+destructor THTMLTreeBuilder.destroy;
+begin
+  FreeAndNil(FIcons);
+  inherited destroy;
+end;
+
+function THTMLTreeBuilder.CreateIcons(aOwner: TComponent): TObjectTreeIconHTML;
+begin
+  Result:=TObjectTreeIconHTML.Create(aOwner);
 end;
 
 procedure THTMLTreeBuilder.HandleItemCollapse(Event : TJSEvent);
@@ -238,6 +409,12 @@ begin
     if (lSelectID<>-1) then
       FOnObjectSelect(Self,lSelectID);
     end;
+end;
+
+procedure THTMLTreeBuilder.SetIcons(AValue: TObjectTreeIconHTML);
+begin
+  if FIcons=AValue then Exit;
+  FIcons.Assign(AValue);
 end;
 
 
@@ -313,6 +490,11 @@ begin
   Result:=FBuilder.OnObjectSelected
 end;
 
+function THTMLObjectTree.GetIconHtml: TObjectTreeIconHTML;
+begin
+  Result:=FBuilder.Icons;
+end;
+
 function THTMLObjectTree.GetParentElementID: String;
 begin
   if Assigned(ParentElement) then
@@ -333,6 +515,11 @@ begin
   FCaption:=AValue;
   if Assigned(FCaption) then
     RenderCaption(FCaptionElement);
+end;
+
+procedure THTMLObjectTree.SetIconHTML(AValue: TObjectTreeIconHTML);
+begin
+  FBuilder.Icons.Assign(aValue);
 end;
 
 procedure THTMLObjectTree.SetOnObjectSelected(AValue: TObjectSelectedEvent);
@@ -366,7 +553,7 @@ begin
   DC.AppendChild(SC);
   RI:=TJSHTMLElement(document.createElement('div'));
   RI.className:='ot-icon-btn';
-  RI.InnerHTML:='&#x27F3';
+  RI.InnerHTML:=Icons.Refresh;
   RI.AddEventListener('click',@HandleRefresh);
   DC.AppendChild(RI);
   aParent.AppendChild(DC);
@@ -398,10 +585,17 @@ begin
   ParentElement:=lParent;
 end;
 
+function THTMLObjectTree.CreateBuilder : THTMLTreeBuilder;
+
+begin
+  Result:=THTMLTreeBuilder.Create(Self);
+end;
+
 constructor THTMLObjectTree.Create(aOwner: TComponent);
+
 begin
   inherited Create(aOwner);
-  FBuilder:=THTMLTreeBuilder.Create;
+  FBuilder:=CreateBuilder;
   FOptions:=[otShowCaption];
   FCaption:='Object Tree';
 end;
@@ -440,6 +634,141 @@ begin
   FBuilder.Clear;
 end;
 
+{ TPropertyInspectorIconHTML }
+
+procedure TPropertyInspectorIconHTML.SetBack(AValue: String);
+begin
+  if FBack=AValue then Exit;
+  FBack:=AValue;
+  Changed;
+end;
+
+procedure TPropertyInspectorIconHTML.SetCollapse(AValue: String);
+begin
+  if FCollapse=AValue then Exit;
+  FCollapse:=AValue;
+  Changed;
+end;
+
+procedure TPropertyInspectorIconHTML.SetConfigure(AValue: String);
+begin
+  if FConfigure=AValue then Exit;
+  FConfigure:=AValue;
+  Changed;
+end;
+
+procedure TPropertyInspectorIconHTML.SetDetails(AValue: String);
+begin
+  if FDetails=AValue then Exit;
+  FDetails:=AValue;
+  Changed;
+end;
+
+constructor TPropertyInspectorIconHTML.Create(aOwner: TComponent);
+begin
+  inherited Create(aOwner);
+  FDetails:=DefaultDetailsHTML;
+  FConfigure:=DefaultConfigureHTML;
+  FBack:=DefaultBackHTML;
+  FCollapse:=DefaultCollapseHTML;
+end;
+
+procedure TPropertyInspectorIconHTML.Assign(Source: TPersistent);
+var
+  aSource: TPropertyInspectorIconHTML absolute Source;
+begin
+  inherited Assign(Source);
+  if Source is TPropertyInspectorIconHTML then
+  begin
+    FDetails:=aSource.FDetails;
+    FConfigure:=aSource.FConfigure;
+    FBack:=aSource.FBack;
+    FCollapse:=aSource.FCollapse;
+  end;
+end;
+
+{ TInspectorObjectStack }
+
+function TInspectorObjectStack.GetCurrent: TInspectorObject;
+begin
+  If Count>0 then
+    Result:=Objects[Count-1]
+  else
+    Result:=Default(TInspectorObject)
+end;
+
+function TInspectorObjectStack.GetFullCaption: String;
+
+var
+  I : Integer;
+
+begin
+  Result:='';
+  For I:=0 to Count-1 do
+    begin
+    if (Result<>'') then
+      Result:=Result+'.';
+    Result:=Result+Objects[i].Caption;
+    end;
+end;
+
+function TInspectorObjectStack.GetIsEmpty: Boolean;
+begin
+  Result:=Count=0;
+end;
+
+constructor TInspectorObjectStack.Create(initialSize: Integer);
+begin
+  Count:=0;
+  SetLength(Objects,ArrayDelta);
+end;
+
+procedure TInspectorObjectStack.Clear;
+begin
+  Count:=0;
+  Objects:=[];
+  SetLength(Objects,ArrayDelta);
+end;
+
+procedure TInspectorObjectStack.Push(aObj: TInspectorObject);
+
+var
+  Len : Integer;
+
+
+begin
+  Len:=Length(Objects);
+  if Count=Len then
+    SetLength(Objects,Len+ArrayDelta);
+  Objects[Count]:=aObj;
+  Inc(Count);
+end;
+
+procedure TInspectorObjectStack.SetCurrentObjectID(aObjectID: Integer);
+begin
+  if Count=0 then
+    exit;
+  Objects[Count-1].ObjectID:=aObjectID;
+end;
+
+procedure TInspectorObjectStack.SetCurrentCaption(aCaption: string);
+begin
+  if Count=0 then
+    exit;
+  Objects[Count-1].Caption:=aCaption;
+end;
+
+function TInspectorObjectStack.Pop: TInspectorObject;
+begin
+  if Count=0 then
+    Result:=Default(TInspectorObject)
+  else
+    begin
+    Dec(Count);
+    Result:=Objects[Count];
+    end;
+end;
+
 { THTMLObjectInspector }
 
 function THTMLObjectInspector.GetParentElement: TJSHTMLElement;
@@ -467,8 +796,30 @@ procedure THTMLObjectInspector.SetCaption(AValue: String);
 begin
   if FCaption=AValue then Exit;
   FCaption:=AValue;
-  if (ooShowCaption in Options) and Assigned(FCaptionElement) then
-    RenderCaption(FCaptionElement);
+  RenderCaption;
+end;
+
+procedure THTMLObjectInspector.SetFullCaption(AValue: String);
+begin
+  FFullCaption:=aValue;
+  RenderCaption;
+end;
+
+procedure THTMLObjectInspector.SetIcons(AValue: TPropertyInspectorIconHTML);
+begin
+  if FIcons=AValue then Exit;
+  FIcons.Assign(aValue);
+end;
+
+procedure THTMLObjectInspector.SetObjectCaption(AValue: String);
+begin
+  if GetObjectCaption=aValue then
+    exit;
+  if FObjectStack.IsEmpty then
+    PushObject(0,aValue)
+  else
+    FObjectStack.SetCurrentCaption(aValue);
+  RenderCaption;
 end;
 
 procedure THTMLObjectInspector.SetOptions(AValue: TOIOptions);
@@ -477,6 +828,7 @@ begin
   FOptions:=AValue;
   DisplayChanged;
 end;
+
 
 procedure THTMLObjectInspector.SetPropertyVisibilities(AValue: TMemberVisibilities);
 begin
@@ -494,8 +846,11 @@ end;
 
 procedure THTMLObjectInspector.SetObjectID(AValue: integer);
 begin
-  if FObjectID=AValue then Exit;
-  FObjectID:=AValue;
+  if GetObjectID=AValue then Exit;
+  if FObjectStack.IsEmpty then
+    PushObject(aValue,'Object '+IntToStr(aValue))
+  else
+    FObjectStack.SetCurrentObjectID(aValue);
   DisplayChanged;
 end;
 
@@ -533,6 +888,12 @@ procedure THTMLObjectInspector.Refresh;
 begin
   if Assigned(FOnRefresh) then
     FonRefresh(Self);
+end;
+
+procedure THTMLObjectInspector.RefreshObject;
+begin
+  If Assigned(FOnRefreshObject) then
+    FOnRefreshObject(Self);
 end;
 
 function THTMLObjectInspector.AppendSpan(aParent: TJSHTMLElement; const aInnerText: String): TJSHTMLElement;
@@ -698,10 +1059,12 @@ begin
 *)
 end;
 
-procedure THTMLObjectInspector.RenderCaption(aEl: TJSHTMLElement);
+procedure THTMLObjectInspector.RenderCaption;
 
 begin
-  aEl.innerText:=Caption;
+  if not (ooShowCaption in Options) then exit;
+  if not Assigned(FCaptionElement) then exit;
+  FCaptionElement.innerText:=FullCaption;
 end;
 
 procedure THTMLObjectInspector.ToggleConfig(aEvent : TJSEvent);
@@ -709,14 +1072,57 @@ procedure THTMLObjectInspector.ToggleConfig(aEvent : TJSEvent);
 begin
   if not FConfigPanel.classList.toggle('oi-config-panel-open') then
     begin
-    aEvent.TargetElement.innerHTML:='&#x2699;';
+    aEvent.TargetElement.innerHTML:=Icons.Configure;
     FConfigPanel.classList.add('oi-config-panel-closed');
     end
   else
     begin
-    aEvent.TargetElement.innerHTML:='&#x25b4;';
+    aEvent.TargetElement.innerHTML:=Icons.Collapse;
     FConfigPanel.classList.remove('oi-config-panel-closed');
     end
+end;
+
+procedure THTMLObjectInspector.HandleRefresh(aEvent: TJSHTMLElement);
+
+begin
+  Clear;
+  RefreshObject;
+end;
+
+procedure THTMLObjectInspector.HandleBack(aEvent: TJSHTMLElement);
+begin
+  if aEvent=Nil then ;
+  PopObject;
+  Clear;
+  RefreshObject;
+end;
+
+function THTMLObjectInspector.CreateCaption(aParent : TJSHTMLElement): TJSHTMLElement;
+
+var
+  CS,DC : TJSHTMLElement;
+
+begin
+  DC:=TJSHTMLElement(Document.createElement('div'));
+  DC.className:='oi-caption';
+  CS:=TJSHTMLElement(document.createElement('div'));
+  CS.className:='oi-icon-btn-left oi-hidden' ;
+  CS.InnerHTML:=Icons.Back;
+  CS.AddEventListener('click',@HandleBack);
+  FBackElement:=CS;
+  DC.AppendChild(CS);
+  CS:=TJSHTMLElement(document.createElement('div'));
+  CS.className:='oi-icon-btn-left';
+  CS.InnerHTML:=Icons.Refresh;
+  CS.AddEventListener('click',@HandleRefresh);
+  DC.AppendChild(CS);
+  CS:=TJSHTMLElement(Document.createElement('span'));
+  CS.className:='oi-caption-lbl';
+  FCaptionElement:=CS;
+  DC.AppendChild(CS);
+  RenderCaption;
+  aParent.AppendChild(DC);
+  Result:=DC;
 end;
 
 function THTMLObjectInspector.CreateWrapper(aParent : TJSHTMLElement): TJSHTMLElement;
@@ -728,21 +1134,14 @@ begin
   Result:=TJSHTMLElement(Document.createElement('div'));
   Result.className:='oi-wrapper';
   aParent.AppendChild(Result);
-  if (ooShowCaption in Options) and (Caption<>'') then
+  if (ooShowCaption in Options) and (FullCaption<>'') then
     begin
-    DC:=TJSHTMLElement(Document.createElement('div'));
-    DC.className:='oi-caption';
-    CS:=TJSHTMLElement(Document.createElement('span'));
-    CS.className:='oi-caption-lbl';
-    DC.AppendChild(CS);
-    RenderCaption(CS);
-    Result.AppendChild(DC);
-    FCaptionElement:=CS;
+    DC:=CreateCaption(Result);
     FConfigPanel:=nil;
     if ooShowConfigPanel in Options then
       begin
       CS:=TJSHTMLElement(Document.createElement('span'));
-      CS.innerHTML:='&#x2699;';
+      CS.innerHTML:=Icons.Configure;
       CS.className:='oi-icon-btn';
       CS.addEventListener('click',@ToggleConfig);
       DC.AppendChild(CS);
@@ -755,6 +1154,25 @@ begin
     FConfigPanel:=nil;
     FCaptionElement:=Nil;
     end;
+end;
+
+function THTMLObjectInspector.GetFullCaption: String;
+begin
+  Result:=FFullCaption;
+  if Result='' then
+    Result:=FObjectStack.FullCaption;
+  if Result='' then
+    Result:='Property inspector';
+end;
+
+function THTMLObjectInspector.GetObjectCaption: String;
+begin
+  Result:=FObjectStack.Current.Caption;
+end;
+
+function THTMLObjectInspector.GetObjectID: integer;
+begin
+  Result:=FObjectStack.Current.ObjectID;
 end;
 
 function THTMLObjectInspector.CreateTable(aParent : TJSHTMLElement): TJSHTMLTableElement;
@@ -825,7 +1243,7 @@ function THTMLObjectInspector.CreateNameCell(aPropData : TOIPropData) : TJSHTMLT
 begin
   Result:=TJSHTMLTableCellElement(Document.createElement('TD'));
   Result.InnerText:=aPropData.Name;
-  Result.className:='oiPropertyName';
+  Result.className:='oi-property-name';
 end;
 
 function THTMLObjectInspector.CreateKindCell(aPropData : TOIPropData; const aKindName: String) : TJSHTMLTableCellElement;
@@ -833,7 +1251,7 @@ function THTMLObjectInspector.CreateKindCell(aPropData : TOIPropData; const aKin
 begin
   Result:=TJSHTMLTableCellElement(Document.createElement('TD'));
   Result.InnerText:=aKindName;
-  Result.className:='oiPropertyKind';
+  Result.className:='oi-property-kind';
 end;
 
 function THTMLObjectInspector.CreateVisibilityCell(aPropData : TOIPropData) : TJSHTMLTableCellElement;
@@ -842,16 +1260,59 @@ function THTMLObjectInspector.CreateVisibilityCell(aPropData : TOIPropData) : TJ
 begin
   Result:=TJSHTMLTableCellElement(Document.createElement('TD'));
   Result.InnerText:=VisibilityNames[aPropData.Visibility];
-  Result.className:='oiPropertyVisibility';
+  Result.className:='oi-property-visibility';
+end;
+
+procedure THTMLObjectInspector.HandlePropertyDetails(aEvent : TJSEvent);
+
+var
+  El : TJSHTMLElement;
+  aID : integer;
+  aCaption : string;
+
+begin
+  El:=aEvent.currentTargetHTMLElement;
+  if IsDefined(El.datasetObj['objectId']) then
+    begin
+    aID:=StrToIntDef(El.Dataset['objectId'],0);
+    aCaption:=El.Dataset['propertyName'];
+    if aId<>0 then
+      begin
+      PushObject(aID,aCaption);
+      RefreshObject;
+      end;
+    end;
+
 end;
 
 function THTMLObjectInspector.CreateValueCell(aPropData: TOIPropData; const aKindName : string): TJSHTMLTableCellElement;
 
+var
+  Cap,Cell,Span : TJSHTMLElement;
 
 begin
   Result:=TJSHTMLTableCellElement(Document.createElement('TD'));
-  Result.InnerText:=aPropData.Value;
-  Result.className:='oiPropertyValue '+aKindName;
+//  Writeln(aPropData.Name,' : ',GetEnumName(TypeInfo(TTypeKind),Ord(aPropData.Kind)));
+  Cell:=TJSHTMLElement(Document.createElement('div'));
+  Result.Append(Cell);
+  if (aPropData.Kind=tkClass) and (aPropData.ValueObjectID<>0) then
+    begin
+    Cell.ClassName:='oi-property-cell '+aKindName;
+    Cap:=TJSHTMLElement(Document.createElement('span'));
+    Cell.appendChild(Cap);
+    Span:=TJSHTMLElement(Document.createElement('div'));
+    Span.InnerHtml:=Icons.Details;
+    Span.ClassName:='oi-icon-detail-btn';
+    Span.Dataset['objectId']:=IntToStr(aPropData.ValueObjectID);
+    Span.Dataset['propertyName']:=aPropData.Name;
+    Span.AddEventListener('click',@HandlePropertyDetails);
+    Cell.appendChild(Span);
+    end
+  else
+    Cap:=Cell;
+  Cap.InnerText:=aPropData.Value;
+//  Cap.className:='oi-property-value '+aKindName;
+//  Result.ClassName:='oi-property-cell';
 end;
 
 
@@ -922,13 +1383,49 @@ begin
   FTableElement.tBodies[0].AppendChild(PR);
 end;
 
+procedure THTMLObjectInspector.PushObject(aObjectID: Integer;
+  const aCaption: String);
+
+var
+  O : TInspectorObject;
+
+begin
+  O.ObjectID:=aObjectID;
+  O.Caption:=aCaption;
+  FObjectStack.Push(O);
+  Clear(True);
+  if (FObjectStack.Count>1) and Assigned(FBackElement) then
+    FBackElement.classList.remove('oi-hidden');
+  RenderCaption;
+end;
+
+function THTMLObjectInspector.CreateIcons : TPropertyInspectorIconHTML;
+
+begin
+  Result:=TPropertyInspectorIconHTML.Create(Self);
+end;
+
+function THTMLObjectInspector.PopObject: Integer;
+
+var
+  Obj : TInspectorObject;
+
+begin
+  Obj:=FObjectstack.Pop;
+  Result:=Obj.ObjectID;
+  if (FObjectStack.Count<=1) and Assigned(FBackElement) then
+    FBackElement.classList.add('oi-hidden');
+  RenderCaption;
+end;
+
 constructor THTMLObjectInspector.Create(aOwner: TComponent);
 begin
   inherited Create(aOwner);
-  Caption:='Property inspector';
+  FIcons:=CreateIcons;
   Options:=[ooShowCaption,ooShowConfigPanel,ooHidePropertiesWithoutValue];
   VisibleColumns:=[ocName,ocValue];
   PropertyVisibilities:=AllMemberVisibilities;
+  FObjectStack:=TInspectorObjectStack.Create(TInspectorObjectStack.ArrayDelta);
 end;
 
 destructor THTMLObjectInspector.destroy;
