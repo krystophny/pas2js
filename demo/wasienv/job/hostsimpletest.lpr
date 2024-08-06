@@ -24,8 +24,6 @@ Type
     FWADomBridge : TJSObjectBridge;
     function CreateMyObject(const aName: String; aArgs: TJSValueDynArray): TObject;
     function CreateBrowserObject(const aName: String; aArgs: TJSValueDynArray): TJSObject;
-    function OnBeforeStart(Sender: TObject;
-      aDescriptor: TWebAssemblyStartDescriptor): Boolean;
   Public
     constructor Create(aOwner : TComponent); override;
     procedure DoRun; override;
@@ -39,13 +37,6 @@ begin
 end;
 
 { TMyApplication }
-
-function TMyApplication.OnBeforeStart(Sender: TObject;
-  aDescriptor: TWebAssemblyStartDescriptor): Boolean;
-begin
-  FWADomBridge.WasiExports:=aDescriptor.Exported;
-  Result:=true;
-end;
 
 function TMyApplication.CreateMyObject(const aName: String; aArgs: TJSValueDynArray): TObject;
 begin
@@ -73,7 +64,7 @@ procedure TMyApplication.DoRun;
 begin
   // Your code here
   Terminate;
-  StartWebAssembly('wasmsimpletest.wasm',true,@OnBeforeStart);
+  StartWebAssembly('wasmsimpletest.wasm');
 end;
 
 var
