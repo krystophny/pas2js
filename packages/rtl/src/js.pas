@@ -859,15 +859,29 @@ type
     {$endif}
   end;
 
+  TJSPromise = class;
+
+  TJSPromiseResolvers = class external name 'Object'
+  private
+    FPromise: TJSPromise; external name 'promise';
+  public
+    procedure Resolve; overload; external name 'resolve';
+    procedure Resolve(const Value: JSValue); overload; external name 'resolve';
+    procedure Reject; overload; external name 'reject';
+    procedure Reject(const Value: JSValue); overload; external name 'reject';
+
+    property Promise: TJSPromise read FPromise;
+  end;
 
   TJSPromiseResolver = reference to function (aValue : JSValue) : JSValue;
   TJSPromiseExecutor = reference to procedure (resolve,reject : TJSPromiseResolver);
   TJSPromiseFinallyHandler = reference to procedure;
-  TJSPromise = Class;
   TJSPromiseArray = array of TJSPromise;
 
   TJSPromise = class external name 'Promise'
+  public
     constructor new(Executor : TJSPromiseExecutor);
+
     class function all(arg : Array of JSValue) : TJSPromise; overload;
     class function all(arg : JSValue) : TJSPromise; overload;
     class function all(arg : TJSPromiseArray) : TJSPromise; overload;
@@ -880,6 +894,7 @@ type
     class function reject(reason : JSValue) : TJSPromise;
     class function resolve(value : JSValue): TJSPromise; overload;
     class function resolve : TJSPromise; overload;
+    class function withResolvers: TJSPromiseResolvers;
     function _then (onAccepted : TJSPromiseResolver) : TJSPromise; external name 'then';
     function _then (onAccepted,OnRejected: TJSPromiseResolver) : TJSPromise; external name 'then';
     function catch (onRejected : TJSPromiseResolver) : TJSPromise;
