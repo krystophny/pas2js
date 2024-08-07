@@ -515,8 +515,6 @@ type
 
     destructor Destroy; override;
 
-    function QueryInterface(const iid: TGuid; out obj): Integer; override;
-
     property OnInvoke: TVirtualInterfaceInvokeEvent read FOnInvoke write FOnInvoke;
     property OnInvokeJS: TVirtualInterfaceInvokeEventJS read FOnInvokeJS write FOnInvokeJS;
   end;
@@ -2258,11 +2256,6 @@ begin
   FContext.Free;
 
   inherited;
-end;
-
-function TVirtualInterface.QueryInterface(const iid: TGuid; out obj): Integer;
-begin
-  Result := inherited QueryInterface(iid, obj);
 end;
 
 function TVirtualInterface.Invoke(const MethodName: String; const Args: TJSFunctionArguments): JSValue;
