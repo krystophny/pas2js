@@ -2178,6 +2178,8 @@ end;
 { TVirtualInterface }
 
 constructor TVirtualInterface.Create(PIID: PTypeInfo);
+var
+  InterfaceMaps: TJSObject;
 
   function Jump(MethodName: String): JSValue;
   begin
@@ -2197,15 +2199,12 @@ constructor TVirtualInterface.Create(PIID: PTypeInfo);
 
     while Assigned(InterfaceInfo) do
     begin
-      if InterfaceInfo = TypeInfo(IInterface) then
-      begin
-        Result['_AddRef'] := @_AddRef;
-        Result['_Release'] := @_Release;
-        Result['QueryInterface'] := @QueryInterface;
-      end
+      if InterfaceMaps[InterfaceInfo.InterfaceInfo.GUID] = nil then
+        for MethodName in InterfaceInfo.Names do
+          Result[MethodName] := Jump(MethodName)
       else
         for MethodName in InterfaceInfo.Names do
-          Result[MethodName] := Jump(MethodName);
+          Result[MethodName] := TJSObject(InterfaceMaps[InterfaceInfo.InterfaceInfo.GUID])[MethodName];
 
       InterfaceInfo := InterfaceInfo.Ancestor;
     end;
@@ -2213,16 +2212,15 @@ constructor TVirtualInterface.Create(PIID: PTypeInfo);
 
 var
   InterfaceInfo: TTypeInfoInterface;
-  InterfaceMaps: TJSObject;
 
 begin
   FContext := TRttiContext.Create;
-  InterfaceMaps := TJSObject.New;
   FInterfaceType := FContext.GetType(PIID) as TRttiInterfaceType;
 
   if Assigned(FInterfaceType) then
   begin
     InterfaceInfo := FInterfaceType.InterfaceTypeInfo;
+    InterfaceMaps := TJSObject.Create(TJSObject(JSThis['$intfmaps']));
 
     while Assigned(InterfaceInfo) do
     begin
