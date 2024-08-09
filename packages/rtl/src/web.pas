@@ -2654,6 +2654,7 @@ Type
     procedure scale(x,y : double);
     procedure setLineDash(segments : TJSArray); overload;
     procedure setLineDash(segments : array of integer); overload;
+    procedure resetTransform;
     procedure setTransform(a,b,c,d,e,f : double);
     procedure stroke; overload;
     procedure stroke(aPath : TJSPath2D); overload;
