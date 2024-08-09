@@ -28,6 +28,8 @@ Const
   SizeUInt16   = SizeInt16;
   SizeUInt32   = SizeInt32;
   SizeUInt64   = SizeInt64;
+  SizeFloat32  = 4;
+  SizeFloat64  = 8;
 
   // Pascal aliases
   SizeShortInt = SizeInt8;
