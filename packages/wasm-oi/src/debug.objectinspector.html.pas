@@ -33,11 +33,11 @@ Type
 
 const
   AllMemberVisibilities = [low(TMemberVisibility)..High(TMemberVisibility)];
-  DefaultRefreshHTML =  '&#x27F3';
-  DefaultDetailsHTML = '&#x27A1;';
+  DefaultRefreshHTML   = '&#x27F3;';
+  DefaultDetailsHTML   = '&#x2026;'; // '&#x27A1;';
   DefaultConfigureHTML = '&#x2699;';
-  DefaultBackHTML = '&#x2B05';
-  DefaultCollapseHTML = '&#x25b4;';
+  DefaultBackHTML      = '&#x21E0;';    // '&#x2B05';
+  DefaultCollapseHTML  = '&#x25B4;';
 
 type
 
