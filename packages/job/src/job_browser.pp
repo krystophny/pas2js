@@ -57,6 +57,7 @@ Type
 
   TCallbackErrorJSEventHandler = reference to procedure(Sender : TObject; Error : TJSError; Args : TJSFunctionArguments; var ReRaise : Boolean);
   TCallbackErrorPasEventHandler = reference to procedure(Sender : TObject; Error : Exception; Args : TJSFunctionArguments; var ReRaise : Boolean);
+  TWasmPointer = integer;
 
   { TJSObjectBridge }
 
@@ -73,6 +74,7 @@ Type
     FFactories : TJSObject;
 
     function GetObjectConstructor(aObjectName: String): TJSFunction;
+    procedure SetMemFromArray(ObjId: TJOBObjectID; Mem: TWasmPointer);
   Protected
     procedure SetInstanceExports(const AValue: TWasiExports); override;
     function Invoke_JSResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP: NativeInt; out JSResult: JSValue): TJOBResult; virtual;
@@ -109,6 +111,8 @@ Type
   end;
 
 Implementation
+
+uses math;
 
 function TypedArrayToString(const a: TJSTypedArray): string; assembler;
 asm
@@ -255,6 +259,7 @@ begin
   aObject[JOBFn_InvokeJSValueResult]:=@Invoke_JSValueResult;
   aObject[JOBFn_InvokeArrayStringResult]:=@Invoke_ArrayStringResult;
   aObject[JOBFn_CreateObject]:=@Create_JSObject;
+  aObject[JOBFn_SetMemFromArray]:=@SetMemFromArray;
 end;
 
 function TJSObjectBridge.FindObject(ObjId: TJOBObjectID): TJSObject;
@@ -313,6 +318,30 @@ begin
     CallbackHandler:=TJOBCallback(aValue.functions[JOBFn_CallbackHandler])
   else
     CallbackHandler:=nil;
+end;
+
+procedure TJSObjectBridge.SetMemFromArray(ObjId: TJOBObjectID; Mem : TWasmPointer);
+{
+  JOB allocates memory do make a call.
+  As such, it is dangerous to call _set in the global memory,
+  since the memory object can have changed between the call to get
+  the globabl memory object and the call to set.
+  Using SetMemFromArray will always use the correct webassembly memory
+}
+
+var
+  obj : TJSObject;
+  Src,Dest : TJSUint8Array;
+
+begin
+  Obj:=FindObject(ObjId);
+  if obj is TJSArrayBuffer then
+    Src:=TJSUint8Array.new(TJSArrayBuffer(obj))
+  else
+    // We don't do any extra checks on the assumption that new() will do the check...
+    Src:=TJSUint8Array.new(TJSTypedArray(Obj).buffer);
+  Dest:=TJSUint8Array.New(getModuleMemoryDataView.buffer);
+  Dest._set(Src,mem);
 end;
 
 function TJSObjectBridge.Invoke_JSResult(ObjId: TJOBObjectID; NameP, NameLen,
