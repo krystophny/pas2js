@@ -207,6 +207,7 @@ Type
   private
     FMaxLength : Integer;
     FMinLength : Integer;
+    FPlaceHolder : String;
     FTextType : TInputTextType;
     function GetAsNumber: NativeInt;
     function GetMaxLength: NativeInt;
@@ -216,6 +217,7 @@ Type
     procedure SetMaxLength(AValue: NativeInt);
     procedure SetMinLength(AValue: NativeInt);
     procedure SetTextType(AValue: TInputTextType);
+    procedure SetPlaceHolder(AValue: String);
   Protected
     Procedure ApplyWidgetSettings(aElement: TJSHTMLElement); override;
   Public
@@ -225,6 +227,7 @@ Type
     Property Value;
     Property ValueName;
     Property Required;
+    Property PlaceHolder : String Read FPlaceHolder Write SetPlaceHolder;
     Property TextType : TInputTextType Read GetTextType Write SetTextType;
     property AsNumber : NativeInt Read GetAsNumber Write SetAsNumber;
     Property MaxLength : NativeInt Read GetMaxLength Write SetMaxLength;
@@ -369,6 +372,7 @@ Type
     FLines: TStrings;
     FIgnoreChanges : Boolean;
     FMaxLength: Cardinal;
+    FPlaceHolder,
     FValueName : String;
     FRows,
     FColumns : Cardinal;
@@ -392,6 +396,7 @@ Type
     procedure SetRows(AValue: Cardinal);
     procedure SetText(AValue: String);
     procedure SetValueName(AValue: string);
+    procedure SetPlaceHolder(AValue: string);
     Function GetTextArea : TJSHTMLTextAreaElement;
     procedure SetWrap(AValue: TTextAreaWrap);
   Protected
@@ -407,7 +412,8 @@ Type
     Function HTMLTag : String; override;
     Property InnerHTML : String Read GetText Write SetText;
   Published
-    Property ValueName : string Read GetValueName Write SetValueName;
+    Property ValueName : string Read FPlaceHolder Write SetPlaceHolder;
+    Property Placeholder : string Read GetValueName Write SetValueName;
     Property Rows : Cardinal Read GetRows Write SetRows;
     Property Columns : Cardinal Read GetColumns Write SetColumns;
     Property Lines : TStrings Read GetLines Write SetLines;
@@ -2504,6 +2510,14 @@ begin
     TextArea.Name:=aValue;
 end;
 
+procedure TTextAreaWidget.SetPlaceHolder(AValue: string);
+begin
+  if aValue=FPlaceHolder then exit;
+  FPlaceHolder:=aValue;
+  if IsRendered then
+    TextArea.PlaceHolder:=aValue;
+end;
+
 procedure TTextAreaWidget.SetName(const NewName: TComponentName);
 
 var
@@ -3178,6 +3192,17 @@ begin
   Inp:=InputElement;
   If Assigned(Inp) then
     Inp.name:=aValue;
+end;
+
+procedure TTextInputWidget.SetPlaceHolder(AValue: String);
+Var
+  Inp : TJSHTMLInputElement;
+begin
+  if aValue=PlaceHolder then exit;
+  FPlaceHolder:=aValue;
+  Inp:=InputElement;
+  If Assigned(Inp) then
+    Inp.placeHolder:=aValue;
 end;
 
 procedure TCustomInputWidget.SetName(const NewName: TComponentName);
