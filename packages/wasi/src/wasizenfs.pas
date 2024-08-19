@@ -296,7 +296,7 @@ begin
   try
     DS:=TJSDataView.New(Data.buffer);
     if atPos<>-1 then
-      Written:=ZenFS.writeSync(fd,DS,atPos)
+      Written:=ZenFS.writeSync(fd,DS,0,Data.byteLength,atPos)
     else
       Written:=ZenFS.writeSync(fd,DS,0,Data.byteLength);
     Result:=resOK;
