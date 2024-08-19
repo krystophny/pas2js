@@ -72,11 +72,14 @@ Type
     FOnCallBackPasError: TCallbackErrorPasEventHandler;
     FStringResult: string;
     FFactories : TJSObject;
-
+    FDecoderUTF16 : TJSTextDecoder;
+    FDecoderUTF8 : TJSTextDecoder;
     function GetObjectConstructor(aObjectName: String): TJSFunction;
     procedure SetMemFromArray(ObjId: TJOBObjectID; Mem: TWasmPointer);
   Protected
     procedure SetInstanceExports(const AValue: TWasiExports); override;
+    function DecodeUTF16Buffer(Arr : TJSUint16Array) : String;
+    function DecodeUTF8Buffer(Arr : TJSUint8Array) : String;
     function Invoke_JSResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP: NativeInt; out JSResult: JSValue): TJOBResult; virtual;
     function GetInvokeArguments(View: TJSDataView; ArgsP: NativeInt): TJSValueDynArray; virtual;
     function CreateCallbackArgs(View: TJSDataView; const Args: TJSFunctionArguments; TempObjIds: TJOBObjectIDArray): TWasmNativeInt; virtual;
@@ -114,10 +117,6 @@ Implementation
 
 uses math;
 
-function TypedArrayToString(const a: TJSTypedArray): string; assembler;
-asm
-  return String.fromCharCode.apply(null,a);
-end;
 
 function NewObj(const fn: TJSFunction; const Args: TJSValueDynArray): TJSFunction; assembler;
 asm
@@ -320,6 +319,33 @@ begin
     CallbackHandler:=nil;
 end;
 
+function TJSObjectBridge.DecodeUTF16Buffer(Arr: TJSUint16Array): String;
+
+var
+  enc : string;
+
+begin
+  if FDecoderUTF16=Nil then
+    begin
+    if Env.IsLittleEndian then
+      enc:='utf-16le'
+    else
+      enc:='utf-16be';
+    FDecoderUTF16:=TJSTextDecoder.New(enc);
+    end;
+  Result:=FDecoderUTF16.decode(Arr);
+end;
+
+function TJSObjectBridge.DecodeUTF8Buffer(Arr: TJSUint8Array): String;
+var
+  enc : string;
+
+begin
+  if FDecoderUTF8=Nil then
+    FDecoderUTF8:=TJSTextDecoder.New('utf8');
+  Result:=FDecoderUTF8.decode(Arr);
+end;
+
 procedure TJSObjectBridge.SetMemFromArray(ObjId: TJOBObjectID; Mem : TWasmPointer);
 {
   JOB allocates memory do make a call.
@@ -365,7 +391,7 @@ begin
   View:=getModuleMemoryDataView();
   aBytes:=TJSUint8Array.New(View.buffer, NameP, NameLen);
   //writeln('TJSObjectBridge.Invoke_JSResult aBytes=',aBytes);
-  PropName:=TypedArrayToString(aBytes);
+  PropName:=DecodeUTF8Buffer(aBytes);
   {$IFDEF VerboseJOB}
   writeln('TJSObjectBridge.Invoke_JSResult PropName="',PropName,'"');
   {$ENDIF}
@@ -548,7 +574,7 @@ begin
   View:=getModuleMemoryDataView();
   aWords:=TJSUint16Array.New(View.buffer, NameP, NameLen);
   //writeln('TJSObjectBridge.Invoke_JSResult aBytes=',aBytes);
-  ObjName:=TypedArrayToString(aWords);
+  ObjName:=DecodeUTF16Buffer(aWords);
   {$IFDEF VerboseJOB}
   writeln('Create_JSObject ObjName="',ObjName,'"');
   {$ENDIF}
@@ -769,7 +795,7 @@ var
     Len:=ReadWasmNativeInt;
     aWords:=TJSUint16Array.New(View.buffer, p,Len);
     inc(p,Len*2);
-    Result:=TypedArrayToString(aWords);
+    Result:=DecodeUTF16Buffer(aWords);
     {$IFDEF VERBOSEJOB}
     Writeln('ReadString : ',Result);
     {$ENDIF}
@@ -783,7 +809,7 @@ var
     Len:=ReadWasmNativeInt;
     Ptr:=ReadWasmNativeInt;
     aWords:=TJSUint16Array.New(View.buffer, Ptr,Len);
-    Result:=TypedArrayToString(aWords);
+    Result:=DecodeUTF16Buffer(aWords);
     {$IFDEF VERBOSEJOB}
     Writeln('ReadUnicodeString : ',Result);
     {$ENDIF}
@@ -1095,7 +1121,7 @@ var
 begin
   View:=getModuleMemoryDataView();
   aWords:=TJSUint16Array.New(View.buffer, NameP, NameLen);
-  aName:=TypedArrayToString(aWords);
+  aName:=DecodeUTF16Buffer(aWords);
   Result:=FindGlobalObject(aName);
   {$IFDEF VERBOSEJOB}
   Writeln('Get_GlobalID (',aName,'): ', Result);
