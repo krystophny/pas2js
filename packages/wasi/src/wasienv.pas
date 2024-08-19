@@ -1581,8 +1581,7 @@ begin
       end;
       Result:=FS.Seek(fd,Offset,lWhence,NewPos);
       if Result=WASI_ESUCCESS then
-        Result:=FS.Seek(fd,Offset,lWhence,NewPos);
-      SetMemInfoInt64(newOffsetPtr,NewPos);
+        SetMemInfoInt64(newOffsetPtr,NewPos);
     except
       On E : Exception do
         Result:=ErrorToCode(E);
