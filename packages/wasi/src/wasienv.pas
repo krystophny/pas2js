@@ -527,7 +527,7 @@ begin
       end;
   end;
   if FPreparedStartDescriptor.RunExceptionClass<>'' then
-    Console.log('Running Webassembly resulted in exception. Exception class: ',FPreparedStartDescriptor.RunExceptionClass,', message:',FPreparedStartDescriptor.RunExceptionMessage);
+    Console.error('Running Webassembly resulted in exception. Exception class: ',FPreparedStartDescriptor.RunExceptionClass,', message:',FPreparedStartDescriptor.RunExceptionMessage);
 end;
 
 procedure TWASIHost.DoStdWrite(Sender: TObject; const aOutput: String);
