@@ -41,13 +41,11 @@ Type
   TJSWebAssemblyMemory = class external name 'WebAssembly.Memory' (TJSObject)
   private
     FBuffer: TJSArrayBuffer; external name 'buffer';
-    FLength: NativeInt; external name 'length';
   Public
     constructor new (memorydescriptor : TJSWebAssemblyMemoryDescriptor);
     constructor new (memorydescriptor : TJSObject);
     Function grow(number : NativeInt) : NativeInt; external name 'grow';
     Property buffer : TJSArrayBuffer Read FBuffer;
-    Property length: NativeInt Read FLength;
   end;
 
   { TJSModulesArray }
