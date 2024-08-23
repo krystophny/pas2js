@@ -60,9 +60,16 @@ Type
   TWasmPointer = integer;
 
   { TJSObjectBridge }
+  TJSObjectBridgeStats = record
+    LastAllocatedID : NativeInt;
+    LiveObjectCount : NativeInt;
+    GlobalObjectCount : NativeInt;
+    FreeIDCount : Integer;
+  end;
 
   TJSObjectBridge = class(TImportExtension)
   Private
+    FLastAllocatedID : NativeInt;
     FCallbackHandler: TJOBCallback;
     FGlobalObjects: TJSArray; // id to TJSObject
     FGlobalNames: TJSObject; // name to id
@@ -108,6 +115,8 @@ Type
     Procedure RegisterObjectFactory(const aName : string; aFunc : TObjectFactory); overload;
     Procedure RegisterJSObjectFactory(const aName : string; aFunc : TJSObjectFactory); overload;
     Function GetJOBResult(v: jsvalue): TJOBResult;
+    Function GetStats : TJSObjectBridgeStats;
+    Procedure DumpLiveObjects;
     property CallbackHandler: TJOBCallback read FCallbackHandler write FCallbackHandler;
     property OnCallBackJSError : TCallbackErrorJSEventHandler read FOnCallBackJSError Write FOnCallBackJSError;
     property OnCallBackPasError : TCallbackErrorPasEventHandler read FOnCallBackPasError Write FOnCallBackPasError;
@@ -300,6 +309,7 @@ begin
   begin
     NewId:=FLocalObjects.push(Obj)-1;
     Result:=TJOBObjectID(NewId);
+    FLastAllocatedID:=Result;
   end
   else begin
     Result:=TJOBObjectID(NewId);
@@ -671,6 +681,7 @@ begin
 end;
 
 function TJSObjectBridge.ReleaseObject(ObjId: TJOBObjectID): TJOBResult;
+
 begin
   {$IFDEF VerboseJOB}
   writeln('TJSObjectBridge.ReleaseObject ',ObjId);
@@ -1141,6 +1152,22 @@ begin
   'object': if v=nil then Result:=JOBResult_Null else Result:=JOBResult_Object;
   else Result:=JOBResult_None;
   end;
+end;
+
+function TJSObjectBridge.GetStats: TJSObjectBridgeStats;
+begin
+  Result.LastAllocatedID:=FLastAllocatedID;
+  Result.FreeIDCount:=FFreeLocalIds.Length;
+  Result.LiveObjectCount:=FLocalObjects.Length;
+  Result.GlobalObjectCount:=FGlobalObjects.Length;
+end;
+
+procedure TJSObjectBridge.DumpLiveObjects;
+begin
+  Console.Log('Local objects');
+  Console.debug(FLocalObjects);
+  Console.Log('Global objects');
+  Console.debug(FGlobalObjects);
 end;
 
 end.  
