@@ -583,12 +583,6 @@ begin
 end;
 
 
-Function CreateFileTree(const aStartDir : string; aParent : TJSHTMLElement) : TJSHTMLELement;
-
-begin
-
-end;
-
 const base64abc : Array of char = (
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
 	'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
@@ -757,6 +751,7 @@ begin
   Result:=TJSHTMLAnchorElement(Document.createElement('a'));
   Result.href:=CreateDataURL(aFileName,aMimetype);
   Result.Download:=ExtractFileName(aFileName);
+  aParent.AppendChild(Result);
 end;
 
 initialization

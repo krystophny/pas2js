@@ -17,10 +17,11 @@ Type
     DivDownloads : TJSHTMLElement;
     FTreeBuilder : THTMLZenFSTree;
     procedure CreateFiles;
+    procedure DoReset(Event: TJSEvent); async;
     procedure DoSelectFile(Sender: TObject; aFileName: String; aType: TFileType);
+    procedure MaybeCreateFiles;
     procedure SetupFS; async;
     procedure DoDownload(Event : TJSEvent);
-    procedure SelectFile(Sender: TObject; aFileName: String; aType : TFileType);
   Public
     constructor Create(aOwner : TComponent); override;
     procedure DoRun; override;
@@ -34,12 +35,14 @@ begin
   // Allow to load file specified in hash: index.html#mywasmfile.wasm
   BtnDownload:=TJSHTMLButtonElement(GetHTMLElement('btnDownload'));
   BtnDownload.AddEVentListener('click',@DoDownload);
+  BtnDownload:=TJSHTMLButtonElement(GetHTMLElement('btnReset'));
+  BtnDownload.AddEVentListener('click',@DoReset);
   EdtFileName:=TJSHTMLInputElement(GetHTMLElement('edtFilename'));
   DivDownloads:=GetHTMLElement('divDownloads');
   FTreeBuilder:=THTMLZenFSTree.Create(Self);
   FTreeBuilder.MaxHeight:='300px';
   FTreeBuilder.ParentElementID:='treeFiles';
-  FTreeBuilder.OnFileSelected:=@SelectFile;
+  FTreeBuilder.OnFileSelected:=@DoSelectFile;
 end;
 
 procedure TMyApplication.DoRun;
@@ -123,24 +126,13 @@ begin
     EdtFileName.Value:=aFileName;
 end;
 
-procedure TMyApplication.SetupFS;
+procedure TMyApplication.MaybeCreateFiles;
 
 var
   Stat : TZenFSStats;
-
 begin
-  Terminate;
-  // Set up filesystem
-  aWait(TJSObject,ZenFS.configure(
-    New([
-     'mounts', New([
-        '/',DomBackends.WebStorage
-        ])
-    ])));
-  // Allow to load file specified in hash: index.html#mywasmfile.wasm
   try
     Stat:=ZenFS.statSync('/tmp/file1.txt');
-
   except
     Writeln('Directory structure does not exist, creating one');
   end;
@@ -148,8 +140,28 @@ begin
     CreateFiles
   else
     Writeln('Directory structure already exists.');
+end;
+
+procedure TMyApplication.SetupFS;
+
+begin
+  Terminate;
+  aWait(TJSObject,ZenFS.configure(
+    New([
+     'mounts', New([
+        '/',DomBackends.WebStorage
+        ])
+    ])));
+  MaybeCreateFiles;
   FTreeBuilder.ShowDir('/');
-  FTreeBuilder.OnFileSelected:=@DoSelectFile;
+end;
+
+procedure TMyApplication.DoReset(Event : TJSEvent);
+
+begin
+  window.localStorage.removeItem('0');
+  FTreeBuilder.Clear;
+  SetupFS;
 end;
 
 procedure TMyApplication.DoDownload(Event : TJSEvent);
@@ -160,11 +172,6 @@ begin
   a.click;
 end;
 
-procedure TMyApplication.SelectFile(Sender: TObject; aFileName: String; aType : TFileType);
-begin
-  if aType=ftFile then
-    EdtFileName.Value:=aFileName;
-end;
 
 var
   Application : TMyApplication;
