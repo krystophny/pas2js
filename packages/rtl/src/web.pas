@@ -1619,9 +1619,6 @@ Type
     procedure cancelAnimationFrame(aHandle: Integer);
     Procedure close;
     Function confirm(Const aMsg : String) :  boolean;
-    function fetch(resource: String; init: TJSObject): TJSPromise; overload; external name 'fetch';
-    //function fetch(resource: String): TJSPromise; overload; external name 'fetch';
-    function fetch(resource: String): TJSResponse; {$IFNDEF SkipAsync}async;{$ENDIF} overload; external name 'fetch';
     function fetch(resource: TJSObject; init: TJSObject): TJSPromise; overload; external name 'fetch';
     function fetch(resource: TJSObject): TJSPromise; overload; external name 'fetch';
     function asyncfetch(resource: String): TJSResponse; {$IFNDEF SkipAsync}async;{$ENDIF} overload; external name 'fetch';
