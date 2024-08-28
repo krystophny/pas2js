@@ -749,6 +749,7 @@ Function CreateDownLoadFromFile(const aFileName,aMimeType : string; aParent : TJ
 
 begin
   Result:=TJSHTMLAnchorElement(Document.createElement('a'));
+  Result.AppendChild(aLinkContent);
   Result.href:=CreateDataURL(aFileName,aMimetype);
   Result.Download:=ExtractFileName(aFileName);
   aParent.AppendChild(Result);
