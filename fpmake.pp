@@ -170,15 +170,27 @@ end;
 Procedure AddDemoFiles(Files : TConditionalDestStrings; ADir,APrefix : String);
 
 Const
-  DemoExt = '.pp.pas.inc.lpr.lpi.html.md';
+  DemoExt = '.pp.pas.inc.lpr.lpi.html.md.css';
 
 begin
   AddInstallFiles(Files,'demo'+PathDelim+ADir,demoExt,APrefix);
 end;
 
+const 
+  demos : Array of string = (
+    'apiclient','asyncawait','atom','bootstrap','chartjs','css','dataabstract',
+    'datamodule','datatables','debugcapture','design','dynload','electron',
+    'errorhandler','extend_jsclass','fcldb','fpcunit','fpreport','fullcalendar',
+    'hotreload','jitsimeet','jquery','jspdf','kurento','library','modules',
+    'nodehttpserver','opentok','pacman','player','promise','pushjs','pwa',
+    'regexp','resources','restbridge','router','rtl','scratch','templates',
+    'testinsight','tetris','tinyeditor','translate','ts2pas','uselibpas2js',
+    'vscode','wasienv','webcompiler','webgl','websockets','webwidget/designdemo',
+    'webwidget/nativedesign', 'webwidget/widgets','xterm','zenfs' );
+
 Var
   P : TPackage;
-  UnitDir,DemoDir,BD, TmpCfg, TmpCfg2: String;
+  aDemo, UnitDir,DemoDir,BD, TmpCfg, TmpCfg2: String;
   {$IF FPC_FULLVERSION>=30301}
   T: TTarget;
   {$ENDIF}
@@ -336,14 +348,12 @@ begin
       AddPackageFiles(P.InstallFiles,'vscode',UnitDir);   
       AddPackageFiles(P.InstallFiles,'webwidget',UnitDir);   
       AddPackageFiles(P.InstallFiles,'zenfs',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'wasm-utils',UnitDir);   
+      AddPackageFiles(P.InstallFiles,'wasm-oi',UnitDir);   
       // Demo files
       DemoDir:=IncludeTrailingPathDelimiter(Defaults.ExamplesInstallDir);
-      AddDemoFiles(P.InstallFiles,'fcldb',DemoDir);
-      AddDemoFiles(P.InstallFiles,'fpcunit',DemoDir);
-      AddDemoFiles(P.InstallFiles,'fpreport',DemoDir);
-      AddDemoFiles(P.InstallFiles,'hotreload',DemoDir);
-      AddDemoFiles(P.InstallFiles,'jquery',DemoDir);
-      AddDemoFiles(P.InstallFiles,'rtl',DemoDir);
+      For aDemo in Demos do
+        AddDemoFiles(P.InstallFiles,aDemo,DemoDir);
       end;
     rmClean:
       begin
