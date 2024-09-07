@@ -350,7 +350,7 @@ type
     function keys : TJSIterator; reintroduce;
     function values : TJSIterator; reintroduce;
     procedure set_(aName, aValue : String);
-    Property Headers[aName : string] : string Read Get Write Set_;
+    Property Headers[aName : string] : string Read Get Write Set_; default;
   end;
 
   TJSResponseInit = class external name 'Object'
