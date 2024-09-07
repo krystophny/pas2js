@@ -121,6 +121,7 @@ Type
   TJSCache = BrowserApi.WebOrWorker.TJSCache;
   TJSCacheStorage = BrowserApi.WebOrWorker.TJSCacheStorage;
   TJSPermissions = BrowserApi.WebOrWorker.TJSPermissions;
+  TJSRequest = BrowserApi.WebOrWorker.TJSRequest;
 {$ELSE}
   TJSServiceWorker = weborworker.TJSServiceWorker;
   TJSServiceWorkerRegistration = weborworker.TJSServiceWorkerRegistration;
@@ -191,6 +192,8 @@ Type
   TJSResponse = weborworker.TJSResponse;
   TJSCache = weborworker.TJSCache;
   TJSCacheStorage = weborworker.TJSCacheStorage;
+  TJSRequest = webOrworker.TJSRequest;
+  TJSAbortController = webOrworker.TJSAbortController;
 {$ENDIF}
   TJSMessagePortArray = TJSMessagePortDynArray;
   TEventListenerEvent = TJSEvent;
@@ -3121,7 +3124,18 @@ Type
     TJSWebSocket
     --------------------------------------------------------------------}
 
+  { TJSWebsocketCloseEvent }
 
+  TJSWebsocketCloseEvent = class external name 'CloseEvent' (TJSEvent)
+  private
+    FCode: Integer; external name 'code';
+    FReason: String; external name 'reason';
+    FWasClean: Boolean; external name 'wasClean';
+  Public
+    Property Code : Integer Read FCode;
+    Property Reason : String Read FReason;
+    Property WasClean : Boolean Read FWasClean;
+  end;
 
   TJSWebSocket = class external name 'WebSocket'  (TJSEventTarget)
   Private
