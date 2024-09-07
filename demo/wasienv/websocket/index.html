@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <title>Project1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="wasmwebsocket.js"></script>
+</head>
+<body>
+  <h1>Webassembly Websocket-based chat demo</h1>
+  <div>
+    <div>
+      <label for="edtMessage" >
+        <div style="display: inline-block; min-width: 10em; margin-bottom: 4px;">From:</div>
+      </label>
+      <input id="edtFrom" >
+    </div>
+    <div>
+      <label for="edtTo" autocomplete="off">
+        <div style="display: inline-block; min-width: 10em; margin-bottom: 4px;">To:</div>
+      </label>
+      <input id="edtTo" autocomplete="off">
+      </div>
+    <div>
+      <label for="edtMessage" >
+        <div style="display: inline-block; min-width: 10em; margin-bottom: 4px;">Message:</div>
+      </label>
+      <input id="edtMessage">
+      <button id="btnSend">Send</button>
+    </div>
+  </div>
+  <div><p>Chat history:</p></div>
+  <div id="pasjsconsole" style="min-height: 75vh;"></div>
+  <div>
+    <label for="cbLog">
+      <input id="cbLog" type="checkbox" checked autocomplete="off">
+      Show API log
+    </label>
+  </div>
+  <script>
+    rtl.showUncaughtExceptions=true;
+    window.addEventListener("load", rtl.run);
+  </script>
+</body>
+</html>
