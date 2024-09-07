@@ -277,33 +277,34 @@ type
 
   TJSRegexp = class external name 'RegExp'
   private
-  {$IFDEF FIREFOX}
-    // not on all browsers:
+    FDotAll : boolean; external name 'dotall';
     FFlags : string; external name 'flags';
     FSticky : boolean; external name 'sticky';
-  {$endif}
     fglobal: boolean; external name 'global';
+    fhasIndices: boolean; external name 'hasIndices';
     fignoreCase : boolean; external name 'ignoreCase';
     fmultiline : boolean; external name 'multiline';
     fsource : string; external name 'source';
     funicode : boolean; external name 'unicode';
+    funicodeSets : boolean; external name 'unicodeSets';
   public
     Constructor New(Pattern : string);
     Constructor New(Pattern, Flags : string);
     lastIndex: NativeInt;
     function exec(aString : string): TStringDynArray;
+    function execFull(aString : string): TJSObject; external name 'exec';
     function test(aString : string) : boolean;
     function toString : String;
+    property dotAll : Boolean Read FDotAll;
     property Global : boolean read fglobal;
     property IgnoreCase : Boolean read FIgnoreCase;
     property Multiline : Boolean Read FMultiLine;
     Property Source : string Read FSource;
     Property Unicode : boolean Read FUnicode;
-    {$IFDEF FIREFOX}
-    // not on all browsers:
+    Property UnicodeSets : boolean Read FUnicodeSets;
+    Property HasIndices : Boolean Read FHasIndices;
     property Flags : string read FFlags;
     property Sticky : boolean read FSticky;
-    {$endif}
   end;
 
 
