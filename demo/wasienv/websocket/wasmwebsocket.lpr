@@ -16,11 +16,17 @@
 program wasmwebsocket;
 
 {$mode objfpc}
+{$modeswitch externalclass}
 
 uses
   BrowserConsole, BrowserApp, WASIHostApp, JS, Classes, SysUtils, WebOrWorker, Web, wasm.pas2js.websocketapi;
 
 type
+  THostConfig = class external name 'Object' (TJSObject)
+    wasmFilename : String;
+    logWebsocketAPI : Boolean;
+    logWasiAPI : Boolean;
+  end;
 
   { TMyApplication }
 
@@ -41,9 +47,24 @@ type
     constructor Create(aOwner: TComponent); override;
   end;
 
+var
+  HostConfig : THostConfig; external name 'hostConfig';
+
 procedure TMyApplication.DoRun;
+var
+  wasm : String;
+
 begin
-  StartWebAssembly('wasmwebsocketdemo.wasm');
+  Terminate;
+  if Assigned(HostConfig) and isString(HostConfig.wasmFilename) then
+    Wasm:=HostConfig.wasmFilename
+  else
+    begin
+    Wasm:=ParamStr(1);
+    if Wasm='' then
+      Wasm:='wasmwebsocketdemo.wasm';
+    end;
+  StartWebAssembly(wasm);
 end;
 
 procedure TMyApplication.HandleLogClick(aEvent : TJSEvent);
@@ -92,12 +113,17 @@ constructor TMyApplication.Create(aOwner: TComponent);
 begin
   inherited Create(aOwner);
   FWS:=TWasmWebSocketAPI.Create(WasiEnvironment);
-  FWS.LogAPICalls:=True;
+  if isDefined(hostConfig) and Assigned(hostConfig) then
+     begin
+     WasiEnvironment.LogAPI:=HostConfig.logWasiAPi;
+     FWS.LogAPICalls:=HostConfig.logWebsocketAPI;
+     end;
   edtMessage:=TJSHTMLInputElement(GetHTMLElement('edtMessage'));
   edtFrom:=TJSHTMLInputElement(GetHTMLElement('edtFrom'));
   edtTo:=TJSHTMLInputElement(GetHTMLElement('edtTo'));
   cbLog:=TJSHTMLInputElement(GetHTMLElement('cbLog'));
   cbLog.addEventListener('click',@HandleLogClick);
+  cbLog.Checked:=FWS.LogAPICalls;
   btnSend:=TJSHTMLButtonElement(GetHTMLElement('btnSend'));
   btnSend.addEventListener('click',@HandleSendClick);
 end;
