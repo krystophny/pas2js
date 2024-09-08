@@ -43,14 +43,6 @@
           <Item0 Name="PasJSIsProjectHTMLFile" Value="1"/>
         </CustomData>
       </Unit>
-      <Unit>
-        <Filename Value="../../Src/websockets/pas2js/wasm.pas2js.websocketapi.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../../Src/websockets/wasm.websocket.shared.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
