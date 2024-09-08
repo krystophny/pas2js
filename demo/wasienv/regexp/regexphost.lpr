@@ -46,8 +46,20 @@ Type
   end;
 
 procedure TMyApplication.DoRun;
+var
+  wasm : String;
+
 begin
-  StartWebAssembly('wasmregexpdemo.wasm');
+  Terminate;
+  if Assigned(HostConfig) and isString(HostConfig.wasmFilename) then
+    Wasm:=HostConfig.wasmFilename
+  else
+    begin
+    Wasm:=ParamStr(1);
+    if Wasm='' then
+      Wasm:='wasmregexpdemo.wasm';
+    end;
+  StartWebAssembly(wasm);
 end;
 
 procedure TMyApplication.HandleLogClick(Event : TJSEvent);
