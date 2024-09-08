@@ -257,7 +257,7 @@ var
 
 begin
   lRegExp:=env.GetUTF8StringFromMem(aExpr,aExprLen);
-  lFlags:=FlagsToString(aFlags);
+  lFlags:=RegexpFlagsToString(aFlags);
   {$IFNDEF NOLOGAPICALLS}
   If LogAPICalls then
     LogCall('RegExp.Allocate("%s","%s",[%x])',[lRegExp,lFlags,aID]);
@@ -363,7 +363,7 @@ begin
   lRegExp:=FindRegExp(aExprID);
   if lRegExp=Nil then
     Exit(WASMRE_RESULT_INVALIDID);
-  lFlags:=StringToFlags(lRegexp.RegExp.Flags);
+  lFlags:=StringToRegexpFlags(lRegexp.RegExp.Flags);
   Env.SetMemInfoInt32(aFlags,lFLags);
   Result:=WASMRE_RESULT_SUCCESS;
 end;
