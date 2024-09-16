@@ -168,16 +168,35 @@ type
     property Visibility: TMemberVisibility read GetVisibility;
   end;
 
+  { TRttiDataMember }
+
+  TRttiDataMember = class abstract(TRttiMember)
+  private
+    function GetDataType: TRttiType; virtual; abstract;
+    function GetIsReadable: Boolean; virtual; abstract;
+    function GetIsWritable: Boolean; virtual; abstract;
+  public
+    function GetValue(Instance: JSValue): TValue; virtual; abstract;
+    procedure SetValue(Instance: JSValue; const AValue: TValue); virtual; abstract;
+    property DataType: TRttiType read GetDataType;
+    property IsReadable: Boolean read GetIsReadable;
+    property IsWritable: Boolean read GetIsWritable;
+  end;
+
   { TRttiField }
 
-  TRttiField = class(TRttiMember)
+  TRttiField = class(TRttiDataMember)
   private
     function GetFieldType: TRttiType;
     function GetFieldTypeInfo: TTypeMemberField;
+    function GetDataType: TRttiType; override;
+    function GetIsReadable: Boolean; override;
+    function GetIsWritable: Boolean; override;
   public
     constructor Create(AParent: TRttiType; ATypeInfo: TTypeMember);
-    function GetValue(Instance: JSValue): TValue;
-    procedure SetValue(Instance: JSValue; const AValue: TValue);
+
+    function GetValue(Instance: JSValue): TValue; override;
+    procedure SetValue(Instance: JSValue; const AValue: TValue); override;
     property FieldType: TRttiType read GetFieldType;
     property FieldTypeInfo: TTypeMemberField read GetFieldTypeInfo;
   end;
@@ -246,20 +265,21 @@ type
 
   { TRttiProperty }
 
-  TRttiProperty = class(TRttiMember)
+  TRttiProperty = class(TRttiDataMember)
   private
+    function GetDataType: TRttiType; override;
     function GetPropertyTypeInfo: TTypeMemberProperty;
     function GetPropertyType: TRttiType;
-    function GetIsWritable: boolean;
-    function GetIsReadable: boolean;
+    function GetIsWritable: boolean; override;
+    function GetIsReadable: boolean; override;
   protected
     function GetVisibility: TMemberVisibility; override;
   public
     constructor Create(AParent: TRttiType; ATypeInfo: TTypeMember);
 
-    function GetValue(Instance: JSValue): TValue;
+    function GetValue(Instance: JSValue): TValue; override;
 
-    procedure SetValue(Instance: JSValue; const AValue: TValue);
+    procedure SetValue(Instance: JSValue; const AValue: TValue); override;
 
     property PropertyTypeInfo: TTypeMemberProperty read GetPropertyTypeInfo;
     property PropertyType: TRttiType read GetPropertyType;
@@ -1773,6 +1793,21 @@ begin
   inherited;
 end;
 
+function TRttiField.GetDataType: TRttiType;
+begin
+  Result := nil;
+end;
+
+function TRttiField.GetIsReadable: Boolean;
+begin
+  Result := True;
+end;
+
+function TRttiField.GetIsWritable: Boolean;
+begin
+  Result := True;
+end;
+
 function TRttiField.GetFieldType: TRttiType;
 begin
   Result := Pool.GetType(FieldTypeInfo.TypeInfo);
@@ -1981,6 +2016,11 @@ begin
     raise EInvalidCast.Create('');
 
   inherited;
+end;
+
+function TRttiProperty.GetDataType: TRttiType;
+begin
+  Result := GetPropertyType;
 end;
 
 function TRttiProperty.GetPropertyTypeInfo: TTypeMemberProperty;
