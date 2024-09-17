@@ -1,7 +1,7 @@
 {
     This file is part of the Free Component Library
 
-    Webassembly RegExp API - Shared definitions
+    Webassembly RegExp API - Shared constants & functions
     Copyright (c) 2024 by Michael Van Canneyt michael@freepascal.org
 
     See the file COPYING.FPC, included in this distribution,
@@ -12,6 +12,7 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
  **********************************************************************}
+
 unit wasm.regexp.shared;
 
 {$mode ObjFPC}{$H+}
@@ -66,6 +67,7 @@ Const
   regexpFN_GetFlags = 'get_flags';
   regexpFN_GetExpression = 'get_expression';
   regexpFN_GetLastIndex = 'get_last_index';
+  regexpFN_SetLastIndex = 'set_last_index';
   regexpFN_GetResultMatch = 'get_result_match';
   regexpFN_GetGroupCount = 'get_group_count';
   regexpFN_GetGroupName = 'get_group_name';

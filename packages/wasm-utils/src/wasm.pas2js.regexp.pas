@@ -74,6 +74,7 @@ Type
     function RegExpGetFlags(aExprID : TWasmRegExpID; aFlags : PLongint) : TWasmRegexpResult;
     function RegExpGetExpression(aExprID : TWasmRegExpID; aExp : PByte; aExpLen : PLongint) : TWasmRegexpResult;
     function RegExpGetLastIndex(aExprID : TWasmRegExpID; aLastIndex : PLongint) : TWasmRegexpResult;
+    function RegExpSetLastIndex(aExprID : TWasmRegExpID; aLastIndex : Longint) : TWasmRegexpResult;
     function RegExpGetResultMatch(aExprID : TWasmRegExpID; aIndex : Longint; Res : PByte; ResLen : PLongint) : TWasmRegexpResult;
     function RegExpGetGroupCount(aExprID : TWasmRegExpID; aCount: PLongint) : TWasmRegexpResult;
     function RegExpGetGroupName(aExprID : TWasmRegExpID; aIndex : Longint; aName : PByte; aNameLen : PLongint) : TWasmRegexpResult;
@@ -419,6 +420,23 @@ begin
   if lRegExp=Nil then
     Exit(WASMRE_RESULT_INVALIDID);
   Env.SetMemInfoInt32(aLastIndex,lRegexp.RegExp.lastIndex);
+  Result:=WASMRE_RESULT_SUCCESS;
+end;
+
+function TWasmRegExpAPI.RegExpSetLastIndex(aExprID: TWasmRegExpID; aLastIndex: Longint): TWasmRegexpResult;
+var
+  lRegExp : TWasmRegExp;
+
+begin
+  {$IFNDEF NOLOGAPICALLS}
+  If LogAPICalls then
+    LogCall('RegExp.Deallocate(%d)',[aExprID]);
+  {$ENDIF}
+  lRegExp:=FindRegExp(aExprID);
+  if lRegExp=Nil then
+    Exit(WASMRE_RESULT_INVALIDID);
+  lRegexp.RegExp.lastIndex:=aLastIndex;
+  Result:=WASMRE_RESULT_SUCCESS;
 end;
 
 function TWasmRegExpAPI.RegExpGetResultMatch(aExprID: TWasmRegExpID; aIndex: Longint; Res: PByte; ResLen: PLongint
@@ -603,7 +621,7 @@ begin
   Result:=FNextID;
 end;
 
-function TWasmRegExpAPI.FindRegExp(aID: TWasmRegExpID): TWasmRegexp;
+function TWasmRegExpAPI.FindRegExp(aID: TWasmRegExpID): TWasmRegExp;
 var
   Value : JSValue;
 
@@ -624,6 +642,7 @@ begin
   AObject[regexpFN_GetFlags]:=@RegExpGetFlags;
   AObject[regexpFN_GetExpression]:=@RegExpGetExpression;
   AObject[regexpFN_GetLastIndex]:=@RegExpGetLastIndex;
+  AObject[regexpFN_SetLastIndex]:=@RegExpSetLastIndex;
   AObject[regexpFN_GetResultMatch]:=@RegExpGetResultMatch;
   AObject[regexpFN_GetGroupCount]:=@RegExpGetGroupCount;
   AObject[regexpFN_GetGroupName]:=@RegExpGetGroupName;
