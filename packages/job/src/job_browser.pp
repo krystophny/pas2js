@@ -82,7 +82,8 @@ Type
     FDecoderUTF16 : TJSTextDecoder;
     FDecoderUTF8 : TJSTextDecoder;
     function GetObjectConstructor(aObjectName: String): TJSFunction;
-    procedure SetMemFromArray(ObjId: TJOBObjectID; Mem: TWasmPointer);
+    procedure SetArrayFromMem(ObjId: TJOBObjectID; Mem: TWasmPointer; aMaxLen: NativeInt);
+    procedure SetMemFromArray(ObjId: TJOBObjectID; Mem: TWasmPointer; aMaxLen: NativeInt);
   Protected
     procedure SetInstanceExports(const AValue: TWasiExports); override;
     function DecodeUTF16Buffer(Arr : TJSUint16Array) : String;
@@ -268,6 +269,7 @@ begin
   aObject[JOBFn_InvokeArrayStringResult]:=@Invoke_ArrayStringResult;
   aObject[JOBFn_CreateObject]:=@Create_JSObject;
   aObject[JOBFn_SetMemFromArray]:=@SetMemFromArray;
+  aObject[JOBFn_SetArrayFromMem]:=@SetArrayFromMem;
 end;
 
 function TJSObjectBridge.FindObject(ObjId: TJOBObjectID): TJSObject;
@@ -356,7 +358,30 @@ begin
   Result:=FDecoderUTF8.decode(Arr);
 end;
 
-procedure TJSObjectBridge.SetMemFromArray(ObjId: TJOBObjectID; Mem : TWasmPointer);
+procedure TJSObjectBridge.SetArrayFromMem(ObjId: TJOBObjectID; Mem : TWasmPointer; aMaxLen : NativeInt);
+{
+  JOB allocates memory do make a call.
+  As such, it is dangerous to call _set in the global memory,
+  since the memory object can have changed between the call to get
+  the globabl memory object and the call to set.
+  Using SetArrayFromMem will always use the correct webassembly memory.
+}
+var
+  obj : TJSObject;
+  Buf : TJSArrayBuffer;
+  Src,Dest : TJSUint8Array;
+begin
+  Obj:=FindObject(ObjId);
+  if obj is TJSArrayBuffer then
+    Buf:=TJSArrayBuffer(Obj)
+  else
+    Buf:=TJSTypedArray(Obj).buffer;
+  Dest:=TJSUint8Array.New(Buf);
+  Src:=TJSUint8Array.New(getModuleMemoryDataView.buffer,Mem,aMaxLen);
+  Dest._set(Src,0);
+end;
+
+procedure TJSObjectBridge.SetMemFromArray(ObjId: TJOBObjectID; Mem : TWasmPointer; aMaxLen : NativeInt);
 {
   JOB allocates memory do make a call.
   As such, it is dangerous to call _set in the global memory,
@@ -367,17 +392,24 @@ procedure TJSObjectBridge.SetMemFromArray(ObjId: TJOBObjectID; Mem : TWasmPointe
 
 var
   obj : TJSObject;
+  Buf : TJSArrayBuffer;
   Src,Dest : TJSUint8Array;
 
 begin
   Obj:=FindObject(ObjId);
+  // Get the actual buffer
   if obj is TJSArrayBuffer then
-    Src:=TJSUint8Array.new(TJSArrayBuffer(obj))
+    Buf:=TJSArrayBuffer(Obj)
   else
-    // We don't do any extra checks on the assumption that new() will do the check...
-    Src:=TJSUint8Array.new(TJSTypedArray(Obj).buffer);
+    Buf:=TJSTypedArray(Obj).buffer;
+  // Create typed buffer
+  if aMaxLen=0 then
+    Src:=TJSUint8Array.new(Buf)
+  else
+    Src:=TJSUint8Array.new(Buf,0,aMaxLen);
+  // Copy
   Dest:=TJSUint8Array.New(getModuleMemoryDataView.buffer);
-  Dest._set(Src,mem);
+  Dest._set(Src,Mem);
 end;
 
 function TJSObjectBridge.Invoke_JSResult(ObjId: TJOBObjectID; NameP, NameLen,
