@@ -104,6 +104,7 @@ Type
     function Invoke_ArrayStringResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP, ResultP: NativeInt): TJOBResult; virtual;
     function ReleaseObject(ObjId: TJOBObjectID): TJOBResult; virtual;
     function GetStringResult(ResultP: NativeInt): TJOBResult; virtual;
+    function DebugObject(ObjId: TJOBObjectID; aMessage: TWasmPointer; aMessageLen: Integer; aFlags: Longint): TJOBResult;
     function ReleaseStringResult: TJOBResult; virtual;
   Public
     Constructor Create(aEnv: TPas2JSWASIEnvironment); override;
@@ -270,6 +271,7 @@ begin
   aObject[JOBFn_CreateObject]:=@Create_JSObject;
   aObject[JOBFn_SetMemFromArray]:=@SetMemFromArray;
   aObject[JOBFn_SetArrayFromMem]:=@SetArrayFromMem;
+  aObject[JOBFn_DebugObject]:=@DebugObject;
 end;
 
 function TJSObjectBridge.FindObject(ObjId: TJOBObjectID): TJSObject;
@@ -741,6 +743,27 @@ begin
   for i:=0 to l-1 do
     View.setUint16(ResultP+2*i,ord(FStringResult[i+1]),env.IsLittleEndian);
   FStringResult:='';
+end;
+
+function TJSObjectBridge.DebugObject(ObjId: TJOBObjectID; aMessage : TWasmPointer; aMessageLen : Integer; aFlags: Longint): TJOBResult;
+
+var
+  Obj : TJSObject;
+  S : String;
+
+begin
+  S:=Env.GetUTF8StringFromMem(aMessage,aMessageLen);
+  Obj:=FindObject(ObjId);
+  if not assigned(Obj) then
+    begin
+    Result:=JOBResult_UnknownObjId;
+    console.warn('Cannot find object ',ObjId);
+    end
+  else
+    begin
+    console.debug(S,' dumping object ',ObjID,' : ',Obj);
+    Result:=JOBResult_Success;
+    end;
 end;
 
 function TJSObjectBridge.ReleaseStringResult: TJOBResult;
