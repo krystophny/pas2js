@@ -118,7 +118,7 @@ Type
     Procedure RegisterJSObjectFactory(const aName : string; aFunc : TJSObjectFactory); overload;
     Function GetJOBResult(v: jsvalue): TJOBResult;
     Function GetStats : TJSObjectBridgeStats;
-    Procedure DumpLiveObjects;
+    Procedure DumpLiveObjects(S : String = '');
     property CallbackHandler: TJOBCallback read FCallbackHandler write FCallbackHandler;
     property OnCallBackJSError : TCallbackErrorJSEventHandler read FOnCallBackJSError Write FOnCallBackJSError;
     property OnCallBackPasError : TCallbackErrorPasEventHandler read FOnCallBackPasError Write FOnCallBackPasError;
@@ -753,16 +753,24 @@ var
 
 begin
   S:=Env.GetUTF8StringFromMem(aMessage,aMessageLen);
-  Obj:=FindObject(ObjId);
-  if not assigned(Obj) then
+  if ObjID=-1 then
     begin
-    Result:=JOBResult_UnknownObjId;
-    console.warn('Cannot find object ',ObjId);
+    DumpLiveObjects(S);
+    Result:=JOBResult_Success;
     end
   else
     begin
-    console.debug(S,' dumping object ',ObjID,' : ',Obj);
-    Result:=JOBResult_Success;
+    Obj:=FindObject(ObjId);
+    if not assigned(Obj) then
+      begin
+      Result:=JOBResult_UnknownObjId;
+      console.warn('Cannot find object ',ObjId);
+      end
+    else
+      begin
+      console.debug(S,' dumping object ',ObjID,' : ',Obj);
+      Result:=JOBResult_Success;
+      end;
     end;
 end;
 
@@ -1217,11 +1225,11 @@ begin
   Result.GlobalObjectCount:=FGlobalObjects.Length;
 end;
 
-procedure TJSObjectBridge.DumpLiveObjects;
+procedure TJSObjectBridge.DumpLiveObjects(S: String);
 begin
-  Console.Log('Local objects');
+  Console.Log(S,'Local objects:');
   Console.debug(FLocalObjects);
-  Console.Log('Global objects');
+  Console.Log(S,'Global objects:');
   Console.debug(FGlobalObjects);
 end;
 
