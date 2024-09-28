@@ -2894,6 +2894,8 @@ begin
     inp.maxLength:=FMaxLength;
   if FMinLength<>0 then
     inp.minLength:=FMinLength;
+  if FPlaceHolder<>'' then
+    inp.Placeholder:=Placeholder;
 end;
 
 class function TTextInputWidget.AllowChildren: Boolean;
