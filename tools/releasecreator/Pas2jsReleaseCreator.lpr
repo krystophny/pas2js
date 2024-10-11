@@ -491,6 +491,7 @@ begin
     SharedParams.Add('-Fu'+PkgSrcDir+'fcl-json'+PathDelim+'src');
     SharedParams.Add('-Fu'+PkgSrcDir+'fcl-passrc'+PathDelim+'src');
     SharedParams.Add('-Fu'+PkgSrcDir+'pastojs'+PathDelim+'src');
+    SharedParams.Add('-Fu'+PkgSrcDir+'fcl-web'+PathDelim+'src'+PathDelim+'base');
 
     SharedParams.Add('-B');
     SharedParams.Add('-MObjFPC');
