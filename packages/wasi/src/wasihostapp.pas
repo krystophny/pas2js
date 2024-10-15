@@ -8,9 +8,9 @@ interface
 
 uses
 {$IFDEF FPC_DOTTEDUNITS}
-  System.Classes, System.SysUtils, Fcl.App.Browser, JSApi.JS, BrowserApi.WebAssembly, Wasi.Env, BrowserApi.Web, System.Types;
+  System.Classes, System.SysUtils, Fcl.App.Browser, JSApi.JS, BrowserApi.WebAssembly, Wasi.Env;
 {$ELSE} 
-  Classes, SysUtils, browserapp, js, webassembly, wasienv, web, types;
+  Classes, SysUtils, browserapp, js, webassembly, wasienv;
 {$ENDIF}
 
 Type

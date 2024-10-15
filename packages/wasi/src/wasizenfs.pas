@@ -11,9 +11,10 @@ Type
   EWASIZenFS = class(Exception);
 
   { TWASIZenFS }
+
   TWASIZenFS = class (TObject,IWasiFS)
   private
-    FRoot : TZenFSDir;
+    //FRoot : TZenFSDir;
     FDirMap : TJSMap;
   protected
     function AllocateDirFD(aDir: TZenFSDirentArray): Integer;
@@ -426,7 +427,7 @@ function TWASIZenFS.GetPrestat(FD: Integer): String;
 begin
   if (FD=3) then
     begin
-    FRoot:=ZenFS.OpenDirSync('/');
+    {FRoot:=}ZenFS.OpenDirSync('/');
     Result:='/';
     end;
 end;

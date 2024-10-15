@@ -1346,8 +1346,8 @@ type
     Function setInterval(ahandler : TJSTimerCallBack; aInterval : NativeUInt) : NativeInt; varargs;
     Function setTimeout(ahandler : TJSTimerCallBack; aTimeout : NativeUInt) : NativeInt; varargs;
     Function setTimeout(ahandler : TJSTimerCallBack) : NativeInt;
-    Procedure clearInterval(aID: NativeInt);
-    Procedure clearTimeout(aID: NativeInt);
+    Procedure clearInterval(aID: NativeInt); overload;
+    Procedure clearTimeout(aID: NativeInt); overload;
     procedure queueMicrotask(callback : TJSMicrotaskProcedure);
     Function createImageBitmap(Source : JSValue) : TJSPromise;
     Function createImageBitmap(Source : JSValue; aOptions : TJSImageBitmapOptions) : TJSPromise;

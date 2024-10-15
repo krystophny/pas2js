@@ -293,10 +293,10 @@ type
 
   TRecordInfo = class external name 'Object'(TJSObject)
   public
-    function Assign(Source: JSValue): JSValue; external name '$assign';
+    function Assign(Source: JSValue): JSValue; reintroduce; external name '$assign';
     function Clone(Source: JSValue): JSValue; external name '$clone';
     function Equals(Source: JSValue): Boolean; external name '$eq';
-    function New: JSValue; external name '$new';
+    function New: JSValue; reintroduce; external name '$new';
   end;
 
   TTypeInfoRecord = class external name 'rtl.tTypeInfoRecord'(TTypeInfoStruct)
