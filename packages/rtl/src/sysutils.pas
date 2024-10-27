@@ -492,7 +492,7 @@ Var
 // Various conversions
 
 function DateTimeToJSDate(aDateTime : TDateTime; asUTC : Boolean = False) : TJSDate;
-function JSDateToDateTime(aDate : TJSDate) : TDateTime;
+function JSDateToDateTime(aDate : TJSDate; asUTC : Boolean = False) : TDateTime;
 function DateTimeToTimeStamp(DateTime: TDateTime): TTimeStamp;
 function TimeStampToDateTime(const TimeStamp: TTimeStamp): TDateTime;
 function MSecsToTimeStamp(MSecs: NativeInt): TTimeStamp;
@@ -516,6 +516,7 @@ procedure ReplaceDate(var DateTime: TDateTime; const NewDate: TDateTime);
 function Date: TDateTime;
 function Time: TDateTime;
 function Now: TDateTime;
+function NowUTC: TDateTime;
 function DayOfWeek(DateTime: TDateTime): integer;
 function IncMonth(const DateTime: TDateTime; NumberOfMonths: integer = 1 ): TDateTime;
 procedure IncAMonth(var Year, Month, Day: Word; NumberOfMonths: Integer = 1);
@@ -3308,11 +3309,15 @@ begin
     Result:=TJSDate.New(Y,M-1,D,h,n,s,z);
 end;
 
-function JSDateToDateTime(aDate: TJSDate): TDateTime;
+function JSDateToDateTime(aDate: TJSDate; asUTC : Boolean = False): TDateTime;
 
 begin
-  Result:=EncodeDate(ADate.FullYear,ADate.Month+1,ADate.Date) +
-          EncodeTime(ADate.Hours,ADate.Minutes,ADate.Seconds,ADate.Milliseconds);
+  if asUTC then
+    Result:=EncodeDate(ADate.UTCFullYear,ADate.UTCMonth+1,ADate.UTCDate) +
+            EncodeTime(ADate.UTCHours,ADate.UTCMinutes,ADate.UTCSeconds,ADate.UTCMilliseconds)
+  else
+    Result:=EncodeDate(ADate.FullYear,ADate.Month+1,ADate.Date) +
+            EncodeTime(ADate.Hours,ADate.Minutes,ADate.Seconds,ADate.Milliseconds);
 end;
 
 
@@ -3521,6 +3526,11 @@ end;
 function Now: TDateTime;
 begin
   Result:=JSDateToDateTime(TJSDate.New());
+end;
+
+function NowUTC: TDateTime;
+begin
+  Result:=JSDateToDateTime(TJSDate.New(), True);
 end;
 
 function Date: TDateTime;
