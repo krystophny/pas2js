@@ -2276,11 +2276,10 @@ begin
   Arr:=UTF8TextEncoder.Encode(AString);
   if (Arr.byteLength>aLen) then
     Result:=-Arr.byteLength
+  else if Arr.byteLength=0 then
+    Result:=0
   else
-    begin
-    Arr:=TJSUint8Array.New(getModuleMemoryDataView.buffer,aLoc,aLen);
-    Result:=UTF8TextEncoder.encodeInto(aString,Arr).Written;
-    end;
+    Result:=SetUTF8StringInMem(aLoc,aLen,Arr);
 end;
 
 function TPas2JSWASIEnvironment.SetUTF8StringInMem(aLoc: TWasmMemoryLocation; aLen: Longint; AStringBuf: TJSUint8Array): Integer;
@@ -2289,9 +2288,11 @@ var
   Arr : TJSUint8Array;
 
 begin
- Arr:=TJSUint8Array.New(getModuleMemoryDataView.buffer,aLoc,aLen);
- Arr._set(aStringBuf);
- Result:=aStringBuf.byteLength;
+  if aStringBuf=Null then
+    exit(0);
+  Arr:=TJSUint8Array.New(getModuleMemoryDataView.buffer,aLoc,aLen);
+  Arr._set(aStringBuf);
+  Result:=aStringBuf.byteLength;
 end;
 
 
