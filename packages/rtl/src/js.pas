@@ -487,16 +487,38 @@ type
     property Elements[Index: NativeInt]: JSValue read GetElements write SetElements; default;
   end;
 
-  TJSArrayBuffer = Class external name 'ArrayBuffer' (TJSObject)
+  TJSAbstractArrayBuffer = Class external name 'Object' (TJSObject)
   private
     fLength : NativeInt; external name 'byteLength';
-  public
+    fmaxByteLength: NativeInt; external name 'maxByteLength';
+  Public
     constructor new(aByteLength : NativeInt);
-    class function isView(aValue : JSValue) : Boolean;   
+    Property byteLength : NativeInt Read fLength;
+    property maxByteLength : NativeInt Read fmaxByteLength;
+  end;
+
+  { TJSArrayBuffer }
+
+  TJSArrayBuffer = Class external name 'ArrayBuffer' (TJSAbstractArrayBuffer)
+  private
+    fResizable: Boolean; external name 'resizable';
+  public
+    class function isView(aValue : JSValue) : Boolean;
     function slice(aBegin : NativeInt) : TJSArrayBuffer; overload;
     function slice(aBegin,aEnd : NativeInt) : TJSArrayBuffer; overload;
-    Property byteLength : NativeInt Read fLength;
+    property resizable : Boolean Read fResizable;
   end;
+
+  TJSSharedArrayBuffer = Class external name 'SharedArrayBuffer' (TJSAbstractArrayBuffer)
+  private
+    fGrowable : boolean; external name 'growable';
+  public
+    procedure grow(aNewLength : nativeInt);
+    function slice(aBegin : NativeInt) : TJSSharedArrayBuffer; overload;
+    function slice(aBegin,aEnd : NativeInt) : TJSSharedArrayBuffer; overload;
+    property growable : Boolean Read fGrowable;
+  end;
+
 
   TJSBufferSource = class external name 'BufferSource' (TJSObject)
   end;
@@ -787,11 +809,15 @@ type
     Property values[Index : NativeInt] : Float64 Read getTypedValue Write setTypedValue; default;
   end;
 
+  { TJSDataView }
+
   TJSDataView = Class external name 'DataView' (TJSBufferSource)
   private
     fBuffer : TJSArrayBuffer; external name 'buffer';
+    fBufferObj: TJSAbstractArrayBuffer; external name 'buffer';
     fLength : NativeInt; external name 'byteLength';
     fOffset : NativeInt; external name 'byteOffset';
+
   public
     constructor new(aBuffer : TJSArrayBuffer); overload;
     constructor new(aBuffer : TJSArrayBuffer; aOffset : NativeInt); overload;
@@ -828,6 +854,7 @@ type
     Property byteLength : NativeInt Read fLength;
     Property byteOffset : NativeInt read fOffset;
     property buffer : TJSArrayBuffer Read fBuffer;
+    property bufferObj : TJSAbstractArrayBuffer Read fBufferObj;
   end;
 
   TJSJSON = class external name 'JSON' (TJSObject)
