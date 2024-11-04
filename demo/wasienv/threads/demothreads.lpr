@@ -28,10 +28,16 @@ begin
 end;
 
 function TMyApplication.DoStartClick(aEvent: TJSMouseEvent): boolean;
+
+type
+  TProcedure = procedure;
+
 begin
   Result:=false;
-  Writeln('Host: Starting program');
-  Host.Exported.start;
+  Writeln('Host: initializing lib');
+  Host.Exported.initialize;
+  Writeln('Host: running thread');
+  TProcedure(Host.Exported['runthread'])();
 end;
 
 procedure TMyApplication.DoBeforeWasmInstantiate(Sender: TObject);

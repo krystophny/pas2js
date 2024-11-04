@@ -4,6 +4,7 @@
     <Version Value="12"/>
     <General>
       <Flags>
+        <SaveOnlyProjectUnits Value="True"/>
         <MainUnitHasCreateFormStatements Value="False"/>
         <MainUnitHasTitleStatement Value="False"/>
         <MainUnitHasScaledStatement Value="False"/>
@@ -14,10 +15,11 @@
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
     </General>
-    <CustomData Count="3">
+    <CustomData Count="4">
       <Item0 Name="MaintainHTML" Value="1"/>
       <Item1 Name="Pas2JSProject" Value="1"/>
-      <Item2 Name="PasJSWebBrowserProject" Value="1"/>
+      <Item2 Name="PasJSLocation" Value="demowasithreads"/>
+      <Item3 Name="PasJSWebBrowserProject" Value="1"/>
     </CustomData>
     <BuildModes>
       <Item Name="Default" Default="True"/>
@@ -42,19 +44,6 @@
           <Item0 Name="PasJSIsProjectHTMLFile" Value="1"/>
         </CustomData>
       </Unit>
-      <Unit>
-        <Filename Value="../../../packages/rtl/rtl.webthreads.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="Rtl.WebThreads"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../../../packages/wasi/wasiworkerthreadhost.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../../../packages/wasi/wasithreadedapp.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -69,8 +58,8 @@
     <Parsing>
       <SyntaxOptions>
         <AllowLabel Value="False"/>
-        <CPPInline Value="False"/>
         <UseAnsiStrings Value="False"/>
+        <CPPInline Value="False"/>
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>

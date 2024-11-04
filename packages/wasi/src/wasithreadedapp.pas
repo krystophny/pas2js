@@ -29,13 +29,11 @@ Type
     function GetThreadID: Integer;
     function GetThreadIDRange: Integer;
     function GetThreadInfo: TThreadinfo;
-    function GetThreadLocation: Integer;
     procedure SetLoaded(AValue: Boolean);
     procedure SetLoadSent(AValue: Boolean);
     procedure SetThreadID(AValue: Integer);
     procedure SetThreadIDRange(AValue: Integer);
     procedure SetThreadInfo(AValue: TThreadinfo);
-    procedure SetThreadLocation(AValue: Integer);
   Public
     Class function Create(aScript : String) : TWasmThread; reintroduce; static;
     Procedure SendCommand(aCommand : TWorkerCommand);
@@ -44,7 +42,6 @@ Type
     Property ThreadInfo : TThreadinfo Read GetThreadInfo Write SetThreadInfo;
     Property ThreadID : Integer Read GetThreadID Write SetThreadID;
     Property ThreadIDRange : Integer Read GetThreadIDRange Write SetThreadIDRange;
-    Property ThreadLocation : Integer Read GetThreadLocation Write SetThreadLocation;
   end;
 
 
@@ -73,9 +70,9 @@ Type
     FNextThreadID : Integer;
     procedure SetWasiHost(AValue: TWASIHost);
   Protected
-    Function thread_spawn(thread_id : Integer; attrs: Integer; thread_start_func : Integer; args : Integer) : Integer;  override;
-    Function thread_detach(thread_id : Integer) : Integer; override;
-    Function thread_cancel(thread_id : Integer) : Integer; override;
+    function thread_spawn(start_arg : longint) : longint; override;
+    Function thread_detach(thread_id : longint) : Integer; override;
+    Function thread_cancel(thread_id : longint) : Integer; override;
     Function thread_self() : Integer; override;
     function AllocateThreadID : Integer;
   Protected
@@ -144,19 +141,12 @@ Type
 
   ThreadAppWASIHost = class(TWASIHost)
   private
-    FThreadInitInstanceEntry: String;
     FThreadSupport: TMainThreadSupport;
-
     procedure SetThreadSupport(AValue: TMainThreadSupport);
   Protected
-    Procedure PrepareWebAssemblyInstance(aDescr: TWebAssemblyStartDescriptor); override;
     Procedure DoAfterInstantiate; override;
   Public
-     constructor Create(aOwner: TComponent); override;
-
     Property ThreadSupport : TMainThreadSupport Read FThreadSupport Write SetThreadSupport;
-    // Thread instance Init point name for the WASI Host.
-    Property ThreadInitInstanceEntry : String Read FThreadInitInstanceEntry Write FThreadInitInstanceEntry;
   end;
 
 
@@ -174,37 +164,12 @@ begin
   FThreadSupport.Host:=Self;
 end;
 
-procedure ThreadAppWASIHost.PrepareWebAssemblyInstance(
-  aDescr: TWebAssemblyStartDescriptor);
-Var
-  func : JSValue;
-  InitFunc : TThreadInitInstanceFunction absolute func;
-  Res : Integer;
-
-begin
-  inherited;
-  Writeln('PrepareWebAssemblyInstance: check init thread');
-  func:=aDescr.Exported[ThreadInitInstanceEntry];
-  if Assigned(func) then
-    begin
-    Writeln('Initializing main thread instance');
-    res:=InitFunc(0,1,0);
-    if Res<>0 then
-      Writeln('Failed to initialize thread');
-    end;
-end;
 
 procedure ThreadAppWASIHost.DoAfterInstantiate;
 begin
   inherited DoAfterInstantiate;
   If Assigned(FThreadSupport) then
     FThreadSupport.SendLoadCommands;
-end;
-
-constructor ThreadAppWASIHost.Create(aOwner: TComponent);
-begin
-  inherited Create(aOwner);
-  ThreadInitInstanceEntry:=DefaultThreadInstanceInitPoint;
 end;
 
 
@@ -299,11 +264,6 @@ begin
     Result:=Default(TThreadInfo);
 end;
 
-function TWasmThreadHelper.GetThreadLocation: Integer;
-begin
-  Result:=ThreadInfo.ThreadInfoLocation;
-end;
-
 procedure TWasmThreadHelper.SetLoaded(AValue: Boolean);
 begin
   Properties['FLoaded']:=aValue
@@ -329,11 +289,6 @@ end;
 procedure TWasmThreadHelper.SetThreadInfo(AValue: TThreadinfo);
 begin
   Properties['FThreadInfo']:=aValue
-end;
-
-procedure TWasmThreadHelper.SetThreadLocation(AValue: Integer);
-begin
-  ThreadInfo.ThreadInfoLocation:=aValue
 end;
 
 
@@ -425,7 +380,7 @@ Var
 
 begin
   With aThreadWorker.ThreadInfo do
-    WRC:=TWorkerRunCommand.Create(ThreadID,RunFunction,Attributes,Arguments,ThreadInfoLocation);
+    WRC:=TWorkerRunCommand.Create(ThreadID,Arguments);
   aThreadWorker.SendCommand(Wrc);
 end;
 
@@ -441,37 +396,32 @@ begin
     SendLoadCommands;
 end;
 
-function TMainThreadSupport.thread_spawn(thread_id: Integer; attrs: Integer;
-  thread_start_func: Integer; args: Integer): Integer;
+function TMainThreadSupport.thread_spawn(start_arg : longint) : longint;
 
 var
   aInfo : TThreadInfo;
 
 begin
-  // Writeln('In host thread_spawn');
+  Writeln('In host thread_spawn');
   aInfo.ThreadID:=AllocateThreadID;
-  aInfo.RunFunction:=thread_start_func;
-  aInfo.Arguments:=Args;
-  aInfo.Attributes:=Attrs;
+  aInfo.Arguments:=start_arg;
   aInfo.OriginThreadID:=0;
-  aInfo.ThreadInfoLocation:=thread_id;
-  Env.SetMemInfoInt32(thread_id,aInfo.ThreadID);
   Result:=SpawnThread(aInfo);
 end;
 
 function TMainThreadSupport.thread_detach(thread_id: Integer): Integer;
 begin
-  Result:=0;
+  Result:=-1;
 end;
 
 function TMainThreadSupport.thread_cancel(thread_id: Integer): Integer;
 begin
-  Result:=0;
+  Result:=-1;
 end;
 
 function TMainThreadSupport.thread_self: Integer;
 begin
-  Result:=0;
+  Result:=-1;
 end;
 
 function TMainThreadSupport.AllocateThreadID: Integer;
@@ -512,7 +462,8 @@ begin
     // Writeln('Worker is loaded. Sending run command to worker');
     SendRunCommand(WT);
     end;
-  // Writeln('Exit: TMainThreadSupport.SpawnThread for ID ',WT.ThreadID);
+  Result:=aInfo.ThreadID
+ // Writeln('Exit: TMainThreadSupport.SpawnThread for ID ',WT.ThreadID);
 end;
 
 
@@ -544,10 +495,8 @@ Var
 
 begin
   aInfo.OriginThreadID:=aWorker.ThreadID;
-  aInfo.RunFunction:=aCommand.RunFunction;
   aInfo.ThreadID:=aCommand.ThreadID;
   aInfo.Arguments:=aCommand.Arguments;
-  aInfo.Attributes:=aCommand.Attributes;
   SpawnThread(aInfo);
 end;
 

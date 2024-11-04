@@ -35,8 +35,6 @@ Type
     constructor Create(aOwner: TComponent); override;
     // Thread entry point name for the WASI Host.
     Property ThreadEntryPoint : String Read FThreadEntryPoint Write FThreadEntryPoint;
-    // Thread instance Init point name for the WASI Host.
-    Property ThreadInitInstanceEntry : String Read FThreadInitInstanceEntry Write FThreadInitInstanceEntry;
     // Send output to main window
     Property SendOutputToBrowserWindow : Boolean Read FSendOutputToBrowserWindow Write FSendOutputToBrowserWindow;
     // our thread
@@ -75,7 +73,7 @@ Type
     procedure SendException(aError: Exception); overload;
     procedure SendException(aError: TJSError); overload;
   Protected
-    Function thread_spawn(thread_id : Integer; attrs: Integer; thread_start_func : Integer; args : Integer) : Integer;  override;
+    function thread_spawn(start_arg : longint) : longint; override;
     Function thread_detach(thread_id : Integer) : Integer; override;
     Function thread_cancel(thread_id : Integer) : Integer; override;
     Function thread_self() : Integer; override;
@@ -233,11 +231,12 @@ procedure TWASIThreadHost.PrepareWebAssemblyThread( aDescr: TWebAssemblyStartDes
 
 Var
   func : JSValue;
-  InitFunc : TThreadInitInstanceFunction absolute func;
+//  InitFunc : TThreadInitInstanceFunction absolute func;
   res : Integer;
 
 begin
   PrepareWebAssemblyInstance(aDescr);
+  (*
   func:=aDescr.Exported[ThreadInitInstanceEntry];
   if Assigned(func) then
     begin
@@ -248,6 +247,7 @@ begin
       else
         Writeln('Could not init assembly thread: ',Res);
     end;
+  *)
 end;
 
 procedure TWASIThreadHost.DoStdWrite(Sender: TObject; const aOutput: String);
@@ -261,23 +261,21 @@ constructor TWASIThreadHost.Create(aOwner: TComponent);
 begin
   inherited Create(aOwner);
   FThreadEntryPoint:=DefaultThreadEntryPoint;
-  FThreadInitInstanceEntry:=DefaultThreadInstanceInitPoint;
   FSendOutputToBrowserWindow:=True;
 end;
 
 { TWorkerThreadSupport }
 
-function TWorkerThreadSupport.thread_spawn(thread_id: Integer; attrs: Integer;
-  thread_start_func: Integer; args: Integer): Integer;
+function TWorkerThreadSupport.thread_spawn(start_arg: longint): longint;
 
 Var
   P : TWorkerSpawnThreadCommand;
-
+  lThreadID : Integer;
 begin
-  P:=TWorkerSpawnThreadCommand.Create(AllocateNewThreadID,Attrs,Args,thread_start_func,Thread_id);
+  lThreadID:=AllocateNewThreadID;
+  P:=TWorkerSpawnThreadCommand.Create(lThreadID,start_arg);
   SendCommand(P);
-  Env.SetMemInfoInt32(thread_id,P.ThreadID);
-  Result:=0;
+  Result:=lThreadID;
 end;
 
 function TWorkerThreadSupport.thread_detach(thread_id: Integer): Integer;
@@ -383,7 +381,7 @@ procedure TWorkerThreadSupport.RunWasmModule(aCommand : TWorkerRunCommand);
   begin
     try
       // Writeln('About to run webassembly entry point (',Host.ThreadEntryPoint,') for thread ID ',aCommand.ThreadID);
-      aResult:=TThreadEntryPointFunction(aExports[Host.ThreadEntryPoint])(aCommand.ThreadInfo,aCommand.RunThreadProc, aCommand.args);
+      aResult:=TThreadEntryPointFunction(aExports[Host.ThreadEntryPoint])(aCommand.ThreadID,aCommand.args);
       if aResult>0 then
         Writeln('Thread run function result ',aResult);
     except
@@ -402,9 +400,6 @@ begin
   // initialize current thread info
   FCurrentThreadInfo.ThreadID:=aCommand.ThreadID;
   FCurrentThreadInfo.Arguments:=aCommand.Args;
-  FCurrentThreadInfo.ThreadInfoLocation:=aCommand.ThreadInfo;
-  FCurrentThreadInfo.Attributes:=aCommand.Attrs;
-  FCurrentThreadInfo.RunFunction:=aCommand.RunThreadProc;
   Host.RunWebAssemblyThread(@DoRun);
 end;
 

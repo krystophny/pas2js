@@ -53,12 +53,10 @@ Const
   DefaultMaxWorkerCount = 100;
 
   // Default exported thread entry point. Must have signature TThreadEntryPointFunction
-  DefaultThreadEntryPoint = 'FPC_WASM_THREAD_ENTRY';
-  // Default exported thread instance point. Must have signature TThreadInitInstanceFunction
-  DefaultThreadInstanceInitPoint = 'FPC_WASM_THREAD_INIT';
+  DefaultThreadEntryPoint = 'wasi_thread_start';
 
   // Imports to wasi env.
-  sThreadSpawn = 'thread_spawn';
+  sThreadSpawn = 'thread-spawn';
   sThreadDetach = 'thread_detach';
   sThreadCancel = 'thread_cancel';
   sThreadSelf = 'thread_self';
@@ -67,8 +65,7 @@ Const
 
 Type
   // aRunProc and aArgs are pointers inside wasm.
-  TThreadEntryPointFunction = Function(ThreadId: Integer; aRunProc : Integer; aArgs: Integer) : Integer;
-  TThreadInitInstanceFunction = Function(IsWorkerThread : Longint; IsMainThread : Integer; CanBlock : Integer) : Integer;
+  TThreadEntryPointFunction = Function(ThreadId: Integer; aArgs: Integer) : Integer;
 
   EWasmThreads = class(Exception);
 
@@ -187,17 +184,14 @@ Type
   // Worker cannot start new thread. It allocates the ID (threadId)
   // It sends RunFunction, Attributes and Arguments received by thread_spawn call.
   TWorkerSpawnThreadCommand = class external name 'Object' (TWorkerCommand)
-    Attributes : Integer;
     Arguments : Integer;
-    RunFunction : Integer;
-    ThreadInfo : integer;
   end;
 
   { TWorkerSpawnThreadCommandHelper }
 
   TWorkerSpawnThreadCommandHelper = class helper for TWorkerSpawnThreadCommand
     Class function CommandName : string; static;
-    Class function Create(aThreadID : integer; aAttrs,aArgs,aRun,aThreadInfo : Integer): TWorkerSpawnThreadCommand; static;reintroduce;
+    class function Create(aThreadID: integer; aArgs: Integer): TWorkerSpawnThreadCommand; static; reintroduce;
   end;
 
 
@@ -222,7 +216,6 @@ Type
   TWorkerRunCommand = class external name 'Object' (TWorkerCommand)
   public
     ThreadInfo : Integer;
-    RunThreadProc : Integer;
     Attrs : Integer;
     Args : Integer;
   end;
@@ -231,7 +224,7 @@ Type
 
   TWorkerRunCommandHelper = class helper for TWorkerRunCommand
     Class function CommandName : string; static;
-    Class function Create(aThreadID, aRunProc, aAttrs, aArgs, aThreadInfoLocation : integer): TWorkerRunCommand; static; reintroduce;
+    Class function Create(aThreadID, aArgs : Longint): TWorkerRunCommand; static; reintroduce;
   end;
 
 
@@ -250,12 +243,9 @@ Type
 
 
   TThreadinfo = record
-    OriginThreadID : Integer; // Numerical thread ID
-    ThreadID : Integer; // Numerical thread ID
-    ThreadInfoLocation : Integer; // Location of thread block (pointer)
-    RunFunction : Integer; // Location of thread function (pointer)
-    Attributes : Integer;  // Unused for the moment
-    Arguments : Integer;  // Arguments (pointer)
+    OriginThreadID : longint; // Numerical thread ID
+    ThreadID : longint; // Numerical thread ID
+    Arguments : longint;  // Arguments (pointer)
   end;
 
   // This basis object has the thread support that is needed by the WASM module.
@@ -263,14 +253,15 @@ Type
 
   { TWasmThreadSupport }
 
+  TWasmPointer = Longint;
   TWasmThreadSupport = Class (TImportExtension)
   private
     FOnSendCommand: TCommandNotifyEvent;
   Protected
     // Proposed WASI standard, modeled after POSIX pthreads.
-    Function thread_spawn(thread_id : Integer; attrs: Integer; thread_start_func : Integer; args : Integer) : Integer;  virtual; abstract;
-    Function thread_detach(thread_id : Integer) : Integer; virtual; abstract;
-    Function thread_cancel(thread_id : Integer) : Integer; virtual; abstract;
+    function thread_spawn(start_arg : longint) : longint; virtual; abstract;
+    Function thread_detach(thread_id : longint) : Integer; virtual; abstract;
+    Function thread_cancel(thread_id : longint) : Integer; virtual; abstract;
     Function thread_self() : Integer; virtual; abstract;
   Public
     Function ImportName : String; override;
@@ -291,14 +282,10 @@ begin
   Result:=cmdRun;
 end;
 
-class function TWorkerRunCommandHelper.Create(aThreadID, aRunProc, aAttrs,
-  aArgs, aThreadInfoLocation: integer): TWorkerRunCommand;
+class function TWorkerRunCommandHelper.Create(aThreadID, aArgs: integer): TWorkerRunCommand;
 begin
   Result:=TWorkerRunCommand(TWorkerCommand.NewWorker(CommandName));
   Result.ThreadID:=aThreadID;
-  Result.ThreadInfo:=aThreadInfoLocation;
-  Result.RunThreadProc:=aRunProc;
-  Result.Attrs:=aAttrs;
   Result.Args:=aArgs;
 end;
 
@@ -326,14 +313,10 @@ begin
   Result:=cmdSpawn
 end;
 
-class function TWorkerSpawnThreadCommandHelper.Create(aThreadID: integer;
-  aAttrs, aArgs, aRun, aThreadInfo: Integer): TWorkerSpawnThreadCommand;
+class function TWorkerSpawnThreadCommandHelper.Create(aThreadID: integer; aArgs : Integer): TWorkerSpawnThreadCommand;
 begin
   Result:=TWorkerSpawnThreadCommand(TWorkerCommand.NewWorker(CommandName,aThreadID));
   Result.Arguments:=aArgs;
-  Result.Attributes:=aAttrs;
-  Result.RunFunction:=aRun;
-  Result.ThreadInfo:=aThreadInfo;
 end;
 
 { TWorkerThreadIDRangeCommandHelper }
@@ -463,7 +446,7 @@ end;
 
 function TWasmThreadSupport.ImportName: String;
 begin
-  Result:='FPCThreading';
+  Result:='wasi';
 end;
 
 procedure TWasmThreadSupport.FillImportObject(aObject: TJSObject);

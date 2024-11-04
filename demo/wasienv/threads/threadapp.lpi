@@ -4,6 +4,7 @@
     <Version Value="12"/>
     <General>
       <Flags>
+        <SaveOnlyProjectUnits Value="True"/>
         <MainUnitHasCreateFormStatements Value="False"/>
         <MainUnitHasTitleStatement Value="False"/>
         <MainUnitHasScaledStatement Value="False"/>
@@ -33,7 +34,7 @@
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="threadapp"/>
+      <Filename Value="threadapp.wasm" ApplyConventions="False"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
@@ -42,15 +43,19 @@
     <CodeGeneration>
       <TargetCPU Value="wasm32"/>
       <TargetOS Value="wasi"/>
+      <Subtarget Value="browser-threaded"/>
     </CodeGeneration>
     <Linking>
       <Debugging>
         <UseLineInfoUnit Value="False"/>
       </Debugging>
+      <Options>
+        <ExecutableType Value="Library"/>
+      </Options>
     </Linking>
     <Other>
       <CustomOptions Value="-CTwasmthreads"/>
-      <CompilerPath Value="/usr/lib/fpc/3.3.1/ppcrosswasm32"/>
+      <CompilerPath Value="ppcrosswasm32"/>
     </Other>
   </CompilerOptions>
   <Debugging>

@@ -1,4 +1,4 @@
-program threadapp;
+library threadlib;
 {$mode objfpc}
 {$h+}
 {$i-}
@@ -38,13 +38,20 @@ begin
   DebugWriteln('Fibonacci(10) = '+IntToStr(Fibonacci(10)));
 end;
 
+procedure runthread;
+
 begin
   DebugWriteln('Starting thread');
   With TCalcThread.Create(False) do
     begin
     DebugWriteln('Thread created');
-    WaitFor;
-    DebugWriteln('thread ended');
+//    While true do
+//      DebugWriteln('Waiting for thread');
+//    DebugWriteln('thread ended');
     end;
+end;
+
+exports runthread;
+    
 end.
 
