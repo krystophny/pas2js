@@ -47,6 +47,9 @@ Const
   cmdSpawn = 'spawn';
   cmdLoad = 'load';
   cmdRun = 'run';
+  cmdExecute = 'execute';
+
+  channelConsole = 'console_output';
 
   DefaultThreadWorker = 'pas2jsthreadworker.js';
   DefaultThreadCount = 2;
@@ -219,6 +222,15 @@ Type
     Attrs : Integer;
     Args : Integer;
   end;
+
+  // Sent my main to thread controller worker: load and start a webassembly
+  TWorkerExecuteCommand = class external name 'Object' (TWorkerCommand)
+  public
+    Url : String;
+    ExecuteFunc : string;
+    Env : TJSObject;
+  end;
+
 
   { TWorkerRunCommandHelper }
 
