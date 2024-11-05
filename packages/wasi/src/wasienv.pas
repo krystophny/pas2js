@@ -595,7 +595,6 @@ function TWASIHost.CreateWebAssembly(aPath: string; aImportObject: TJSObject
 
   var
     Resp : TJSResponse absolute res;
-    err : TJSError;
 
   begin
     if (Resp.status div 100)<>2 then
@@ -1826,7 +1825,7 @@ var
   NameArray : TJSUint8Array;
   NameLen : integer;
   Ptr : TWasmMemoryLocation;
-  Res,Used : Integer;
+  Res : Integer;
 
 
 begin
@@ -2496,7 +2495,6 @@ var
   Resp: TJSResponse;
   blob : TJSBlob;
   buf : TJSarrayBuffer;
-  Data : TJSUint8Array;
   Fails : TLoadFileFailureDynArray;
 
   procedure AddFailure(aUrl,aError: String);
