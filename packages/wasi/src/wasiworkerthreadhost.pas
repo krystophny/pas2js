@@ -10,9 +10,11 @@ interface
 uses
 {$IFDEF FPC_DOTTEDUNITS}
   System.Classes, System.SysUtils, JSApi.JS, Fcl.CustApp, BrowserApi.WebOrWorker, 
-  BrowserApi.Worker, BrowserApi.WebAssembly, Wasi.Env, System.WebThreads;
+  BrowserApi.Worker, BrowserApi.WebAssembly, Wasi.Env, System.WebThreads,
+  Rtl.ThreadController;
 {$ELSE} 
-  Classes, SysUtils, JS, custapp, weborworker, webworker, webassembly, wasienv, Rtl.WebThreads;
+  Classes, SysUtils, JS, custapp, weborworker, webworker, webassembly, wasienv,
+  Rtl.WebThreads, Rtl.ThreadController;
 {$ENDIF}
 
 Type
@@ -24,12 +26,11 @@ Type
   private
     FSendOutputToBrowserWindow: Boolean;
     FThreadEntryPoint: String;
-    FThreadInitInstanceEntry : String;
     FThreadSupport: TWorkerThreadSupport;
+    procedure PrepareWebAssemblyThread(aDescr: TWebAssemblyStartDescriptor);
     procedure SetThreadSupport(AValue: TWorkerThreadSupport);
   Protected
     Procedure RunWebAssemblyThread(aProc : TRunWebassemblyProc); virtual;
-    Procedure PrepareWebAssemblyThread(aDescr : TWebAssemblyStartDescriptor); virtual;
     procedure DoStdWrite(Sender: TObject; const aOutput: String); override;
   Public
     constructor Create(aOwner: TComponent); override;
@@ -48,6 +49,11 @@ Type
 
   TWorkerThreadSupport = class(TWasmThreadSupport)
   Private
+    Type
+      TWorkerState = (wsNeutral, wsLoading, wsLoaded, wsRunWaiting, wsRunning);
+    procedure DoRunThread(aExports: TWASIExports);
+  Private
+    FState: TWorkerState;
     FStartThreadID : Integer;
     FNextThreadID : Integer;
     FCurrentThreadInfo : TThreadinfo;
@@ -86,14 +92,13 @@ Type
     Property Host : TWASIThreadHost Read FWasiHost Write FWasiHost;
   end;
 
-
   { TWorkerWASIHostApplication }
 
   TWorkerWASIHostApplication = class(TCustomApplication)
   private
     FHost : TWASIHost;
-    FThreadSupport : TWorkerThreadSupport;
     FSendOutputToBrowser: Boolean;
+    FConsoleChannel: TJSBroadcastChannel;
     function GetAfterStart: TAfterStartEvent;
     function GetBeforeStart: TBeforeStartEvent;
     function GetcPredefinedConsoleInput: TStrings;
@@ -109,18 +114,20 @@ Type
     procedure SetPredefinedConsoleInput(AValue: TStrings);
     procedure SetRunEntryFunction(AValue: String);
   protected
-    procedure HandleMessage(aEvent: TJSEvent); virtual;
+    procedure HandleMessage(aEvent: TJSEvent); virtual; abstract;
     procedure DoOnSendCommand(Sender : TObject; aCommand : TWorkerCommand);
-    function CreateHost: TWASIHost; virtual;
+    function CreateHost: TWASIHost; virtual; abstract;
     procedure DoRun; override;
     function GetConsoleApplication: boolean; override;
     function GetLocation: String; override;
+    property ConsoleChannel : TJSBroadCastChannel Read FConsoleChannel;
   public
     Constructor Create(aOwner : TComponent); override;
     Destructor Destroy; override;
+    // Send a command to the process that started the worker.
     procedure SendCommand(aCommand: TWorkerCommand); virtual;
+    // Get the list of environment variables.
     procedure GetEnvironmentList(List: TStrings; NamesOnly: Boolean); override;
-    procedure ShowException(E: Exception); override;
     // Load and start webassembly. If DoRun is true, then Webassembly entry point is called.
     // If aBeforeStart is specified, then it is called prior to calling run, and can disable running.
     // If aAfterStart is specified, then it is called after calling run. It is not called is running was disabled.
@@ -143,9 +150,54 @@ Type
     property OnConsoleRead : TConsoleReadEvent Read GetOnConsoleRead Write SetOnConsoleRead;
     // Called when writing to console (stdout). If not set, console.log is used.
     property OnConsoleWrite : TConsoleWriteEvent Read GetOnConsoleWrite Write SetOnConsoleWrite;
+  end;
+
+  { TWorkerThreadRunnerApplication }
+
+  TWorkerThreadRunnerApplication = class(TWorkerWASIHostApplication)
+  Private
+    FThreadSupport : TWorkerThreadSupport;
+    procedure HandleConsoleWrite(Sender: TObject; aOutput: string);
+  Protected
+    function CreateHost: TWASIHost; override;
+    procedure HandleMessage(aEvent: TJSEvent); override;
+    procedure ShowException(aError: Exception); override;
     // Our thread support object
     Property ThreadSupport : TWorkerThreadSupport Read FThreadSupport Write FThreadSupport;
   end;
+
+  { TWASIThreadHost }
+
+  { TWASIThreadControllerHost }
+
+  TWASIThreadControllerHost = class(TWASIHost)
+  private
+    FSendOutputToBrowserWindow: Boolean;
+    FThreadSupport: TThreadController;
+    procedure SetThreadSupport(AValue: TThreadController);
+  Protected
+    procedure DoAfterInstantiate; override;
+  Public
+    constructor Create(aOwner: TComponent); override;
+    // Send output to main window
+    Property SendOutputToBrowserWindow : Boolean Read FSendOutputToBrowserWindow Write FSendOutputToBrowserWindow;
+    // our thread
+    Property ThreadSupport : TThreadController Read FThreadSupport Write SetThreadSupport;
+  end;
+
+  { TWorkerThreadControllerApplication }
+
+  TWorkerThreadControllerApplication = class(TWorkerWASIHostApplication)
+  Private
+    FThreadSupport : TThreadController;
+    procedure HandleConsoleWrite(Sender: TObject; aOutput: string);
+    procedure HandleExecuteCommand(aCmd: TWorkerExecuteCommand);
+  Protected
+    procedure ShowException(aError: Exception); override;
+    procedure HandleMessage(aEvent: TJSEvent); override;
+    function CreateHost: TWASIHost; override;
+  end;
+
 
 implementation
 
@@ -229,25 +281,8 @@ end;
 
 procedure TWASIThreadHost.PrepareWebAssemblyThread( aDescr: TWebAssemblyStartDescriptor);
 
-Var
-  func : JSValue;
-//  InitFunc : TThreadInitInstanceFunction absolute func;
-  res : Integer;
-
 begin
   PrepareWebAssemblyInstance(aDescr);
-  (*
-  func:=aDescr.Exported[ThreadInitInstanceEntry];
-  if Assigned(func) then
-    begin
-    res:=InitFunc(1,0,1);
-    if Res<>0 then
-      if Assigned(ThreadSupport) then
-        ThreadSupport.SendConsoleMessage('Could not init assembly thread: %d', [Res])
-      else
-        Writeln('Could not init assembly thread: ',Res);
-    end;
-  *)
 end;
 
 procedure TWASIThreadHost.DoStdWrite(Sender: TObject; const aOutput: String);
@@ -370,37 +405,51 @@ begin
   SendCommand(E);
 end;
 
+Procedure TWorkerThreadSupport.DoRunThread(aExports : TWASIExports);
+
+Var
+  aResult : Integer;
+
+begin
+  try
+    FState:=wsRunning;
+    // Writeln('About to run webassembly entry point (',Host.ThreadEntryPoint,') for thread ID ',aCommand.ThreadID);
+    aResult:=TThreadEntryPointFunction(aExports[Host.ThreadEntryPoint])(FCurrentThreadInfo.ThreadID,FCurrentThreadInfo.Arguments);
+    FState:=wsLoaded;
+    if aResult>0 then
+      SendConsoleMessage('Thread run function result= %d ',[aResult]);
+  except
+    on E : Exception do
+      SendException(E);
+    on JE : TJSError do
+      SendException(JE);
+    on JE : TJSError do
+      SendException(JE)
+  end;
+end;
+
 
 procedure TWorkerThreadSupport.RunWasmModule(aCommand : TWorkerRunCommand);
 
-  Procedure DoRun (aExports : TWASIExports);
-
-  Var
-    aResult : Integer;
-
-  begin
-    try
-      // Writeln('About to run webassembly entry point (',Host.ThreadEntryPoint,') for thread ID ',aCommand.ThreadID);
-      aResult:=TThreadEntryPointFunction(aExports[Host.ThreadEntryPoint])(aCommand.ThreadID,aCommand.args);
-      if aResult>0 then
-        Writeln('Thread run function result ',aResult);
-    except
-      on E : Exception do
-        SendException(E);
-      on JE : TJSError do
-        SendException(JE);
-      on JE : TJSError do
-        SendException(JE)
-    end;
-
-  end;
-
 begin
+  if (FState=wsNeutral) then
+    begin
+    Writeln('No webassembly loaded');
+    exit; // Todo: send error back
+    end;
+  if (FState in [wsRunning,wsRunWaiting]) then
+    begin
+    Writeln('Webassembly already running');
+    exit; // Todo: send error back
+    end;
   // Writeln('Entering TWorkerThreadSupport.RunWasmModule '+TJSJSON.Stringify(aCommand));
   // initialize current thread info
   FCurrentThreadInfo.ThreadID:=aCommand.ThreadID;
   FCurrentThreadInfo.Arguments:=aCommand.Args;
-  Host.RunWebAssemblyThread(@DoRun);
+  if FState=wsLoaded then
+    Host.RunWebAssemblyThread(@DoRunThread)
+  else
+    FState:=wsRunWaiting;
 end;
 
 procedure TWorkerThreadSupport.LoadWasmModule(aCommand: TWorkerLoadCommand);
@@ -423,7 +472,10 @@ Var
     WASD.CallRun:=Nil;
     Host.PrepareWebAssemblyThread(WASD);
     SendLoaded;
-    // These 2 prevent running different instances simultaneously.
+    if FState=wsRunWaiting then
+      Host.RunWebAssemblyThread(@DoRunThread)
+    else
+      FState:=wsLoaded;
   end;
 
   function DoFail(aValue: JSValue): JSValue;
@@ -432,6 +484,7 @@ Var
     E: Exception;
 
   begin
+    FState:=wsNeutral;
     Result:=True;
     E:=Exception.Create('Failed to create webassembly. Reason: '+TJSJSON.Stringify(aValue));
     SendException(E);
@@ -440,6 +493,7 @@ Var
 
 
 begin
+  FState:=wsLoading;
   FMemory:=aCommand.Memory;
   FModule:=aCommand.Module;
   InitThreadRange(aCommand.ThreadRangeStart);
@@ -454,7 +508,6 @@ begin
       SendException(JE);
   end;
 end;
-
 
 procedure TWorkerThreadSupport.InitThreadRange(aRange: Integer);
 
@@ -565,39 +618,12 @@ begin
   FHost.RunEntryFunction:=aValue;
 end;
 
-function TWorkerWASIHostApplication.CreateHost : TWASIHost;
-
-Var
-  TH : TWasiThreadHost;
-
-begin
-  TH:=TWASIThreadHost.Create(Self);
-  FThreadSupport:=TWorkerThreadSupport.Create(TH.WasiEnvironment);
-  FThreadSupport.OnSendCommand:=@DoOnSendCommand;
-  TH.ThreadSupport:=FThreadSupport; // Sets FThreadSupport.host
-  Result:=TH;
-end;
 
 procedure TWorkerWASIHostApplication.DoRun;
 begin
   Self_.addEventListener('message',@HandleMessage);
 end;
 
-procedure TWorkerWASIHostApplication.HandleMessage(aEvent: TJSEvent);
-
-Var
-  aMessageEvent : TJSMessageEvent absolute aEvent;
-  aData : TWorkerCommand;
-
-begin
-  if IsObject(aMessageEvent.Data) and TJSObject(aMessageEvent.Data).hasOwnProperty('Command') then
-    begin
-    aData:=TWorkerCommand(aMessageEvent.Data);
-    FThreadSupport.HandleCommand(aData);
-    end
-  else
-    FThreadSupport.SendConsoleMessage('Unknown message received: '+TJSJSON.Stringify(aMessageEvent.Data));
-end;
 
 procedure TWorkerWASIHostApplication.DoOnSendCommand(Sender: TObject;
   aCommand: TWorkerCommand);
@@ -624,10 +650,12 @@ constructor TWorkerWASIHostApplication.Create(aOwner: TComponent);
 begin
   inherited Create(aOwner);
   FHost:=CreateHost;
+  FConsoleChannel:=TJSBroadcastChannel.new(channelConsole);
 end;
 
 destructor TWorkerWASIHostApplication.Destroy;
 begin
+  FConsoleChannel.Close;
   FreeAndNil(FHost);
   inherited Destroy;
 end;
@@ -648,17 +676,156 @@ begin
   end;
 end;
 
-procedure TWorkerWASIHostApplication.ShowException(E: Exception);
-
-begin
-  ThreadSupport.SendException(E);
-end;
 
 procedure TWorkerWASIHostApplication.StartWebAssembly(aPath: string; DoRun: Boolean;
   aBeforeStart: TBeforeStartCallback = nil; aAfterStart: TAfterStartCallback = nil);
 
 begin
   FHost.StartWebAssembly(aPath,DoRun,aBeforeStart,aAfterStart);
+end;
+
+{ TWorkerThreadRunnerApplication }
+
+procedure TWorkerThreadRunnerApplication.HandleConsoleWrite(Sender: TObject; aOutput: string);
+begin
+  Writeln('Console write ',aOutput);
+  ConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput));
+end;
+
+function TWorkerThreadRunnerApplication.CreateHost: TWASIHost;
+
+var
+  TH : TWasiThreadHost;
+
+begin
+  TH:=TWASIThreadHost.Create(Self);
+  TH.OnConsoleWrite:=@HandleConsoleWrite;
+  FThreadSupport:=TWorkerThreadSupport.Create(TH.WasiEnvironment);
+  FThreadSupport.OnSendCommand:=@DoOnSendCommand;
+  TH.ThreadSupport:=FThreadSupport; // Sets FThreadSupport.host
+  Result:=TH;
+end;
+
+procedure TWorkerThreadRunnerApplication.ShowException(aError: Exception);
+
+Var
+  Ex : TWorkerExceptionCommand;
+
+begin
+  Ex:=TWorkerExceptionCommand.CreateNew(aError.ClassName,aError.Message);
+  SendCommand(Ex);
+end;
+
+procedure TWorkerThreadRunnerApplication.HandleMessage(aEvent: TJSEvent);
+
+Var
+  aMessageEvent : TJSMessageEvent absolute aEvent;
+  aData : TWorkerCommand;
+
+begin
+  if IsObject(aMessageEvent.Data) and TJSObject(aMessageEvent.Data).hasOwnProperty('Command') then
+    begin
+    aData:=TWorkerCommand(aMessageEvent.Data);
+    FThreadSupport.HandleCommand(aData);
+    end
+  else
+    FThreadSupport.SendConsoleMessage('Unknown message received: '+TJSJSON.Stringify(aMessageEvent.Data));
+end;
+
+{ TWASIThreadControllerHost }
+
+procedure TWASIThreadControllerHost.SetThreadSupport(AValue: TThreadController);
+begin
+  if Assigned(FThreadSupport) then
+    FThreadSupport.Host:=Nil;
+  FThreadSupport:=AValue;
+  if Assigned(FThreadSupport) then
+    FThreadSupport.Host:=Self;
+end;
+
+procedure TWASIThreadControllerHost.DoAfterInstantiate;
+begin
+  inherited DoAfterInstantiate;
+  If Assigned(FThreadSupport) then
+    FThreadSupport.SendLoadCommands;
+end;
+
+constructor TWASIThreadControllerHost.Create(aOwner: TComponent);
+begin
+  inherited Create(aOwner);
+end;
+
+
+{ TWorkerThreadControllerApplication }
+
+procedure TWorkerThreadControllerApplication.ShowException(aError: Exception);
+Var
+  Ex : TWorkerExceptionCommand;
+
+begin
+  Ex:=TWorkerExceptionCommand.CreateNew(aError.ClassName,aError.Message);
+  SendCommand(Ex);
+end;
+
+procedure TWorkerThreadControllerApplication.HandleExecuteCommand(aCmd : TWorkerExecuteCommand);
+
+(*
+Function DoPrepare(Sender : TObject; aDescriptor : TWebAssemblyStartDescriptor) : Boolean;
+
+  begin
+//    aDescriptor.
+    Result:=True;
+  end;
+*)
+
+begin
+  if isObject(aCmd.Env) then
+    EnvNames:=aCmd.Env;
+  if isString(aCmd.executeFunc) then
+    FHost.RunEntryFunction:=aCmd.executeFunc;
+  StartWebAssembly(aCmd.Url,True,Nil {@DoPrepare}, Nil)
+end;
+
+procedure TWorkerThreadControllerApplication.HandleConsoleWrite(Sender: TObject; aOutput: string);
+begin
+  FConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput,0));
+end;
+
+procedure TWorkerThreadControllerApplication.HandleMessage(aEvent: TJSEvent);
+
+var
+  aMessageEvent : TJSMessageEvent absolute aEvent;
+  aData: TWorkerCommand;
+
+begin
+  if IsObject(aMessageEvent.Data) and TJSObject(aMessageEvent.Data).hasOwnProperty('Command') then
+    begin
+    aData:=TWorkerCommand(aMessageEvent.Data);
+    case aData.Command of
+      cmdExecute : HandleExecuteCommand(TWorkerExecuteCommand(aData));
+    else
+      FThreadSupport.HandleCommand(aData);
+    end;
+    end;
+end;
+
+function TWorkerThreadControllerApplication.CreateHost: TWASIHost;
+var
+  TH : TWASIThreadControllerHost;
+  Mem : TJSWebAssemblyMemoryDescriptor;
+begin
+  TH:=TWASIThreadControllerHost.Create(Self);
+  TH.OnConsoleWrite:=@HandleConsoleWrite;
+  FThreadSupport:=TThreadController.Create(TH.WasiEnvironment);
+  Mem.Initial:=256;
+  Mem.maximum:=1024;
+  Mem.shared:=True;
+  TH.MemoryDescriptor:=Mem;
+  FThreadSupport.OnSendCommand:=@DoOnSendCommand;
+  TH.ThreadSupport:=FThreadSupport; // Sets FThreadSupport.host
+  Result:=TH;
+//  TThreadController
+
 end;
 
 Initialization

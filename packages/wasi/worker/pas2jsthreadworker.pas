@@ -8,7 +8,7 @@ uses
 type
   { TApplication }
 
-  TApplication = class(TWorkerWASIHostApplication)
+  TApplication = class(TWorkerThreadRunnerApplication)
   end;
 
 { TApplication }
