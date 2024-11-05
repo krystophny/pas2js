@@ -44,6 +44,10 @@
           <Item0 Name="PasJSIsProjectHTMLFile" Value="1"/>
         </CustomData>
       </Unit>
+      <Unit>
+        <Filename Value="../../../packages/wasi/src/rtl.threadcontroller.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

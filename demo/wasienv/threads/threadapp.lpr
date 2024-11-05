@@ -1,4 +1,4 @@
-library threadlib;
+library threadapp;
 {$mode objfpc}
 {$h+}
 {$i-}
@@ -45,9 +45,6 @@ begin
   With TCalcThread.Create(False) do
     begin
     DebugWriteln('Thread created');
-//    While true do
-//      DebugWriteln('Waiting for thread');
-//    DebugWriteln('thread ended');
     end;
 end;
 

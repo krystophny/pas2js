@@ -4,7 +4,7 @@ program demowasithreads;
 
 uses
   browserconsole, browserapp, JS, Classes, SysUtils, Web, WebAssembly, types,
-  wasienv, Rtl.WebThreads, wasihostapp, wasithreadedapp ;
+  wasienv, Rtl.WebThreads, wasihostapp, wasithreadedapp, rtl.threadcontroller ;
 
 Type
 
