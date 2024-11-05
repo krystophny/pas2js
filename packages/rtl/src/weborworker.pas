@@ -1495,6 +1495,18 @@ type
     Property actions : TTJSNotificationActionDynArray Read Factions;
   end;
 
+  { TJSBroadcastChannel }
+
+  TJSBroadcastChannel = class external name 'BroadcastChannel' (TJSEventTarget)
+  private
+    FName: string; external name 'name';
+  public
+    constructor new(aChannel : string);
+    procedure postMessage(aValue : JSValue);
+    procedure close;
+    property name : string Read FName;
+  end;
+
   { --------------------------------------------------------------------
     TJSNotificationEvent
     --------------------------------------------------------------------}
