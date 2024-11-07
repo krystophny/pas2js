@@ -118,6 +118,7 @@ Type
     procedure DoOnSendCommand(Sender : TObject; aCommand : TWorkerCommand);
     function CreateHost: TWASIHost; virtual; abstract;
     procedure DoRun; override;
+    procedure DoLog(EventType: TEventType; const Msg: String); override;
     function GetConsoleApplication: boolean; override;
     function GetLocation: String; override;
     property ConsoleChannel : TJSBroadCastChannel Read FConsoleChannel;
@@ -158,8 +159,8 @@ Type
   TWorkerThreadRunnerApplication = class(TWorkerWASIHostApplication)
   Private
     FThreadSupport : TWorkerThreadSupport;
-    procedure HandleConsoleWrite(Sender: TObject; aOutput: string);
   Protected
+    procedure HandleConsoleWrite(Sender: TObject; aOutput: string);
     function CreateHost: TWASIHost; override;
     procedure HandleMessage(aEvent: TJSEvent); override;
     procedure ShowException(aError: Exception); override;
@@ -191,22 +192,26 @@ Type
   TWorkerThreadControllerApplication = class(TWorkerWASIHostApplication)
   Private
     FThreadSupport : TThreadController;
-    procedure HandleConsoleWrite(Sender: TObject; aOutput: string);
-    procedure HandleExecuteCommand(aCmd: TWorkerExecuteCommand);
   Protected
-    procedure ShowException(aError: Exception); override;
+    procedure HandleConsoleWrite(Sender: TObject; aOutput: string); virtual;
+    procedure HandleExecuteCommand(aCmd: TWorkerExecuteCommand); virtual;
+    procedure HandleRpcCommand(aCmd: TWorkerRpcCommand); virtual;
+    function HandleCustomCommand(aData: TWorkerCommand): Boolean; virtual;
     procedure HandleMessage(aEvent: TJSEvent); override;
     function CreateHost: TWASIHost; override;
+  Public
+    procedure ShowException(aError: Exception); override;
   end;
 
+function GetJSClassName(aObj : TJSObject) : string;
 
 implementation
 
 uses 
 {$IFDEF FPC_DOTTEDUNITS}
-  System.Types;
+  System.Types, System.TypInfo;
 {$ELSE} 
-  Types;
+  TypInfo, Types;
 {$ENDIF}
 
 var
@@ -625,6 +630,14 @@ begin
   Self_.addEventListener('message',@HandleMessage);
 end;
 
+procedure TWorkerWASIHostApplication.DoLog(EventType: TEventType; const Msg: String);
+var
+  S : String;
+begin
+  S:=GetEnumName(TypeInfo(TEventType),Ord(EventType));
+  ConsoleChannel.PostMessage(TWorkerConsoleCommand.Create(Format('[%s] %s',[S,Msg])));
+end;
+
 
 procedure TWorkerWASIHostApplication.DoOnSendCommand(Sender: TObject;
   aCommand: TWorkerCommand);
@@ -689,7 +702,6 @@ end;
 
 procedure TWorkerThreadRunnerApplication.HandleConsoleWrite(Sender: TObject; aOutput: string);
 begin
-  Writeln('Console write ',aOutput);
   ConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput));
 end;
 
@@ -787,9 +799,67 @@ begin
   StartWebAssembly(aCmd.Url,True,Nil {@DoPrepare}, Nil)
 end;
 
+function GetJSClassName(aObj : TJSObject) : string;
+
+begin
+  Result:='';
+  asm
+    return aObj.constructor.name;
+  end;
+end;
+
+procedure TWorkerThreadControllerApplication.HandleRpcCommand(aCmd: TWorkerRpcCommand);
+
+var
+  res : TWorkerRpcResultCommand;
+  data : JSValue;
+  errClass : String;
+  errMessage : String;
+
+begin
+  if aCmd.Id='' then
+    Res:=TWorkerRpcResultCommand.CreateError(aCmd.id,-32600,'Invalid request: No json-rpc ID')
+  else if aCmd.jsonrpc<>'2.0' then
+    Res:=TWorkerRpcResultCommand.CreateError(aCmd.id,-32600,'Invalid request: no jsonrpc version')
+  else if Not Assigned(Exported.functions[aCmd.method]) then
+    Res:=TWorkerRpcResultCommand.CreateError(aCmd.id,-32601,'Method "'+aCmd.method+'" not found')
+  else
+    begin
+    try
+      if isArray(aCmd.Params) then
+        data:=Exported.functions[aCmd.method].Apply(nil,TJSValueDynArray(aCmd.Params))
+      else
+        data:=Exported.functions[aCmd.method].call(nil);
+      Res:=TWorkerRpcResultCommand.Create(aCmd.id,Data);
+    except
+      on JE : TJSError do
+        begin
+        errClass:=GetJSClassName(JE);
+        errMessage:=JE.message;
+        end;
+      on E : Exception do
+        begin
+        errClass:=E.ClassName;
+        errMessage:=E.Message;
+        end;
+    end;
+    if not assigned(Res) then
+      Res:=TWorkerRpcResultCommand.CreateError(aCmd.id,-32603,'Exception '+ErrClass+' while executing "'+aCmd.method+'" : '+ErrMessage);
+    end;
+  Self_.postMessage(Res);
+end;
+
 procedure TWorkerThreadControllerApplication.HandleConsoleWrite(Sender: TObject; aOutput: string);
 begin
   FConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput,0));
+end;
+
+function TWorkerThreadControllerApplication.HandleCustomCommand(aData : TWorkerCommand) : Boolean;
+
+begin
+  if not Assigned(aData) then
+    Exit(True);
+  Result:=False;
 end;
 
 procedure TWorkerThreadControllerApplication.HandleMessage(aEvent: TJSEvent);
@@ -804,8 +874,10 @@ begin
     aData:=TWorkerCommand(aMessageEvent.Data);
     case aData.Command of
       cmdExecute : HandleExecuteCommand(TWorkerExecuteCommand(aData));
+      cmdRpc : HandleRPCCommand(TWorkerRpcCommand(aData));
     else
-      FThreadSupport.HandleCommand(aData);
+      if not HandleCustomCommand(aData) then
+        FThreadSupport.HandleCommand(aData);
     end;
     end;
 end;

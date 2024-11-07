@@ -48,6 +48,8 @@ Const
   cmdLoad = 'load';
   cmdRun = 'run';
   cmdExecute = 'execute';
+  cmdRPC = 'rpc';
+  cmdRPCResult = 'rpcResult';
 
   channelConsole = 'console_output';
 
@@ -231,6 +233,31 @@ Type
     Env : TJSObject;
   end;
 
+  // Sent my main to thread controller worker: load and start a webassembly
+  TWorkerRpcCommand = class external name 'Object' (TWorkerCommand)
+  public
+    method : string;
+    id : string;
+    params : TJSArray;
+    jsonrpc : string;
+  end;
+
+  // Sent my main to thread controller worker: load and start a webassembly
+  TWorkerRPCError = class external name 'Object' (TJSObject)
+    code : integer;
+    message : string;
+    data : JSValue;
+  end;
+
+  TWorkerRpcResultCommand = class external name 'Object' (TWorkerCommand)
+  public
+    method : string;
+    result : jsValue;
+    id : string;
+    error : TWorkerRPCError;
+    jsonrpc : string;
+  end;
+
 
   { TWorkerRunCommandHelper }
 
@@ -238,6 +265,23 @@ Type
     Class function CommandName : string; static;
     Class function Create(aThreadID, aArgs : Longint): TWorkerRunCommand; static; reintroduce;
   end;
+
+  { TWorkerRpcCommandHelper }
+
+  TWorkerRpcCommandHelper = class helper for TWorkerRpcCommand
+    Class function CommandName : string; static;
+    Class function Create(aID : String; aMethod : String; aParams : TJSArray): TWorkerRpcCommand; static; reintroduce;
+  end;
+
+  { TWorkerRpcResultCommandHelper }
+
+  TWorkerRpcResultCommandHelper = class helper for TWorkerRpcResultCommand
+    Class function CommandName : string; static;
+    Class function Create(aID : String; aResult : JSValue): TWorkerRpcResultCommand; static; reintroduce;
+    Class function CreateError(aID : String; aCode : Integer; aMessage : string): TWorkerRpcResultCommand; static; reintroduce;
+    Class function CreateError(aID : String; aCode : Integer; aMessage : string; aData : JSValue): TWorkerRpcResultCommand; static; reintroduce;
+  end;
+
 
 
   // Sent to worker with new range of thread IDs.
@@ -299,6 +343,53 @@ begin
   Result:=TWorkerRunCommand(TWorkerCommand.NewWorker(CommandName));
   Result.ThreadID:=aThreadID;
   Result.Args:=aArgs;
+end;
+
+{ TWorkerRpcCommandHelper }
+
+class function TWorkerRpcCommandHelper.CommandName: string;
+begin
+  Result:=cmdRpc;
+end;
+
+class function TWorkerRpcCommandHelper.Create(aID: String; aMethod: String; aParams: TJSArray): TWorkerRpcCommand;
+begin
+  Result:=TWorkerRpcCommand(TWorkerCommand.NewWorker(CommandName));
+  Result.id:=aID;
+  Result.Method:=aMethod;
+  Result.Params:=aParams;
+end;
+
+{ TWorkerRpcResultCommandHelper }
+
+class function TWorkerRpcResultCommandHelper.CommandName: string;
+begin
+  result:=cmdRPCResult;
+end;
+
+class function TWorkerRpcResultCommandHelper.Create(aID: String; aResult: JSValue): TWorkerRpcResultCommand;
+begin
+  Result:=TWorkerRpcResultCommand(TWorkerCommand.NewWorker(CommandName));
+  Result.id:=aID;
+  Result.result:=aResult;
+  Result.jsonrpc:='2.0';
+end;
+
+class function TWorkerRpcResultCommandHelper.CreateError(aID: String; aCode: Integer; aMessage: string): TWorkerRpcResultCommand;
+begin
+  Result:=TWorkerRpcResultCommand(TWorkerCommand.NewWorker(CommandName));
+  Result.Id:=aID;
+  Result.Error:=TWorkerRPCError.New;
+  Result.Error.Code:=aCode;
+  Result.Error.Message:=aMessage;
+  Result.jsonrpc:='2.0';
+end;
+
+class function TWorkerRpcResultCommandHelper.CreateError(aID: String; aCode: Integer; aMessage: string; aData: JSValue
+  ): TWorkerRpcResultCommand;
+begin
+  Result:=CreateError(aID,aCode,aMessage);
+  Result.Error.Data:=aData;
 end;
 
 { TWorkerLoadCommandHelper }
