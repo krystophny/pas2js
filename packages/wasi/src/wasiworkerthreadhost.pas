@@ -121,6 +121,7 @@ Type
     function GetConsoleApplication: boolean; override;
     function GetLocation: String; override;
     property ConsoleChannel : TJSBroadCastChannel Read FConsoleChannel;
+    Property Host : TWASIHost Read FHost;
   public
     Constructor Create(aOwner : TComponent); override;
     Destructor Destroy; override;
