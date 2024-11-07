@@ -17,9 +17,9 @@ interface
 
 uses 
 {$IFDEF FPC_DOTTEDUNITS}
-  System.SysUtils, System.Types, JSApi.JS, BrowserApi.Web, Wasi.Env, JOB.Shared;
+  System.SysUtils, System.Types, JSApi.JS, BrowserApi.WebOrWorker, BrowserApi.Web, Wasi.Env, JOB.Shared;
 {$ELSE}
-  sysutils, types, js, web, wasienv, JOB_Shared;
+  sysutils, types, js, weborworker, {$IFNDEF JOB_WORKER} web, {$ELSE} webworker, {$ENDIF} wasienv, JOB_Shared;
 {$ENDIF}
 
 Type
@@ -195,13 +195,13 @@ begin
   FGlobalObjects:=TJSArray.new;
   FGlobalObjects.push(nil); // allocate FGlobalObjects[0]
   FGlobalNames:=TJSObject.new;
+  {$IFNDEF JOB_WORKER}
   RegisterGlobalObject(document,'document');
   RegisterGlobalObject(window,'window');
-  RegisterGlobalObject(console,'console');
   RegisterGlobalObject(CSS,'CSS');
-  {$IFDEF WORKER}
   RegisterGlobalObject(caches,'caches');
   {$ENDIF}
+  RegisterGlobalObject(console,'console');
   RegisterGlobalObject(TJSObject,'Object');
   RegisterGlobalObject(TJSFunction,'Function');
   RegisterGlobalObject(TJSDate,'Date');
@@ -590,6 +590,11 @@ begin
   Result:=JOBResult_Object;
 end;
 
+{$IFDEF JOB_WORKER}
+var
+  Self_ : TJSDedicatedWorkerGlobalScope; external name 'self';
+{$ENDIF}
+
 function TJSObjectBridge.GetObjectConstructor(aObjectName : String): TJSFunction;
 
 var
@@ -598,7 +603,11 @@ var
 begin
   Result:=Nil;
   if aObjectName<>'' then
+    {$IFDEF JOB_WORKER}
+    fn:=self_[aObjectName];
+    {$ELSE}
     fn:=Window[aObjectName];
+    {$ENDIF}
   if jstypeof(fn)<>'function' then
     exit;
   Result:=TJSFunction(fn);
