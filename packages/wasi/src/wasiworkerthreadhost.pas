@@ -17,9 +17,12 @@ uses
   Rtl.WebThreads, Rtl.ThreadController;
 {$ENDIF}
 
+const
+  ThreadRunnerScript = 'wasm_worker_runner.js';
+  ThreadCount = 4;
+
 Type
   TWorkerThreadSupport = Class;
-
   { TWASIThreadHost }
 
   TWASIThreadHost = class(TWASIHost)
@@ -193,6 +196,7 @@ Type
   Private
     FThreadSupport : TThreadController;
   Protected
+    function CreateThreadSupport(aEnv: TPas2JSWASIEnvironment): TThreadController; virtual;
     procedure HandleConsoleWrite(Sender: TObject; aOutput: string); virtual;
     procedure HandleExecuteCommand(aCmd: TWorkerExecuteCommand); virtual;
     procedure HandleRpcCommand(aCmd: TWorkerRpcCommand); virtual;
@@ -201,6 +205,7 @@ Type
     function CreateHost: TWASIHost; override;
   Public
     procedure ShowException(aError: Exception); override;
+    property ThreadSupport : TThreadController Read FThreadSupport;
   end;
 
 function GetJSClassName(aObj : TJSObject) : string;
@@ -884,6 +889,12 @@ begin
     end;
 end;
 
+function TWorkerThreadControllerApplication.CreateThreadSupport(aEnv : TPas2JSWASIEnvironment) : TThreadController;
+
+begin
+  TThreadController.Create(aEnv,ThreadRunnerScript,20);
+end;
+
 function TWorkerThreadControllerApplication.CreateHost: TWASIHost;
 var
   TH : TWASIThreadControllerHost;
@@ -891,7 +902,7 @@ var
 begin
   TH:=TWASIThreadControllerHost.Create(Self);
   TH.OnConsoleWrite:=@HandleConsoleWrite;
-  FThreadSupport:=TThreadController.Create(TH.WasiEnvironment);
+  FThreadSupport:=CreateThreadSupport(TH.WasiEnvironment);
   Mem.Initial:=256;
   Mem.maximum:=1024;
   Mem.shared:=True;
