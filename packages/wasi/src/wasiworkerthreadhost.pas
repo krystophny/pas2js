@@ -205,6 +205,9 @@ Type
 
 function GetJSClassName(aObj : TJSObject) : string;
 
+var
+  Self_ : TJSDedicatedWorkerGlobalScope; external name 'self';
+
 implementation
 
 uses 
@@ -215,7 +218,6 @@ uses
 {$ENDIF}
 
 var
-  Self_ : TJSDedicatedWorkerGlobalScope; external name 'self';
   EnvNames: TJSObject;
 
 procedure ReloadEnvironmentStrings;
