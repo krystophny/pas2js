@@ -166,6 +166,7 @@ Type
     procedure HandleConsoleWrite(Sender: TObject; aOutput: string);
     function HandleCustomCommand(aData: TWorkerCommand): Boolean; virtual;
     function CreateHost: TWASIHost; override;
+    function CreateWorkerThreadSupport(aEnv: TPas2JSWasiEnvironment): TWorkerThreadSupport; virtual;
     procedure HandleMessage(aEvent: TJSEvent); override;
     procedure ShowException(aError: Exception); override;
     // Our thread support object
@@ -713,6 +714,12 @@ begin
   ConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput));
 end;
 
+function TWorkerThreadRunnerApplication.CreateWorkerThreadSupport(aEnv : TPas2JSWasiEnvironment) : TWorkerThreadSupport;
+
+begin
+  Result:=TWorkerThreadSupport.Create(aEnv);
+end;
+
 function TWorkerThreadRunnerApplication.CreateHost: TWASIHost;
 
 var
@@ -721,7 +728,8 @@ var
 begin
   TH:=TWASIThreadHost.Create(Self);
   TH.OnConsoleWrite:=@HandleConsoleWrite;
-  FThreadSupport:=TWorkerThreadSupport.Create(TH.WasiEnvironment);
+  FThreadSupport:=CreateWorkerThreadSupport(TH.WasiEnvironment);
+
   FThreadSupport.OnSendCommand:=@DoOnSendCommand;
   TH.ThreadSupport:=FThreadSupport; // Sets FThreadSupport.host
   Result:=TH;
