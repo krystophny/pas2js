@@ -321,6 +321,18 @@ Var
     Result:=Env.GetUTF8StringFromMem(Ptr,Len);
   end;
 
+  Function GetStringFromAddr(Ptr : Longint) : string;
+
+  var
+    SPtr,Len : Longint;
+
+  begin
+    SPtr:=v.getInt32(Ptr,Env.IsLittleEndian);
+    Inc(Ptr,SizeInt32);
+    Len:=v.getInt32(Ptr,Env.IsLittleEndian);
+    Result:=Env.GetUTF8StringFromMem(SPtr,Len);
+  end;
+
   Function GetBuffer : TJSArrayBuffer;
 
   var
@@ -338,6 +350,7 @@ Var
 
 var
   i : Integer;
+  Hdrs : Longint;
 
 begin
   v:=getModuleMemoryDataView;
@@ -346,10 +359,16 @@ begin
   Result.Url:=GetString;
   Result.Method:=GetString;
   HeaderCount:=v.getInt32(P,Env.IsLittleEndian);
-  inc(P,SizeInt32);
   SetLength(Result.Headers,HeaderCount);
+  inc(P,SizeInt32);
+  // Pointer to list of strings
+  Hdrs:=v.getInt32(P,Env.IsLittleEndian);
+  inc(P,SizeInt32);
   for I:=0 to HeaderCount-1 do
-    Result.Headers[i]:=Getstring;
+    begin
+    Result.Headers[i]:=GetStringFromAddr(Hdrs);
+    inc(Hdrs,SizeInt32*2);
+    end;
   Result.Body:=GetBuffer;
   Result.Integrity:=GetString;
   Result.Redirect:=RedirectToString(GetInt32);
