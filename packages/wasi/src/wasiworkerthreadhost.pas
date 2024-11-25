@@ -162,9 +162,9 @@ Type
   TWorkerThreadRunnerApplication = class(TWorkerWASIHostApplication)
   Private
     FThreadSupport : TWorkerThreadSupport;
-    function HandleCustomCommand(aData: TWorkerCommand): Boolean;
   Protected
     procedure HandleConsoleWrite(Sender: TObject; aOutput: string);
+    function HandleCustomCommand(aData: TWorkerCommand): Boolean; virtual;
     function CreateHost: TWASIHost; override;
     procedure HandleMessage(aEvent: TJSEvent); override;
     procedure ShowException(aError: Exception); override;
