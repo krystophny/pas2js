@@ -729,7 +729,6 @@ begin
   TH:=TWASIThreadHost.Create(Self);
   TH.OnConsoleWrite:=@HandleConsoleWrite;
   FThreadSupport:=CreateWorkerThreadSupport(TH.WasiEnvironment);
-
   FThreadSupport.OnSendCommand:=@DoOnSendCommand;
   TH.ThreadSupport:=FThreadSupport; // Sets FThreadSupport.host
   Result:=TH;
