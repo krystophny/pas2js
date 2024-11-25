@@ -162,6 +162,7 @@ Type
   TWorkerThreadRunnerApplication = class(TWorkerWASIHostApplication)
   Private
     FThreadSupport : TWorkerThreadSupport;
+    function HandleCustomCommand(aData: TWorkerCommand): Boolean;
   Protected
     procedure HandleConsoleWrite(Sender: TObject; aOutput: string);
     function CreateHost: TWASIHost; override;
@@ -736,6 +737,14 @@ begin
   SendCommand(Ex);
 end;
 
+
+function TWorkerThreadRunnerApplication.HandleCustomCommand(aData : TWorkerCommand) : Boolean;
+
+begin
+  if aData<>Nil then;
+  Result:=False;
+end;
+
 procedure TWorkerThreadRunnerApplication.HandleMessage(aEvent: TJSEvent);
 
 Var
@@ -746,7 +755,8 @@ begin
   if IsObject(aMessageEvent.Data) and TJSObject(aMessageEvent.Data).hasOwnProperty('Command') then
     begin
     aData:=TWorkerCommand(aMessageEvent.Data);
-    FThreadSupport.HandleCommand(aData);
+    if not HandleCustomCommand(aData) then
+      FThreadSupport.HandleCommand(aData);
     end
   else
     FThreadSupport.SendConsoleMessage('Unknown message received: '+TJSJSON.Stringify(aMessageEvent.Data));
