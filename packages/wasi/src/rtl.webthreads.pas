@@ -570,7 +570,7 @@ begin
   P:=TWorkerExceptionCommand.New;
   P.ExceptionClass:='ENotSupportedException';
   P.ExceptionMessage:='Unsupported command : '+TJSJSON.Stringify(aCommand);
-  SendCommand(aCommand);
+  SendCommand(P);
 end;
 
 procedure TWasmThreadSupport.SendCommand(aCommand: TWorkerCommand);
