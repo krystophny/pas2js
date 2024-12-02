@@ -55,15 +55,6 @@ begin
   writeln('TWasmApp.Run END');
 end;
 
-// workaround: fpc wasm does not yet support exporting functions from units
-function JOBCallback(const Func: TJOBCallback; Data, Code: Pointer; Args: PByte): PByte;
-begin
-  Result:=JOB.JS.JOBCallback(Func,Data,Code,Args);
-end;
-
-exports
-  JOBCallback;
-
 var
   Application: TWasmApp;
 begin
