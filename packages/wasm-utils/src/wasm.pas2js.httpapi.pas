@@ -23,9 +23,9 @@ interface
 
 uses
   {$IFDEF FPC_DOTTEDUNITS}
-  System.Classes, System.SysUtils, JSApi.JS, BrowserApi.Web, Wasi.Env, wasm.http.shared;
+  System.Classes, System.SysUtils, JSApi.JS, BrowserApi.WebOrWorker,  {$IFDEF JOB_WORKER} BrowserApi.WebWorker {$ELSE}  BrowserApi.Web {$ENDIF}, Wasi.Env, wasm.http.shared;
   {$ELSE}
-  Classes, SysUtils, JS, Web, WasiEnv, types, wasm.http.shared;
+  Classes, SysUtils, JS, WebOrWorker, {$IFDEF JOB_WORKER} WebWorker {$ELSE} Web {$ENDIF}, WasiEnv, types, wasm.http.shared;
   {$ENDIF}
 
 Type
@@ -276,7 +276,11 @@ begin
   lRequest:=TJSRequest.New(FRequestData.Url,lRequestInit);
   lBuf:=Nil;
   try
+    {$IFDEF JOB_WORKER}
+    lResponse:=aWait(TJSResponse,webworker.fetch(lRequest));
+    {$ELSE}
     lResponse:=aWait(Window.Asyncfetch(lRequest));
+    {$ENDIF}
     lBuf:=aWait(TJSArrayBuffer,lResponse.arrayBuffer);
     fResultBody:=lBuf;
     FResponse:=lResponse;
