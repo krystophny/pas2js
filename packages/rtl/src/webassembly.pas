@@ -122,6 +122,10 @@ Type
     Property length: NativeInt Read FLength;
   end;
 
+  TJSWebAssemblyException = class external name 'WebAssembly.Exception' (TJSObject)
+    stack : string;
+  end;
+
 
 implementation
 
