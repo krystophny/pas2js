@@ -8,7 +8,13 @@ unit wasm.pas2js.timer;
 interface
 
 uses
-  sysutils, js, wasienv, web, wasm.timer.shared;
+  sysutils, js, wasienv,
+  {$ifdef JOB_WORKER}
+  webworker,
+  {$ELSE}
+  web,
+  {$ENDIF}
+  wasm.timer.shared;
 
 Type
   TWasmPointer = longint;
@@ -32,6 +38,7 @@ Type
 
 
 implementation
+
 
 { TWasmTimerAPI }
 
@@ -102,7 +109,11 @@ begin
   Callback:=InstanceExports['__wasm_timer_tick'];
   if Not Assigned(Callback) then
     Exit(0);
+  {$IFDEF JOB_WORKER}
+  aTimerID:=self_.setInterval(@HandleTimer,aInterval);
+  {$ELSE}
   aTimerID:=Window.setInterval(@HandleTimer,aInterval);
+  {$ENDIF}
   Result:=aTimerID;
   {$IFNDEF NOLOGAPICALLS}
   If LogAPICalls then
@@ -114,7 +125,11 @@ procedure TWasmTimerApi.DeallocateTimer(timerid: TWasmTimerID);
 begin
   If LogAPICalls then
     LogCall('DeAllocateTimer(%d)',[TimerID]);
+  {$IFDEF JOB_WORKER}
+  self_.clearInterval(TimerID);
+  {$else}
   window.clearInterval(TimerID);
+  {$endif}
 end;
 
 
