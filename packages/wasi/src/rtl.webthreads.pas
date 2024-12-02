@@ -225,7 +225,7 @@ Type
     Args : Integer;
   end;
 
-  // Sent my main to thread controller worker: load and start a webassembly
+  // Sent by main to thread controller worker: execute function
   TWorkerExecuteCommand = class external name 'Object' (TWorkerCommand)
   public
     Url : String;
@@ -233,7 +233,7 @@ Type
     Env : TJSObject;
   end;
 
-  // Sent my main to thread controller worker: load and start a webassembly
+  // Sent by main to thread controller worker: run function, return result
   TWorkerRpcCommand = class external name 'Object' (TWorkerCommand)
   public
     method : string;
@@ -242,7 +242,6 @@ Type
     jsonrpc : string;
   end;
 
-  // Sent my main to thread controller worker: load and start a webassembly
   TWorkerRPCError = class external name 'Object' (TJSObject)
     code : integer;
     message : string;
@@ -261,6 +260,7 @@ Type
 
   { TWorkerRunCommandHelper }
 
+  // Sent by main to thread controller worker: load and start a webassembly
   TWorkerRunCommandHelper = class helper for TWorkerRunCommand
     Class function CommandName : string; static;
     Class function Create(aThreadID, aArgs : Longint): TWorkerRunCommand; static; reintroduce;
