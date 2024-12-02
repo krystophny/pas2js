@@ -119,7 +119,6 @@ type
     function GetTotalIOVsLen(iovs: TMemBufferArray): Integer;
     function GetIOVsAsBytes(iovs, iovsLen: NativeInt): TJSUInt8array;
     function GetMemory: TJSWebassemblyMemory;
-    function GetUTF8ByteLength(const AString: String): Integer;
     procedure SetArguments(AValue: TStrings);
     procedure SetEnvironment(AValue: TStrings);
     procedure SetInstance(AValue: TJSWebAssemblyInstance);
@@ -199,6 +198,7 @@ type
     class constructor init;
     Constructor Create;
     Destructor Destroy; override;
+    function GetUTF8ByteLength(const AString: String): Integer;
     Function GetUTF8StringFromMem(aLoc, aLen : Longint) : String;
     // Write string as UTF8 string in memory at aLoc, with max aLen bytes.
     // Return number of bytes written, or -NeededLen if not enough room.
@@ -2252,8 +2252,23 @@ end;
 
 
 function TPas2JSWASIEnvironment.GetUTF8StringFromMem(aLoc, aLen: Longint): String;
+
+var
+  src,tmpBuf : TJSArrayBuffer;
+  SrcBytes,tmpBytes : TJSUint8Array;
+
 begin
-  Result:=UTF8TextDecoder.Decode(getModuleMemoryDataView.buffer.slice(aLoc,aLoc+alen));
+  if getModuleMemoryDataView.bufferObj is TJSSharedArrayBuffer then
+    begin
+    src:=getModuleMemoryDataView.buffer.slice(aLoc,aLoc+alen);
+    SrcBytes:=TJSUint8Array.new(src);
+    tmpBuf:=TJSArrayBuffer.new(aLen);
+    tmpBytes:=TJSUint8Array.new(tmpBuf);
+    tmpBytes._set(SrcBytes);
+    Result:=UTF8TextDecoder.Decode(tmpBuf);
+    end
+  else
+    Result:=UTF8TextDecoder.Decode(getModuleMemoryDataView.buffer.slice(aLoc,aLoc+alen));
 end;
 
 function TPas2JSWASIEnvironment.GetUTF8ByteLength(const AString: String) : Integer;
