@@ -22,7 +22,7 @@ Type
 function TMyApplication.OnBeforeStart(Sender: TObject;
   aDescriptor: TWebAssemblyStartDescriptor): Boolean;
 begin
-  FWADomBridge.WasiExports:=aDescriptor.Exported;
+  FWADomBridge.InstanceExports:=aDescriptor.Exported;
   Result:=true;
 end;
 
