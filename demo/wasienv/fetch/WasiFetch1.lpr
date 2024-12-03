@@ -5,7 +5,7 @@ library WasiFetch1;
 {$codepage UTF8}
 
 uses
-  SysUtils, Classes, JOB_Shared, JOB_Web, JOB_JS, Variants;
+  SysUtils, Classes, JOB.Shared, JOB_Web, JOB.JS, Variants;
 
 type
 
@@ -163,15 +163,6 @@ begin
 
   writeln('TWasmApp.Run END');
 end;
-
-// workaround: fpc wasm does not yet support exporting functions from units
-function JOBCallback(const Func: TJOBCallback; Data, Code: Pointer; Args: PByte): PByte;
-begin
-  Result:=JOB_JS.JOBCallback(Func,Data,Code,Args);
-end;
-
-exports
-  JOBCallback;
 
 var
   Application: TWasmApp;
