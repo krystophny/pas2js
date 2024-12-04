@@ -30,6 +30,7 @@ type
   // We cannot use EConvertError or Exception, this would result in a circular dependency.
   TJSArray = class;
   TJSMap = class;
+  TJSBigInt = Class;
   { EJS }
 
   EJS = class(TObject)
@@ -618,9 +619,9 @@ type
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
     constructor new (aObject : TJSObject);
-    constructor new (buffer : TJSArrayBuffer);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
     class function from(aValue : jsValue) : TJSInt8Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSInt8Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSInt8Array; reintroduce;
@@ -641,9 +642,9 @@ type
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
     constructor new (aObject : TJSObject);
-    constructor new (buffer : TJSArrayBuffer);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
     class function from(aValue : jsValue) : TJSUInt8Array; reintroduce; overload;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSUInt8Array; reintroduce;overload;
     // class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSUInt8Array; reintroduce;overload;
@@ -663,9 +664,9 @@ type
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
     constructor new (aObject : TJSObject);
-    constructor new (buffer : TJSArrayBuffer);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
     class function from(aValue : jsValue) : TJSUInt8ClampedArray; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSUInt8ClampedArray; reintroduce;overload;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSUInt8ClampedArray; reintroduce;overload;
@@ -685,9 +686,9 @@ type
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
     constructor new (aObject : TJSObject);
-    constructor new (buffer : TJSArrayBuffer);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
     class function from(aValue : jsValue) : TJSInt16Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSInt16Array; reintroduce;overload;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSInt16Array; reintroduce;overload;
@@ -707,9 +708,9 @@ type
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
     constructor new (aObject : TJSObject);
-    constructor new (buffer : TJSArrayBuffer);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
     class function from(aValue : jsValue) : TJSUInt16Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSUInt16Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSUInt16Array; reintroduce;
@@ -729,9 +730,9 @@ type
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
     constructor new (aObject : TJSObject);
-    constructor new (buffer : TJSArrayBuffer);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
     class function from(aValue : jsValue) : TJSInt32Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSInt32Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSInt32Array; reintroduce;
@@ -751,9 +752,9 @@ type
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
     constructor new (aObject : TJSObject);
-    constructor new (buffer : TJSArrayBuffer);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
     class function from(aValue : jsValue) : TJSUInt32Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSUInt32Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSUInt32Array; reintroduce;
@@ -773,9 +774,9 @@ type
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
     constructor new (aObject : TJSObject);
-    constructor new (buffer : TJSArrayBuffer);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
     class function from(aValue : jsValue) : TJSFloat32Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSFloat32Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSFloat32Array; reintroduce;
@@ -795,9 +796,9 @@ type
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
     constructor new (aObject : TJSObject);
-    constructor new (buffer : TJSArrayBuffer);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
     class function from(aValue : jsValue) : TJSFloat64Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSFloat64Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSFloat64Array; reintroduce;
@@ -836,6 +837,10 @@ type
     function getUint16(aByteOffset : NativeInt; aLittleEndian : Boolean) : Word; overload;
     function getUint32(aByteOffset : NativeInt) : LongWord; overload;
     function getUint32(aByteOffset : NativeInt; aLittleEndian : Boolean) : LongWord; overload;
+    function getBigInt64(aByteOffset : NativeInt) : TJSBigInt; overload;
+    function getBigInt64(aByteOffset : NativeInt; aLittleEndian : Boolean) : TJSBigInt; overload;
+    function getBigUInt64(aByteOffset : NativeInt) : TJSBigInt; overload;
+    function getBigUInt64(aByteOffset : NativeInt; aLittleEndian : Boolean) : TJSBigInt; overload;
 
     procedure setFloat32(aByteOffset : NativeInt; aValue : double); overload;
     procedure setFloat32(aByteOffset : NativeInt; aValue : double; aLittleEndian: Boolean); overload;
@@ -851,6 +856,10 @@ type
     procedure setUint16(aByteOffset : NativeInt; aValue : Word; aLittleEndian : Boolean); overload;
     procedure setUint32(aByteOffset : NativeInt; aValue : LongWord); overload;
     procedure setUint32(aByteOffset : NativeInt; aValue: LongWord; aLittleEndian : Boolean); overload;
+    procedure setBigInt64(aByteOffset : NativeInt; aValue : TJSBigInt); overload;
+    procedure setBigInt64(aByteOffset : NativeInt; aValue: TJSBigInt;aLittleEndian : Boolean)  overload;
+    procedure setBigUInt64(aByteOffset : NativeInt; aValue : TJSBigInt); overload;
+    procedure setBigUInt64(aByteOffset : NativeInt; aValue : TJSBigInt; aLittleEndian : Boolean) ; overload;
     Property byteLength : NativeInt Read fLength;
     Property byteOffset : NativeInt read fOffset;
     property buffer : TJSArrayBuffer Read fBuffer;
@@ -1128,9 +1137,11 @@ type
     class function load(aTypedArray : TJSTypedArray; Index : integer) : integer;
     class function notify(aTypedArray : TJSTypedArray; Index : integer; count : integer) : integer;
     class function or_(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer; external name 'or';
+    class function store(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer;
     class function sub(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer;
     class function wait(aTypedArray : TJSTypedArray; index: integer; value : Integer) : string;
     class function wait(aTypedArray : TJSTypedArray; index: integer; value : Integer; TimeOut : integer) : string;
+    class function xor_(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer; external name 'xor';
   end;
 
 var
