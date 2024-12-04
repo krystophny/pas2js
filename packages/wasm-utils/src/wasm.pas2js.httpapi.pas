@@ -36,7 +36,9 @@ Type
     Url : String;
     Method : String;
     Headers : TStringDynArray;
+    BodyIsString : Boolean;
     Body : TJSArrayBuffer;
+    BodyAsText : string;
     Integrity : String;
     Redirect: string;
     Cache : String;
@@ -89,6 +91,7 @@ Type
     FNextRequestID : TWasmHTTPRequestID;
     FLogApiCalls: Boolean;
     FRequests : TJSOBject;
+    class function ContentTypeIsString(aType: String): boolean;
     function ReadRequest(aRequest :PWasmHTTPRequest) : TWasmHTTPRequest;
     function RequestExecute(aRequestID: TWasmHTTPRequestID): TWasmHTTPResult;
   Protected
@@ -116,6 +119,8 @@ Type
 Function CacheToString(aCache : Integer) : String;
 
 implementation
+
+uses strutils;
 
 Const
   CacheNames : Array[0..5] of string = ('default','no-store','reload','no-cache','force-cache','only-if-cached');
@@ -260,7 +265,9 @@ begin
     MaybeInit('cache',Cache);
     MaybeInit('integrity',Integrity);
     if Assigned(Body) then
-      lRequestInit['body']:=Body;
+      lRequestInit['body']:=Body
+    else if BodyIsString and (BodyAsText<>'') then
+      lRequestInit['body']:=BodyAsText;
     if KeepAlive then
     lRequestInit['keepalive']:=KeepAlive;
     MaybeInit('redirect',Redirect);
@@ -298,6 +305,18 @@ begin
 end;
 
 { TWasmHTTPAPI }
+
+class function TWasmHTTPAPI.ContentTypeIsString(aType : String) : boolean;
+
+begin
+  Result:=False;
+  aType:=LowerCase(ExtractWord(1,aType,';'));
+  case LowerCase(aType) of
+    'application/json',
+    'text/text',
+    'text/html' : Result:=True;
+  end;
+end;
 
 function TWasmHTTPAPI.ReadRequest(aRequest: PWasmHTTPRequest): TWasmHTTPRequest;
 
@@ -355,7 +374,7 @@ Var
 var
   i : Integer;
   Hdrs : Longint;
-
+  lHeader,lHeaderName,lHeaderValue : String;
 begin
   v:=getModuleMemoryDataView;
   P:=aRequest;
@@ -370,10 +389,18 @@ begin
   inc(P,SizeInt32);
   for I:=0 to HeaderCount-1 do
     begin
-    Result.Headers[i]:=GetStringFromAddr(Hdrs);
+    lHeader:=GetStringFromAddr(Hdrs);
+    Result.Headers[i]:=lHeader;
+    lHeaderName:=Trim(ExtractWord(1,lHeader,':'));
+    lHeaderValue:=Trim(ExtractWord(2,lHeader,':'));
+    if SameText(lheaderName,'Content-Type') then
+      Result.BodyIsString:=ContentTypeIsString(lHeaderValue);
     inc(Hdrs,SizeInt32*2);
     end;
-  Result.Body:=GetBuffer;
+  if Result.BodyIsString then
+    Result.BodyAsText:=GetString
+  else
+    Result.Body:=GetBuffer;
   Result.Integrity:=GetString;
   Result.Redirect:=RedirectToString(GetInt32);
   Result.Cache:=CacheToString(GetInt32);
