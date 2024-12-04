@@ -218,6 +218,7 @@ begin
   RegisterGlobalObject(TJSFloat64Array,'Float64Array');
   RegisterGlobalObject(TJSJSON,'JSON');
   RegisterGlobalObject(TJSPromise,'Promise');
+  RegisterGlobalObject(TJSAtomics,'Atomics');
   FLocalObjects:=TJSArray.new;
   FLocalObjects.push(nil); // allocate FLocalObjects[0]
   FFreeLocalIds:=TJSArray.new;
