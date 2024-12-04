@@ -36,8 +36,6 @@ type
   TWasmObjectInspectorApi = class(TImportExtension)
   private
     FHandleEvents: THandleInspectorEvents;
-    FHandleObjectSelection: Boolean;
-    FHandleRefresh: Boolean;
     FInspector: THTMLObjectInspector;
     FLogAPICalls: Boolean;
     FObjectTree: THTMLObjectTree;
