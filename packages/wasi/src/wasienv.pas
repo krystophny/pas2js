@@ -1425,11 +1425,44 @@ begin
   Result:=FImportObject;
 end;
 
+
 function TPas2JSWASIEnvironment.poll_oneoff(sin, sout, nsubscriptions,
   nevents: NativeInt): NativeInt;
+
+const
+  TagOffset = 8;
+  TimeoutOffset = 24;
+  PrecisionOffset = 32;
+
+var
+  Tag : NativeInt;
+  Precision,TimeOut,msTimeOut : TJSBigInt;
+  msTimeout32 : Integer;
+  arr : TJSint32array;
+  mem : TJSDataView;
+
 begin
-  console.log('Unimplemented: TPas2JSWASIEnvironment.poll_oneoff');
+  {$IFNDEF WEB_WORKER}
+  // Only used for sleep at the moment. We check the tag
+  Tag:=GetMemInfoInt8(sin+tagOffset);
+  if (Tag=WASI_EVENTTYPE_CLOCK) then
+    begin
+    mem:=getModuleMemoryDataView;
+    TimeOut:= Mem.getBigInt64(sin+TimeOutOffset,IsLittleEndian);
+    Precision:=Mem.GetBigInt64(sin+PrecisionOffset,IsLittleEndian);
+    asm
+    msTimeOut = TimeOut / Precision;
+    end;
+    arr:=TJSint32array.new(FMemory.buffer);
+    TJSAtomics.Store(arr,256,0);
+    msTimeout32:=StrToInt(msTimeOut.toString);
+    Writeln('Timeout is: ',msTImeout32);
+    TJSAtomics.wait(Arr,256,0,msTimeout32);
+    Writeln('Done timeout');
+    end;
+  {$ELSE}
   Result:= WASI_ENOSYS;
+  {$ENDIF}
 end;
 
 function TPas2JSWASIEnvironment.proc_exit(rval: NativeInt): NativeInt;
@@ -2438,7 +2471,7 @@ Var
 
 begin
   view:=getModuleMemoryDataView();
-  Result:=GetBigUint64(View,aLoc,IsLittleEndian);
+  Result:=GetBigInt64(View,aLoc,IsLittleEndian);
 end;
 
 function TPas2JSWASIEnvironment.GetMemInfoUInt8(aLoc: TWasmMemoryLocation): Byte;
