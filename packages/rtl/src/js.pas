@@ -1102,7 +1102,35 @@ type
      constructor new(aValue : JSValue);
      class function asIntN(Size : Integer;aValue : TJSBigInt) : NativeInt;
      class function asUIntN(Size : Integer;aValue : TJSBigInt) : NativeInt;
+  end;
 
+  { TJSAtomicWaitResult }
+
+  TJSAtomicWaitResult = class external name 'Object' (TJSObject)
+  private
+    FAsync: boolean; external name 'async';
+    FValue: JSValue; external name 'value';
+    FValueAsPromise: TJSPromise; external name 'value';
+    FValueAsString: String; external name 'value';
+  Public
+    property async : boolean Read FAsync;
+    property value : JSValue Read FValue;
+    property valueAsPromise : TJSPromise Read FValueAsPromise;
+    property valueAsString : String Read FValueAsString;
+  end;
+
+  TJSAtomics = class external name 'Atomics' (TJSObject)
+    class function add(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer;
+    class function and_(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer; external name 'and';
+    class function compareExchange(aTypedArray : TJSTypedArray; index: integer; ExpectedValue, ReplacementValue : Integer) : integer;
+    class function exchange(aTypedArray : TJSTypedArray; index: integer; ReplacementValue : Integer) : integer;
+    class function isLockFree(size : integer) : integer;
+    class function load(aTypedArray : TJSTypedArray; Index : integer) : integer;
+    class function notify(aTypedArray : TJSTypedArray; Index : integer; count : integer) : integer;
+    class function or_(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer; external name 'or';
+    class function sub(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer;
+    class function wait(aTypedArray : TJSTypedArray; index: integer; value : Integer) : string;
+    class function wait(aTypedArray : TJSTypedArray; index: integer; value : Integer; TimeOut : integer) : string;
   end;
 
 var
