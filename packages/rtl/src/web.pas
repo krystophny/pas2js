@@ -49,6 +49,7 @@ Type
 
   TJSShowOpenFilePickerOptions = class;
   TJSShowSaveFilePickerOptions = class;
+  TJSHTMLResizeObserver = class;
 
 {$IFDEF FPC_DOTTEDUNITS}
   TJSServiceWorker = BrowserApi.WebOrWorker.TJSServiceWorker;
@@ -347,6 +348,33 @@ Type
     constructor New;
     {$ENDIF}
   end;
+
+    { TJSDOMRectReadOnly }
+
+    TJSDOMRectReadOnly = class external name 'DOMRect'  (TJSObject)
+    private
+      fbottom: double; external name 'bottom';
+      fHeight: double; external name 'height';
+      fleft: double; external name 'left';
+      fright: double; external name 'right';
+      ftop: double; external name 'top';
+      fwidth: double; external name 'width';
+      fx: double; external name 'x';
+      fy: double;external name 'y';
+    public
+//      left,top,right,bottom,x,y,width,height : double;
+      {$IFDEF FIREFOX}
+      constructor New;
+      {$ENDIF}
+      Property left : double read fleft;
+      Property top : double read ftop;
+      Property right : double read fright;
+      Property bottom : double read fbottom;
+      Property x : double read fx;
+      Property y : double read fy;
+      Property width : double read fwidth;
+      Property height : double read fHeight;
+    end;
 
   TJSClientRect = record
     left,top,right,bottom : double;
@@ -3374,6 +3402,49 @@ Type
     function serializeToString(aRoot: TJSNode): string;
   end;
 
+  { TJSSizeElement }
+
+  TJSSizeElement = class external name 'Object' (TJSObject)
+  private
+    Fblocksize: nativeint; external name 'blocksize';
+    Finlinesize: nativeint; external name 'inlinesize';
+  Public
+    property blocksize : nativeint read Fblocksize;
+    property inlinesize : nativeint read Finlinesize;
+  end;
+  TJSSizeElementArray = Array of TJSSizeElement;
+
+  { TJSHTMLResizeObserverEntry }
+
+  TJSHTMLResizeObserverEntry = class external name 'Object' (TJSObject)
+  private
+    FborderBoxSize: TJSSizeElementArray; external name 'borderBoxSize';
+    FContentRect: TJSDOMRectReadOnly; external name 'contentRect';
+    FcontentBoxSize: TJSSizeElementArray; external name 'contentBoxSize';
+    FdevicePixelContentBoxSize: TJSSizeElementArray; external name 'devicePixelContentBoxSize';
+    FTarget: TJSElement; external name 'target';
+  Public
+    Property borderBoxSize: TJSSizeElementArray Read FborderBoxSize;
+    Property contentBoxSize: TJSSizeElementArray Read FcontentBoxSize;
+    property contentRect : TJSDOMRectReadOnly Read FContentRect;
+    Property devicePixelContentBoxSize: TJSSizeElementArray Read FdevicePixelContentBoxSize;
+    Property Target : TJSElement Read FTarget;
+  end;
+
+  TJSHTMLResizeObserverEntryArray = Array of TJSHTMLResizeObserverEntry;
+  TJSHTMLResizeObserverCallback = reference to procedure (Entries : TJSHTMLResizeObserverEntryArray; aObserver : TJSHTMLResizeObserver);
+
+  TJSHTMLResizeObserverOptions = class external name 'Object' (TJSObject)
+    box : string;
+  end;
+
+  TJSHTMLResizeObserver = class external name 'ResizeObserver' (TJSObject)
+    constructor new(aCallback : TJSHTMLResizeObserverCallback);
+    procedure disconnect;
+    procedure observe(aTarget : TJSElement);
+    procedure observe(aTarget : TJSElement; aOptions :TJSHTMLResizeObserverOptions);
+    procedure unobserve(aTarget : TJSElement);
+  end;
 
 var
   document : TJSDocument; external name 'document';
