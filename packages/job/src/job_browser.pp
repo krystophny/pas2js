@@ -85,6 +85,7 @@ Type
     procedure SetArrayFromMem(ObjId: TJOBObjectID; Mem: TWasmPointer; aMaxLen: NativeInt);
     procedure SetMemFromArray(ObjId: TJOBObjectID; Mem: TWasmPointer; aMaxLen: NativeInt);
   Protected
+    procedure RegisterGlobalObjects; virtual;
     procedure SetInstanceExports(const AValue: TWasiExports); override;
     function DecodeUTF16Buffer(Arr : TJSUint16Array) : String;
     function DecodeUTF8Buffer(Arr : TJSUint8Array) : String;
@@ -187,19 +188,22 @@ begin
 end;
 
 var
+  {$IFDEF JOB_WORKER}
+  Self_ : TJSDedicatedWorkerGlobalScope; external name 'self';
+  {$ELSE}
   CSS : TJSObject; external name 'CSS';
+  {$ENDIF}
 
-constructor TJSObjectBridge.Create(aEnv: TPas2JSWASIEnvironment);
+procedure TJSObjectBridge.RegisterGlobalObjects;
+
 begin
-  Inherited Create(aEnv);
-  FGlobalObjects:=TJSArray.new;
-  FGlobalObjects.push(nil); // allocate FGlobalObjects[0]
-  FGlobalNames:=TJSObject.new;
   {$IFNDEF JOB_WORKER}
   RegisterGlobalObject(document,'document');
   RegisterGlobalObject(window,'window');
   RegisterGlobalObject(CSS,'CSS');
   RegisterGlobalObject(caches,'caches');
+  {$ELSE}
+  RegisterGlobalObject(Self_,'self');
   {$ENDIF}
   RegisterGlobalObject(console,'console');
   RegisterGlobalObject(TJSObject,'Object');
@@ -219,6 +223,16 @@ begin
   RegisterGlobalObject(TJSJSON,'JSON');
   RegisterGlobalObject(TJSPromise,'Promise');
   RegisterGlobalObject(TJSAtomics,'Atomics');
+
+end;
+
+constructor TJSObjectBridge.Create(aEnv: TPas2JSWASIEnvironment);
+begin
+  Inherited Create(aEnv);
+  FGlobalObjects:=TJSArray.new;
+  FGlobalObjects.push(nil); // allocate FGlobalObjects[0]
+  FGlobalNames:=TJSObject.new;
+  RegisterGlobalObjects;
   FLocalObjects:=TJSArray.new;
   FLocalObjects.push(nil); // allocate FLocalObjects[0]
   FFreeLocalIds:=TJSArray.new;
@@ -590,11 +604,6 @@ begin
   getModuleMemoryDataView().setUint32(ResultP, longword(NewId), env.IsLittleEndian);
   Result:=JOBResult_Object;
 end;
-
-{$IFDEF JOB_WORKER}
-var
-  Self_ : TJSDedicatedWorkerGlobalScope; external name 'self';
-{$ENDIF}
 
 function TJSObjectBridge.GetObjectConstructor(aObjectName : String): TJSFunction;
 
