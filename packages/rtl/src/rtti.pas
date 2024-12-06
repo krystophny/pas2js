@@ -858,10 +858,12 @@ begin
   Result.FTypeInfo := ATypeInfo;
 
   if Result.FTypeInfo.Kind = tkRecord then
+  begin
+    Result.FData := TTypeInfoRecord(ATypeInfo).RecordInfo.New;
+
     if Assigned(ABuffer) then
-      Result.FData := TTypeInfoRecord(ATypeInfo).RecordInfo.Assign(ABuffer)
-    else
-      Result.FData := TTypeInfoRecord(ATypeInfo).RecordInfo.New
+      TRecordInfo(Result.FData).Assign(ABuffer);
+  end
   else
     Result.FData := ABuffer;
 end;
