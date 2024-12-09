@@ -116,9 +116,7 @@ type
   private
     fMessage: String;
     fHelpContext: Integer;
-    {$ifdef NodeJS}
-    FNodeJSError: TJSError;
-    {$endif}
+    FJSError: TJSError;
   public
     class var
       LogMessageOnCreate : Boolean;
@@ -130,8 +128,9 @@ type
     function ToString: String; override;
     property HelpContext: Integer read fHelpContext write fHelpContext;
     property Message: String read fMessage write fMessage;
+    property JSError: TJSError read FJSError write FJSError;
     {$ifdef NodeJS}
-    property NodeJSError: TJSError read FNodeJSError write FNodeJSError;
+    property NodeJSError: TJSError read FJSError write FJSError; deprecated 'Use JSError';
     {$endif}
   end;
 
@@ -3034,9 +3033,7 @@ end;
 constructor Exception.Create(const Msg: String);
 begin
   fMessage:=Msg;
-  {$ifdef nodejs}
-  FNodeJSError:=TJSError.new;
-  {$endif}
+  FJSError:=TJSError.new;
   if LogMessageOnCreate then
     Writeln('Created exception ',ClassName,' with message: ',Msg);
 end;
