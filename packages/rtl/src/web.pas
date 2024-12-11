@@ -383,6 +383,12 @@ Type
     {$ENDIF}
   end;
   
+  TJSScrollOptions = class external name 'Object'  (TJSObject)
+    top : Integer;
+    left : Integer;
+    behaviour : string;
+  end;
+
   TJSClientRectArray = array of TJSClientRect;
   
   TJSElement = class external name 'Element' (TJSNode)
@@ -448,6 +454,12 @@ Type
     procedure replaceChildren(aNode : TJSNode); overload;
     procedure replaceChildren(aNode1,aNode2 : TJSNode); overload;
     procedure replaceChildren(aNode1,aNode2,aNode3 : TJSNode); overload; varargs;
+    procedure scroll(xCoord, yCoord: Integer); overload;
+    procedure scroll(options: TJSObject); overload;
+    procedure scroll(options: TJSScrollOptions); overload;
+    procedure scrollBy(xCoord, yCoord: Integer); overload;
+    procedure scrollBy(options: TJSObject); overload;
+    procedure scrollBy(options: TJSScrollOptions); overload;
     procedure setAttribute(aName : string; AValue : String);
     function setAttributeNode(aNode: TJSAttr) : TJSAttr;
     function setAttributeNodeNS(aNode: TJSAttr) : TJSAttr;
