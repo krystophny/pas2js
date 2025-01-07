@@ -201,11 +201,11 @@ type
   TTypeMemberKinds = set of TTypeMemberKind;
 
   TTypeMemberVisibility = (
-    tmvPrivate,
-    tmvProtected,
-    tmvPublic,
-    tmvPublished,
-    tmvPublishedPublic  // public for extended RTTI, published for basic RTTI, cvPublished was missing in the RTTI directive
+    tmvPrivate,       // 0
+    tmvProtected,     // 1
+    tmvPublic,        // 2
+    tmvPublished,     // 3
+    tmvPublishedPublic// 4, public for extended RTTI, published for basic RTTI, cvPublished was missing in the RTTI directive
     );
   TTypeMemberVisibilities = set of TTypeMemberVisibility;
 
