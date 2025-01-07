@@ -147,7 +147,7 @@ type
 
   { TRttiMember }
 
-  TMemberVisibility=(
+  TMemberVisibility = (
     mvPrivate,
     mvProtected,
     mvPublic,
@@ -1764,7 +1764,10 @@ end;
 
 function TRttiMember.GetVisibility: TMemberVisibility;
 begin
-  Result := mvPublished;
+  if MemberTypeInfo.Visibility=tmvPublishedPublic then
+    Result:=mvPublic
+  else
+    Result:=TMemberVisibility(ord(MemberTypeInfo.Visibility));
 end;
 
 constructor TRttiMember.Create(AParent: TRttiType; ATypeInfo: TTypeMember);

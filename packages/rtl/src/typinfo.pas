@@ -205,7 +205,7 @@ type
     tmvProtected,     // 1
     tmvPublic,        // 2
     tmvPublished,     // 3
-    tmvPublishedPublic// 4, public for extended RTTI, published for basic RTTI, cvPublished was missing in the RTTI directive
+    tmvPublishedPublic// 4, public for extended RTTI, published for basic RTTI, vcPublished was missing in the RTTI directive
     );
   TTypeMemberVisibilities = set of TTypeMemberVisibility;
 
@@ -717,6 +717,7 @@ var
   i: Integer;
   Names: TJSObject;
   PropName: String;
+  Prop: TTypeMemberProperty;
 begin
   Result:=nil;
   C:=aTIStruct;
@@ -727,7 +728,9 @@ begin
     begin
       PropName:=C.Properties[i];
       if Names.hasOwnProperty(PropName) then continue;
-      TJSArray(Result).push(TTypeMemberProperty(C.Members[PropName]));
+      Prop:=TTypeMemberProperty(C.Members[PropName]);
+      if Prop.Visibility<tmvPublished then continue;
+      TJSArray(Result).push(Prop);
       Names[PropName]:=true;
     end;
     if not (C is TTypeInfoClass) then
@@ -767,6 +770,7 @@ begin
       if Names.hasOwnProperty(PropName) then continue;
       Prop:=TTypeMemberProperty(C.Members[PropName]);
       if not (Prop.TypeInfo.Kind in TypeKinds) then continue;
+      if Prop.Visibility<tmvPublished then continue;
       TJSArray(Result).push(Prop);
       Names[PropName]:=true;
     end;
@@ -799,6 +803,7 @@ var
   m: TTypeMember;
   i: Integer;
   C: TTypeInfoStruct;
+  Prop: TTypeMemberProperty;
 begin
   // quick search case sensitive
   C:=TI;
@@ -806,7 +811,11 @@ begin
   begin
     m:=C.Members[PropName];
     if m is TTypeMemberProperty then
-      exit(TTypeMemberProperty(m));
+    begin
+      Prop:=TTypeMemberProperty(m);
+      if Prop.Visibility>=tmvPublished then
+        exit(Prop);
+    end;
     if not (C is TTypeInfoClass) then
       break;
     C:=TTypeInfoClass(C).Ancestor;
@@ -820,8 +829,11 @@ begin
       begin
         m:=TI.Members[TI.Properties[i]];
         if m is TTypeMemberProperty then
-          Result:=TTypeMemberProperty(m);
-        exit;
+        begin
+          Prop:=TTypeMemberProperty(m);
+          if Prop.Visibility>=tmvPublished then
+            exit(Prop);
+        end;
       end;
     if not (TI is TTypeInfoClass) then
       break;
