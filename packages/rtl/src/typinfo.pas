@@ -200,6 +200,15 @@ type
     );
   TTypeMemberKinds = set of TTypeMemberKind;
 
+  TTypeMemberVisibility = (
+    tmvPrivate,
+    tmvProtected,
+    tmvPublic,
+    tmvPublished,
+    tmvPublishedPublic  // public for extended RTTI, published for basic RTTI, cvPublished was missing in the RTTI directive
+    );
+  TTypeMemberVisibilities = set of TTypeMemberVisibility;
+
   { TTypeMember }
 
   TTypeMember = class external name 'rtl.tTypeMember'
@@ -207,6 +216,7 @@ type
     Name: String external name 'name';
     Kind: TTypeMemberKind external name 'kind';
     Attributes: TTypeInfoAttributes external name 'attr'; // can be nil
+    Visibility: TTypeMemberVisibility external name 'visibility';
   end;
   TTypeMemberDynArray = array of TTypeMember;
 
