@@ -413,10 +413,6 @@ Type
     class function With_ (code : String; Path, SysCall : String) : TZenFSErrnoError external name 'With';
     errno : integer;
     code : string;
-    {$IFNDEF NodeJS}
-    // Already in TJSError for nodejs
-    stack : string;
-    {$ENDIF}
     function toJSON : TJSObject;
     function toString : string; reintroduce;
     function bufferSize : integer;
