@@ -130,10 +130,10 @@ Type
 
 Var
   Self_ : TJSServiceWorkerGlobalScope; external name 'self';
-  location : TJSWorkerLocation;
-  console : TJSConsole;
-  navigator : TJSWorkerNavigator;
-  caches : TJSCacheStorage;
+  location : TJSWorkerLocation ; external name 'location';
+  console : TJSConsole; external name 'console';
+  navigator : TJSWorkerNavigator; external name 'navigator';
+  caches : TJSCacheStorage; external name 'caches';
 
 function fetch(resource: String; init: TJSObject): TJSPromise; overload; external name 'fetch';
 //function fetch(resource: String): TJSPromise; overload; external name 'fetch';
