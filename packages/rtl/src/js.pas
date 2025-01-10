@@ -1196,6 +1196,7 @@ function toObject(Value: JSValue): TJSObject; // If Value is not a Javascript ob
 function toArray(Value: JSValue): TJSArray; // If Value is not a Javascript array, returns Nil
 function toBoolean(Value: JSValue): Boolean; // If Value is not a Boolean, returns False
 function toString(Value: JSValue): String; // If Value is not a string, returns ''
+function JSClassName(aObj : TJSObject) : string;
 
 Type
   TJSValueType = (jvtNull,jvtBoolean,jvtInteger,jvtFloat,jvtString,jvtObject,jvtArray);
@@ -1207,6 +1208,16 @@ Const
   Undefined : JSValue; external name 'undefined';
 
 implementation
+
+function JSClassName(aObj : TJSObject) : string;
+
+begin
+  Result:='';
+  if aObj=Nil then exit;
+  asm
+    return aObj.constructor.name;
+  end;
+end;
 
 function AsNumber(v: JSValue): Double; assembler;
 asm
