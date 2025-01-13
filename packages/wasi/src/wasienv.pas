@@ -2291,7 +2291,7 @@ var
   SrcBytes,tmpBytes : TJSUint8Array;
 
 begin
-  if getModuleMemoryDataView.bufferObj is TJSSharedArrayBuffer then
+  if isDefined(Self_['TJSSharedArrayBuffer']) and (getModuleMemoryDataView.bufferObj is TJSSharedArrayBuffer) then
     begin
     src:=getModuleMemoryDataView.buffer.slice(aLoc,aLoc+alen);
     SrcBytes:=TJSUint8Array.new(src);

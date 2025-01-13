@@ -1536,6 +1536,7 @@ var
   Console : TJSConsole; external name 'console';
   Crypto: TJSCrypto; external name 'crypto';
   indexedDB : TJSIDBFactory; external name 'indexedDB';
+  self_ : TWindowOrWorkerGlobalScope; external name 'self';
 
   function fetch(resource: String; init: TJSObject): TJSPromise; overload; external name 'fetch';
   //function fetch(resource: String): TJSPromise; overload; external name 'fetch';
