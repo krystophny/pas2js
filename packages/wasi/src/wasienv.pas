@@ -1456,9 +1456,9 @@ begin
     arr:=TJSint32array.new(FMemory.buffer);
     TJSAtomics.Store(arr,256,0);
     msTimeout32:=StrToInt(msTimeOut.toString);
-    Writeln('Timeout is: ',msTImeout32);
+    // Writeln('Timeout is: ',msTImeout32);
     TJSAtomics.wait(Arr,256,0,msTimeout32);
-    Writeln('Done timeout');
+    // Writeln('Done timeout');
     end;
   {$ELSE}
   Result:= WASI_ENOSYS;
