@@ -23,7 +23,7 @@ const
   MaxInteger = $fffffffffffff;
   MinDouble  =  5.0e-324;
   MaxDouble  =  1.7e+308;
-
+  Epsilon    = 1.1e-10;
 const
   NaN: Double; external name 'NaN';
   Infinity: Double; external name 'Infinity';
