@@ -53,13 +53,59 @@ type
   TListCallback = procedure(data, arg: JSValue) of object;
   TListStaticCallback = procedure(data, arg: JSValue);
 
-  TSize  = record
-    cx, cy: integer;
+  TSize =  record
+    cx : Longint; cy : Longint;
+  public
+    constructor Create(ax,ay:Longint); overload;
+    constructor Create(asz :TSize); overload;
+    function Add(const asz: TSize): TSize;
+    function Distance(const asz : TSize) : Double;
+    function IsZero : Boolean;
+    function Subtract(const asz : TSize): TSize;
+    (*
+    class operator = (const asz1, asz2 : TSize) : Boolean;
+    class operator <> (const asz1, asz2 : TSize): Boolean;
+    class operator + (const asz1, asz2 : TSize): TSize;
+    class operator - (const asz1, asz2 : TSize): TSize;
+    *)
+    property Width : Longint read cx write cx;
+    property Height: Longint read cy write cy;
   end;
 
-  TPoint  = record
-    x, y: integer;
-  end;
+  { TPoint }
+
+  TPoint  =
+  {$ifndef FPC_REQUIRES_PROPER_ALIGNMENT}
+   packed
+  {$endif FPC_REQUIRES_PROPER_ALIGNMENT}
+  record
+       X : Longint; Y : Longint;
+     public
+       {$ifdef VER3}
+       constructor Create(ax,ay:Longint); overload;
+       constructor Create(apt :TPoint); overload;
+       {$endif}
+       class function Zero: TPoint; static; inline;
+       function Add(const apt: TPoint): TPoint;
+       function Distance(const apt: TPoint) : ValReal;
+       function IsZero : Boolean;
+       function Subtract(const apt : TPoint): TPoint;
+       procedure SetLocation(const apt :TPoint);
+       procedure SetLocation(ax,ay : Longint);
+       procedure Offset(const apt :TPoint);
+       procedure Offset(dx,dy : Longint);
+       function Angle(const pt : TPoint):Single;
+       class function PointInCircle(const apt, acenter: TPoint; const aradius: Integer): Boolean; static; inline;
+       (*
+       class operator = (const apt1, apt2 : TPoint) : Boolean; static;
+       class operator <> (const apt1, apt2 : TPoint): Boolean; static;
+       class operator + (const apt1, apt2 : TPoint): TPoint;static;
+       class operator - (const apt1, apt2 : TPoint): TPoint;static;
+       class operator := (const aspt : TSmallPoint) : TPoint;static;
+       class operator Explicit (Const apt : TPoint) : TSmallPoint;static;
+       *)
+     end;
+  PPoint = ^TPoint;
 
   { TRect }
 
@@ -308,6 +354,8 @@ type
     property TopLeft : TPointF Read GetTopLeft Write SetTopLeft;
     property BottomRight : TPointF Read GetBottomRight Write SetBottomRight;
     end;
+
+
 
   { TPoint3D }
 
@@ -1748,5 +1796,196 @@ begin
   x:=x+adelta.x; y:=y+adelta.y; z:=z+adelta.z;
 end;
 
+
+{ TSize }
+
+constructor TSize.Create(ax,ay:Longint);
+begin
+  cx:=ax; cy:=ay;
+end;
+
+constructor TSize.Create(asz :TSize);
+begin
+  cx:=asz.cx; cy:=asz.cy;
+  // vector:=TSize(asz.vector); ??
+end;
+
+
+function TSize.IsZero : Boolean;
+begin
+  result:=(cx=0) and (cy=0);
+end;
+
+function TSize.Distance(const asz : TSize) : Double;
+begin
+  result:=sqrt(sqr(cx-asz.cx)+sqr(cy-asz.cy));
+end;
+
+function TSize.Add(const asz : TSize): TSize;
+begin
+  result.cx:=cx+asz.cx;
+  result.cy:=cy+asz.cy;
+end;
+
+function TSize.Subtract(const asz : TSize): TSize;
+begin
+  result.cx:=cx-asz.cx;
+  result.cy:=cy-asz.cy;
+end;
+
+(*
+class operator TSize.=(const asz1, asz2 : TSize) : Boolean;
+begin
+  result:=(asz1.cx=asz2.cx) and (asz1.cy=asz2.cy);
+end;
+
+class operator TSize.<> (const asz1, asz2 : TSize): Boolean;
+begin
+  result:=(asz1.cx<>asz2.cx) or (asz1.cy<>asz2.cy);
+end;
+
+class operator TSize.+(const asz1, asz2 : TSize): TSize;
+begin
+  result.cx:=asz1.cx+asz2.cx;
+  result.cy:=asz1.cy+asz2.cy;
+end;
+
+class operator TSize.-(const asz1, asz2 : TSize): TSize;
+begin
+  result.cx:=asz1.cx-asz2.cx;
+  result.cy:=asz1.cy-asz2.cy;
+end;
+*)
+{$ifdef VER3}
+constructor TPoint.Create(ax,ay:Longint);
+begin
+  x:=ax; y:=ay;
+end;
+
+constructor TPoint.Create(apt :TPoint);
+begin
+  x:=apt.x; y:=apt.y;
+end;
+
+{$endif}
+function TPoint.Add(const apt: TPoint): TPoint;
+begin
+  result.x:=x+apt.x;
+  result.y:=y+apt.y;
+end;
+
+function TPoint.Distance(const apt: TPoint): ValReal;
+begin
+  result:=sqrt(sqr(ValReal(apt.x)-ValReal(x))+sqr(ValReal(apt.y)-ValReal(y))); // convert to ValReal to prevent integer overflows
+end;
+
+function TPoint.IsZero : Boolean;
+begin
+ result:=(x=0) and (y=0);
+end;
+
+function TPoint.Subtract(const apt : TPoint): TPoint;
+begin
+  result.x:=x-apt.x;
+  result.y:=y-apt.y;
+end;
+
+class function TPoint.Zero: TPoint;
+begin
+  Result.x := 0;
+  Result.y := 0;
+end;
+
+procedure TPoint.SetLocation(const apt :TPoint);
+begin
+ x:=apt.x; y:=apt.y;
+end;
+procedure TPoint.SetLocation(ax,ay : Longint);
+begin
+  x:=ax; y:=ay;
+end;
+
+procedure TPoint.Offset(const apt :TPoint);
+begin
+ x:=x+apt.x;
+ y:=y+apt.y;
+end;
+
+class function TPoint.PointInCircle(const apt, acenter: TPoint;
+  const aradius: Integer): Boolean;
+begin
+  Result := apt.Distance(acenter) <= aradius;
+end;
+
+procedure TPoint.Offset(dx,dy : Longint);
+begin
+  x:=x+dx;
+  y:=y+dy;
+end;
+
+function TPoint.Angle(const pt: TPoint): Single;
+
+  function arctan2(y,x : Single) : Single;
+    begin
+      if x=0 then
+        begin
+          if y=0 then
+            result:=0.0
+          else if y>0 then
+            result:=pi/2
+          else
+            result:=-pi/2;
+        end
+      else
+        begin
+          result:=ArcTan(y/x);
+          if x<0 then
+            if y<0 then
+              result:=result-pi
+            else
+              result:=result+pi;
+        end;
+    end;
+
+begin
+  result:=ArcTan2(y-pt.y,x-pt.x);
+end;
+
+(*
+class operator TPoint.= (const apt1, apt2 : TPoint) : Boolean;
+begin
+  result:=(apt1.x=apt2.x) and (apt1.y=apt2.y);
+end;
+
+class operator TPoint.<> (const apt1, apt2 : TPoint): Boolean;
+begin
+  result:=(apt1.x<>apt2.x) or (apt1.y<>apt2.y);
+end;
+
+class operator TPoint.+ (const apt1, apt2 : TPoint): TPoint;
+begin
+  result.x:=apt1.x+apt2.x;
+  result.y:=apt1.y+apt2.y;
+end;
+
+class operator TPoint.- (const apt1, apt2 : TPoint): TPoint;
+begin
+  result.x:=apt1.x-apt2.x;
+  result.y:=apt1.y-apt2.y;
+end;
+
+// warning suppression for the next ones?
+class operator TPoint.:= (const aspt : TSmallPoint): TPoint;
+begin
+  result.x:=aspt.x;
+  result.y:=aspt.y;
+end;
+
+class operator TPoint.Explicit (const apt: TPoint): TSmallPoint;
+begin
+  result.x:=apt.x;
+  result.y:=apt.y;
+end;
+*)
 end.
 
