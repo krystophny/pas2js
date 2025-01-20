@@ -295,6 +295,9 @@ type
     function slice(aStart,aEnd : NativeInt) : TJSBlob; overload;
     function slice(aStart,aEnd : NativeInt; AContentType : String) : TJSBlob; overload;
     function arrayBuffer : TJSPromise;
+    function bytes: TJSPromise;
+    function stream: TJSReadableStream;
+    function text: TJSPromise;
     property size : NativeInt read FSize;
     property _type : string read FType; deprecated;
     property type_ : string read FType;
