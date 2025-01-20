@@ -352,8 +352,8 @@ procedure GetMethodList(AObject: TObject; AList: TStrings); overload;
 implementation
 
 Const
-  sExpectedButWasFmt = 'Expected:' + LineEnding + '"%s"' + LineEnding + 'But was:' + LineEnding + '"%s"';
-  sExpectedButWasAndMessageFmt = '%s' + LineEnding + sExpectedButWasFmt;
+  sExpectedButWasFmt = 'Expected:'#10'"%s"'#10'But was:'#10'"%s"';
+  sExpectedButWasAndMessageFmt = '%s'#10 + sExpectedButWasFmt;
 
 // Get the ClassName of C
 function GetN(C : TClass) : string;
