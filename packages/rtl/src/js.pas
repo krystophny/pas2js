@@ -597,7 +597,6 @@ type
     function toLocaleString: String; overload;
     function toLocaleString(locales : string) : String; overload;
     function toLocaleString(locales : string; const Options : TLocaleCompareOptions) : String; overload;
-    function toString : String;
     function unshift : NativeInt; varargs;
     property buffer : TJSArrayBuffer read FBuffer;
     property byteLength : NativeInt Read FByteLength;
