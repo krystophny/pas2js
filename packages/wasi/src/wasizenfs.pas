@@ -217,6 +217,7 @@ begin
     on E : TJSObject do
       Result:=ExceptToError(E);
   end;
+  if Flags=[] then;
 end;
 
 function TWASIZenFS.LinkAt(OldFD: Integer; OldPath: String; NewFD: Integer;
@@ -481,7 +482,7 @@ var
   end;
 
 begin
-  if (fdFlags<>0) and (fsFlags<>0) then ;
+  if (fdFlags<>0) and (fsFlags<>0) and (fsRightsInheriting<>0) then ;
   lPath:=PrependFD(FD,aPath);
   if Not HasFlag(__WASI_OFLAGS_DIRECTORY) then
     begin
