@@ -216,7 +216,6 @@ type
     FAfterAddProperty: TAfterAddPropertyEvent;
     FBeforeAddProperty: TBeforeAddPropertyEvent;
     FBorder: Boolean;
-    FCaption: String;
     FIcons: TPropertyInspectorIconHTML;
     FOnRefresh: TNotifyEvent;
     FOnRefreshObject: TNotifyEvent;
@@ -240,7 +239,6 @@ type
     function GetParentElementID: String;
     procedure RenderCaption;
     procedure SetBorder(AValue: Boolean);
-    procedure SetCaption(AValue: String);
     procedure SetFullCaption(AValue: String);
     procedure SetIcons(AValue: TPropertyInspectorIconHTML);
     procedure SetObjectCaption(AValue: String);
@@ -543,7 +541,7 @@ end;
 function THTMLObjectTree.BuildWrapper(aParent : TJSHTMLElement) : TJSHTMLElement;
 
 var
-  RI,SC,DW,DC,DT : TJSHTMLElement;
+  RI,SC,DC,DT : TJSHTMLElement;
 
 begin
   aParent.InnerHTML:='';
@@ -624,6 +622,7 @@ begin
     begin
     lParent:=Nil;
     FRootObjectID:=AID;
+    if aClassName<>'' then ;
     end;
   FBuilder.AddItem(lParent,aCaption,aID);
 end;
@@ -720,7 +719,7 @@ end;
 constructor TInspectorObjectStack.Create(initialSize: Integer);
 begin
   Count:=0;
-  SetLength(Objects,ArrayDelta);
+  SetLength(Objects,InitialSize+ArrayDelta);
 end;
 
 procedure TInspectorObjectStack.Clear;
@@ -792,12 +791,6 @@ begin
     FTableElement.Border:=IntToStr(Ord(aValue));
 end;
 
-procedure THTMLObjectInspector.SetCaption(AValue: String);
-begin
-  if FCaption=AValue then Exit;
-  FCaption:=AValue;
-  RenderCaption;
-end;
 
 procedure THTMLObjectInspector.SetFullCaption(AValue: String);
 begin
@@ -1008,8 +1001,8 @@ function THTMLObjectInspector.CreateConfigPanel(): TJSHTMLElement;
   end;
 
 var
-  Tmp,CBDiv,CBhead,CBCol,cbRow : TJSHTMLElement;
-  CB : TJSHTMLInputElement;
+  Tmp,CBDiv,CBhead,CBCol : TJSHTMLElement;
+  //CB : TJSHTMLInputElement;
   Vis : TMemberVisibility;
 
 begin
@@ -1087,6 +1080,7 @@ procedure THTMLObjectInspector.HandleRefresh(aEvent: TJSHTMLElement);
 begin
   Clear;
   RefreshObject;
+  if aEvent=Nil then ;
 end;
 
 procedure THTMLObjectInspector.HandleBack(aEvent: TJSHTMLElement);
