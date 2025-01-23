@@ -127,8 +127,6 @@ Type
 
 Implementation
 
-uses math;
-
 
 function NewObj(const fn: TJSFunction; const Args: TJSValueDynArray): TJSFunction; assembler;
 asm
@@ -366,8 +364,6 @@ begin
 end;
 
 function TJSObjectBridge.DecodeUTF8Buffer(Arr: TJSUint8Array): String;
-var
-  enc : string;
 
 begin
   if FDecoderUTF8=Nil then
@@ -791,6 +787,7 @@ begin
       Result:=JOBResult_Success;
       end;
     end;
+  if aFlags=0 then ;
 end;
 
 function TJSObjectBridge.ReleaseStringResult: TJOBResult;
@@ -818,7 +815,6 @@ var
 
   var
     aCall, aData, aCode: TWasmNativeInt;
-    Obj : TJSObject absolute Result;
     ReRaise : Boolean;
 
     function MethodCallBack: jsvalue;
@@ -956,7 +952,6 @@ var
   function ReadArgArrayOfByte: JSValue;
   var
     Cnt, El: TWasmNativeInt;
-    i: Integer;
 
   begin
     Cnt:=ReadWasmNativeInt;
