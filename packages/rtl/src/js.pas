@@ -819,9 +819,9 @@ type
     fOffset : NativeInt; external name 'byteOffset';
 
   public
-    constructor new(aBuffer : TJSArrayBuffer); overload;
-    constructor new(aBuffer : TJSArrayBuffer; aOffset : NativeInt); overload;
-    constructor new(aBuffer : TJSArrayBuffer; aOffset,aByteLength : NativeInt); overload;
+    constructor new(aBuffer : TJSAbstractArrayBuffer); overload;
+    constructor new(aBuffer : TJSAbstractArrayBuffer; aOffset : NativeInt); overload;
+    constructor new(aBuffer : TJSAbstractArrayBuffer; aOffset,aByteLength : NativeInt); overload;
     function getFloat32(aByteOffset : NativeInt) : double; overload;
     function getFloat32(aByteOffset : NativeInt; aLittleEndian: Boolean) : double; overload;
     function getFloat64(aByteOffset : NativeInt) : double; overload;
@@ -1136,6 +1136,9 @@ type
     class function sub(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer;
     class function wait(aTypedArray : TJSTypedArray; index: integer; value : Integer) : string;
     class function wait(aTypedArray : TJSTypedArray; index: integer; value : Integer; TimeOut : integer) : string;
+    class function waitAsync(aTypedArray : TJSTypedArray; index: integer; value : Integer) : TJSAtomicWaitResult;
+    class function waitAsync(aTypedArray : TJSTypedArray; index: integer; value : Integer; TimeOut : integer) : TJSAtomicWaitResult;
+
     class function xor_(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer; external name 'xor';
   end;
 
