@@ -220,9 +220,6 @@ end;
 
 function TWasmObjectInspectorApi.InspectorAllocate(aID: TWasmPointer): TWasmOIResult;
 
-var
-  v : TJSDataView;
-
 begin
   {$IFNDEF NOLOGAPICALLS}
   If LogAPICalls then
@@ -231,15 +228,9 @@ begin
     end;
   {$ENDIF}
    Result:=WASMOI_NOT_IMPLEMENTED;
-{  v:=getModuleMemoryDataView;
-  v.setInt32(aID,0,Env.IsLittleEndian);
-  }
 end;
 
 function TWasmObjectInspectorApi.InspectorDeAllocate(aID: TInspectorID): TWasmOIResult;
-
-var
-  v : TJSDataView;
 
 begin
   {$IFNDEF NOLOGAPICALLS}
@@ -249,21 +240,16 @@ begin
     end;
   {$ENDIF}
    Result:=WASMOI_NOT_IMPLEMENTED;
-{  v:=getModuleMemoryDataView;
-  v.setInt32(aID,0,Env.IsLittleEndian);
-  }
 end;
 
 function TWasmObjectInspectorApi.InspectorSetCaption(aInspectorID: TInspectorID; aCaption: TWasmPointer; aCaptionLen: Longint
   ): TWasmOIResult;
 
 var
-  V : TJSDataView;
   OI : THTMLObjectInspector;
   lCaption : String;
 
 begin
-  V:=getModuleMemoryDataView;
   lCaption:=Env.GetUTF8StringFromMem(aCaption,aCaptionLen);
   {$IFNDEF NOLOGAPICALLS}
   If LogAPICalls then
@@ -350,12 +336,10 @@ end;
 function TWasmObjectInspectorApi.TreeSetCaption(aInspectorID: TInspectorID; aCaption: TWasmPointer; aCaptionLen: Longint
   ): TWasmOIResult;
 var
-  V : TJSDataView;
   T : THTMLObjectTree;
   lCaption : String;
 
 begin
-  V:=getModuleMemoryDataView;
   lCaption:=Env.GetUTF8StringFromMem(aCaption,aCaptionLen);
   {$IFNDEF NOLOGAPICALLS}
   If LogAPICalls then
@@ -396,7 +380,6 @@ function TWasmObjectInspectorApi.InspectorAddProperty(aInspectorID: TInspectorID
 var
   PropertyKind : TNativeTypeKind;
   PropertyFlags : Longint;
-  PropDataFlags : TPropDataFlags;
   V : TJSDataView;
   OI : THTMLObjectInspector;
   PropData : TOIPropData;
