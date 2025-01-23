@@ -23,9 +23,9 @@ interface
 
 uses
   {$IFDEF FPC_DOTTEDUNITS}
-  System.Classes, System.SysUtils, JSApi.JS, BrowserApi.WebOrWorker,  {$IFDEF JOB_WORKER} BrowserApi.WebWorker {$ELSE}  BrowserApi.Web {$ENDIF}, Wasi.Env, wasm.http.shared;
+  System.SysUtils, JSApi.JS, BrowserApi.WebOrWorker,  {$IFDEF JOB_WORKER} BrowserApi.WebWorker {$ELSE}  BrowserApi.Web {$ENDIF}, Wasi.Env, wasm.http.shared;
   {$ELSE}
-  Classes, SysUtils, JS, WebOrWorker, {$IFDEF JOB_WORKER} WebWorker {$ELSE} Web {$ENDIF}, WasiEnv, types, wasm.http.shared;
+  SysUtils, JS, WebOrWorker, {$IFDEF JOB_WORKER} WebWorker {$ELSE} Web {$ENDIF}, WasiEnv, types, wasm.http.shared;
   {$ENDIF}
 
 Type
@@ -510,8 +510,6 @@ end;
 function TWasmHTTPAPI.RequestExecute(aRequestID: TWasmHTTPRequestID): TWasmHTTPResult;
 
 var
-  lReq : TWasmHTTPRequest;
-  lID : TWasmHTTPRequestID;
   lfetch : TWasmHTTPFetch;
 
 begin
