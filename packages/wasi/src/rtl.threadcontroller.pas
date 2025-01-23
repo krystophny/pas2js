@@ -8,9 +8,9 @@ interface
 
 uses
   {$IFDEF FPC_DOTTEDUNITS}
-    JSApi.JS, System.Classes, System.SysUtils, System.WebThreads, Wasi.Env, BrowserApi.WebOrWorker;
+    JSApi.JS, System.SysUtils, System.WebThreads, Wasi.Env, BrowserApi.WebOrWorker;
   {$ELSE}
-    JS, Classes, SysUtils, Rtl.WebThreads, wasienv, weborworker;
+    JS, SysUtils, Rtl.WebThreads, wasienv, weborworker;
   {$ENDIF}
 
 
@@ -129,9 +129,6 @@ implementation
 
 Resourcestring
   SErrMaxWorkersReached = 'Cannot create thread worker, Maximum number of workers (%d) reached.';
-
-var
-  Self_ : TWindowOrWorkerGlobalScope; external name 'self';
 
 { TWasmThread }
 
@@ -343,11 +340,13 @@ end;
 
 function TThreadController.thread_detach(thread_id: longint): Integer;
 begin
+  if thread_id=-1 then;
   Result:=-1;
 end;
 
 function TThreadController.thread_cancel(thread_id: longint): Integer;
 begin
+  if thread_id=-1 then;
   Result:=-1;
 end;
 
@@ -388,36 +387,10 @@ function TThreadController.SpawnThread(aInfo: TThreadInfo): Integer;
 
 Var
   WT : TWasmThread;
-  lInterval : NativeInt;
-  TryCount : Integer;
-
-  Procedure TryRunCommand;
-
-  var
-    E : Exception;
-
-  begin
-    Writeln('TryRunCommand called');
-    if WT.Loaded then
-      begin
-      self_.clearInterval(lInterval);
-      SendRunCommand(WT);
-      end
-    else
-      begin
-      inc(TryCount);
-      if TryCount>20 then
-        begin
-        self_.clearInterval(lInterval);
-        RunTimeOut(aInfo,100*TryCount);
-        end;
-      end;
-  end;
 
 
 begin
   // Writeln('Enter TThreadController.SpawnThread for ID ',aInfo.ThreadID);
-  TryCount:=0;
   WT:=GetNewWorker;
   if WT=nil then
     begin
@@ -468,12 +441,14 @@ end;
 procedure TThreadController.HandleKillCommand(aWorker : TWasmThread; aCommand: TWorkerKillCommand);
 
 begin
+  if (aWorker<>Nil) and (aCommand<>Nil) then ;
   // todo
 end;
 
 procedure TThreadController.HandleCancelCommand(aWorker : TWasmThread; aCommand: TWorkerCancelCommand);
 
 begin
+  if (aWorker<>Nil) and (aCommand<>Nil) then ;
   // todo
 end;
 
@@ -486,6 +461,7 @@ begin
   if aWorker.ThreadID>0 then
     SendRunCommand(aWorker);
   // Writeln('Host: exiting TThreadController.HandleLoadedCommand');
+  if (aCommand<>Nil) then ;
 end;
 
 procedure TThreadController.HandleCleanupCommand(aWorker : TWasmThread; aCommand: TWorkerCleanupCommand);
@@ -501,6 +477,7 @@ begin
   Idx:=TJSarray(FIdleWorkers).indexOf(aWorker);
   if Idx=-1 then
     FIdleWorkers:=Concat(FIdleWorkers,[aWorker]);
+  if (aCommand<>Nil) then ;
 end;
 
 procedure TThreadController.HandleConsoleCommand(aWorker : TWasmThread; aCommand: TWorkerConsoleCommand);
