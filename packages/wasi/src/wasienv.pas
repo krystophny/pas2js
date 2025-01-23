@@ -100,7 +100,6 @@ type
     FExitCode: Nativeint;
     FImportObject : TJSObject;
     Finstance: TJSWebAssemblyInstance;
-    FIsLittleEndian: Boolean;
     FLogAPI: Boolean;
     FModuleInstanceExports : TJSModulesExports;
     FOnGetConsoleInputBuffer: TGetConsoleInputBufferEvent;
@@ -195,6 +194,9 @@ type
   Protected
     Procedure SetMemory(aMemory : TJSWebAssemblyMemory);
   Public
+    Const
+      IsLittleEndian = True; // Wasm is apparently l
+  Public
     class constructor init;
     Constructor Create;
     Destructor Destroy; override;
@@ -225,7 +227,7 @@ type
     Procedure AddImports(aObject: TJSObject);
     procedure SetExports(aExports : TWasiExports);
     Property ImportObject : TJSObject Read GetImportObject;
-    Property IsLittleEndian : Boolean Read FIsLittleEndian Write FIsLittleEndian;
+//    Property IsLittleEndian : Boolean Read FIsLittleEndian Write FIsLittleEndian;
     // Filesystem
     function PreLoadFiles(aFiles: array of string): TPreLoadFilesResult; async;
     function PreLoadFiles(aFiles: TPreLoadFileDynArray): TPreLoadFilesResult; async;
@@ -1436,7 +1438,9 @@ const
 
 var
   Tag : NativeInt;
+  {$IFNDEF WEB_WORKER}
   Precision,TimeOut,msTimeOut : TJSBigInt;
+  {$endif}
   msTimeout32 : Integer;
   arr : TJSint32array;
   mem : TJSDataView;
@@ -1460,6 +1464,7 @@ begin
     TJSAtomics.wait(Arr,256,0,msTimeout32);
     // Writeln('Done timeout');
     end;
+  Result:= WASI_ESUCCESS;
   {$ELSE}
   Result:= WASI_ENOSYS;
   {$ENDIF}
@@ -2266,7 +2271,6 @@ var
   I : Integer;
 
 begin
-  FIsLittleEndian:=True;
   // Default expected by FPC runtime
   WASIImportName:='wasi_snapshot_preview1';
   FArguments:=TStringList.Create;
