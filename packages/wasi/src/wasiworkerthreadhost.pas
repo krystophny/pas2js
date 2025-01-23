@@ -168,6 +168,7 @@ Type
     function CreateHost: TWASIHost; override;
     function CreateWorkerThreadSupport(aEnv: TPas2JSWasiEnvironment): TWorkerThreadSupport; virtual;
     procedure HandleMessage(aEvent: TJSEvent); override;
+  Public
     procedure ShowException(aError: Exception); override;
     // Our thread support object
     Property ThreadSupport : TWorkerThreadSupport Read FThreadSupport Write FThreadSupport;
@@ -331,11 +332,13 @@ end;
 function TWorkerThreadSupport.thread_detach(thread_id: Integer): Integer;
 begin
   Result:=0;
+  if thread_id=0 then ;
 end;
 
 function TWorkerThreadSupport.thread_cancel(thread_id: Integer): Integer;
 begin
   Result:=0;
+  if thread_id=0 then ;
 end;
 
 function TWorkerThreadSupport.thread_self: Integer;
@@ -393,6 +396,7 @@ end;
 procedure TWorkerThreadSupport.CancelWasmModule(aCommand : TWorkerCancelCommand);
 
 begin
+  if (aCommand<>Nil) then ;
   // todo
 end;
 
@@ -827,6 +831,8 @@ function GetJSClassName(aObj : TJSObject) : string;
 
 begin
   Result:='';
+  if aObj=Nil then
+    exit;
   asm
     return aObj.constructor.name;
   end;
@@ -909,7 +915,7 @@ end;
 function TWorkerThreadControllerApplication.CreateThreadSupport(aEnv : TPas2JSWASIEnvironment) : TThreadController;
 
 begin
-  TThreadController.Create(aEnv,ThreadRunnerScript,20);
+  Result:=TThreadController.Create(aEnv,ThreadRunnerScript,20);
 end;
 
 function TWorkerThreadControllerApplication.CreateHost: TWASIHost;
