@@ -54,6 +54,7 @@ type
   TJSNotificationAction = Class;
   TJSGetNotificationOptions = Class;
   TJSNotificationEventInit = Class;
+  TJSAbortSignal = class;
   NotificationPermission = String;
   NotificationDirection = String;
   NotificationPermissionCallback = Procedure (permission : NotificationPermission);
@@ -153,11 +154,24 @@ type
   TJSEventHandler = reference to function(Event: TJSEvent): boolean; safecall;
   TJSRawEventHandler = reference to Procedure(Event: TJSEvent); safecall;
 
+  TJSEventListenerOptions = class external name 'Object' (TJSObject)
+    capture : boolean;
+    once : boolean;
+    passive : boolean;
+    signal : TJSAbortSignal;
+  end;
+
   TJSEventTarget = class external name 'EventTarget' (TJSObject)
   public
     procedure addEventListener(aname : string; aListener : TJSEventHandler);
     procedure addEventListener(aname : string; aListener : TJSRawEventHandler);
     procedure addEventListener(aname : string; aListener : JSValue);
+    procedure addEventListener(aname : string; aListener : TJSEventHandler; useCapture : Boolean);
+    procedure addEventListener(aname : string; aListener : TJSRawEventHandler; useCapture : Boolean);
+    procedure addEventListener(aname : string; aListener : JSValue; useCapture : Boolean);
+    procedure addEventListener(aname : string; aListener : TJSEventHandler; options : TJSEventListenerOptions);
+    procedure addEventListener(aname : string; aListener : TJSRawEventHandler; options : TJSEventListenerOptions);
+    procedure addEventListener(aname : string; aListener : JSValue; options : TJSEventListenerOptions);
     function dispatchEvent(event : JSValue) : Boolean;
     procedure removeEventListener(aname : string; aListener : TJSEventHandler);
     procedure removeEventListener(aname : string; aListener : TJSRawEventHandler);
