@@ -60,17 +60,16 @@ Type
 
 
   TWasmBaseWebSocketAPI = class(TImportExtension)
+  private
     FNextID : TWasmWebsocketID;
     FSockets : TJSObject;
     FEncoder : TJSTextEncoder;
     FDecoder : TJSTextDecoder;
-  private
-    FLogAPICalls: Boolean;
     function CheckCallbackRes(Res: TWebsocketCallBackResult; const aOperation: string): Boolean;
+    function GetLogAPICalls: Boolean;
     procedure HandleSendMessage(aSocket: TWasmWebSocket; aMessage: TJSUInt8Array; aType: TWasmWebSocketMessageType);
+    procedure SetLogAPICalls(AValue: Boolean);
   Protected
-    procedure DoError(const Msg : String);
-    Procedure DoError(Const Fmt : String; const Args : Array of const);
     Procedure LogCall(const Msg : String);
     Procedure LogCall(Const Fmt : String; const Args : Array of const);
     Function GetNextID : TWasmWebsocketID;
@@ -82,7 +81,7 @@ Type
     Procedure HandleError(aSocket : TWasmWebSocket);
     Procedure HandleBinaryMessage(aSocket : TWasmWebSocket; aMessage : TJSArrayBuffer);
     Procedure HandleStringMessage(aSocket : TWasmWebSocket; aMessage : String);
-    function WebsocketAllocate(aURL : PByte; aUrlLen : Longint; aProtocols : PByte; aProtocolLen : Longint; aUserData : TWasmPointer; aWebsocketID : PWasmWebSocketID) : TWasmWebsocketResult; virtual; abstract;
+    function WebsocketAllocate(aURL : PByte; aUrlLen : Longint; aProtocols : PByte; aProtocolLen : Longint; aUserData : TWasmPointer; aWebsocketID : TWasmWebSocketID) : TWasmWebsocketResult; virtual; abstract;
     function WebsocketDeAllocate(aWebsocketID : TWasmWebSocketID) : TWasmWebsocketResult; virtual; abstract;
     function WebsocketClose(aWebsocketID : TWasmWebSocketID; aCode : Longint; aReason : PByte; aReasonLen : Longint) : TWasmWebsocketResult; virtual; abstract;
     function WebsocketSend(aWebsocketID : TWasmWebSocketID; aData : PByte; aDataLen : Longint; aType : Longint) : TWasmWebsocketResult; virtual; abstract;
@@ -93,7 +92,7 @@ Type
     procedure FillImportObject(aObject: TJSObject); override;
     function AllocateBuffer(aSocket: TWasmWebSocket; aLen: Longint): TWasmPointer;
     function ImportName: String; override;
-    property LogAPICalls : Boolean Read FLogAPICalls Write FLogAPICalls;
+    property LogAPICalls : Boolean Read GetLogAPICalls Write SetLogAPICalls;
   end;
 
   { TWasmWebSocketAPI }
@@ -104,30 +103,10 @@ Type
   private
   Protected
     function CreateWebSocket(aID: Integer; aUserData: TWasmPointer; aUrl, aProtocols: string): TWasmWebSocket;
-    function WebsocketAllocate(aURL : PByte; aUrlLen : Longint; aProtocols : PByte; aProtocolLen : Longint; aUserData : TWasmPointer; aWebsocketID : PWasmWebSocketID) : TWasmWebsocketResult; override;
+    function WebsocketAllocate(aURL : PByte; aUrlLen : Longint; aProtocols : PByte; aProtocolLen : Longint; aUserData : TWasmPointer; aWebsocketID : TWasmWebSocketID) : TWasmWebsocketResult; override;
     function WebsocketDeAllocate(aWebsocketID : TWasmWebSocketID) : TWasmWebsocketResult; override;
     function WebsocketClose(aWebsocketID : TWasmWebSocketID; aCode : Longint; aReason : PByte; aReasonLen : Longint) : TWasmWebsocketResult; override;
     function WebsocketSend(aWebsocketID : TWasmWebSocketID; aData : PByte; aDataLen : Longint; aType : Longint) : TWasmWebsocketResult; override;
-  end;
-
-  { TWorkerWebSocketAPI }
-
-  TWorkerWebSocketAPI = class(TWasmBaseWebSocketAPI)
-  private
-    FSharedMem: TJSSharedArrayBuffer;
-    FArray : TJSUint8Array;
-    FView : TJSDataView;
-    procedure SetSharedMem(AValue: TJSSharedArrayBuffer);
-  protected
-    function AwaitResult: TWasmWebsocketResult;
-  Public
-    function LockMem : boolean;
-    procedure UnlockMem;
-    function WebsocketAllocate(aURL : PByte; aUrlLen : Longint; aProtocols : PByte; aProtocolLen : Longint; aUserData : TWasmPointer; aWebsocketID : PWasmWebSocketID) : TWasmWebsocketResult; override;
-    function WebsocketDeAllocate(aWebsocketID : TWasmWebSocketID) : TWasmWebsocketResult; override;
-    function WebsocketClose(aWebsocketID : TWasmWebSocketID; aCode : Longint; aReason : PByte; aReasonLen : Longint) : TWasmWebsocketResult; override;
-    function WebsocketSend(aWebsocketID : TWasmWebSocketID; aData : PByte; aDataLen : Longint; aType : Longint) : TWasmWebsocketResult; override;
-    property SharedMem : TJSSharedArrayBuffer Read FSharedMem Write SetSharedMem;
   end;
 
 
@@ -143,8 +122,8 @@ implementation
 procedure TWasmBaseWebSocketAPI.LogCall(const Msg: String);
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If not LogAPICalls then exit;
-  Writeln(Msg);
+  if LogAPI then
+    DoLog('WebSocket: '+Msg);
   {$ENDIF}
 end;
 
@@ -153,8 +132,8 @@ procedure TWasmBaseWebSocketAPI.LogCall(const Fmt: String; const Args: array of 
 
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If not LogAPICalls then exit;
-  Writeln(Format(Fmt,Args));
+  If LogAPI then
+    DoLog(Format(Fmt,Args));
   {$ENDIF}
 end;
 
@@ -165,17 +144,6 @@ begin
   Result:=FNextID;
 end;
 
-
-procedure TWasmBaseWebSocketAPI.DoError(const Msg: String);
-begin
-  Console.Error(Msg);
-end;
-
-
-procedure TWasmBaseWebSocketAPI.DoError(const Fmt: String; const Args: array of const);
-begin
-  Console.Error(Format(Fmt,Args));
-end;
 
 
 function TWasmBaseWebSocketAPI.GetWebsocket(aID: TWasmWebSocketID): TWasmWebSocket;
@@ -218,6 +186,11 @@ begin
   Result:=(Res=WASMWS_CALLBACK_SUCCESS);
   if not Result then
     DoError('Error during %s call, exit status %d',[aOperation,Res]);
+end;
+
+function TWasmBaseWebSocketAPI.GetLogAPICalls: Boolean;
+begin
+  Result:=LogAPI;
 end;
 
 
@@ -353,6 +326,11 @@ begin
     end;
 end;
 
+procedure TWasmBaseWebSocketAPI.SetLogAPICalls(AValue: Boolean);
+begin
+  LogAPI:=aValue;
+end;
+
 
 procedure TWasmBaseWebSocketAPI.HandleBinaryMessage(aSocket: TWasmWebSocket; aMessage: TJSArrayBuffer);
 
@@ -383,35 +361,31 @@ begin
 end;
 
 function TWasmWebSocketAPI.WebsocketAllocate(aURL: PByte; aUrlLen: Longint; aProtocols: PByte; aProtocolLen: Longint;
-  aUserData: TWasmPointer; aWebsocketID: PWasmWebSocketID): TWasmWebsocketResult;
+  aUserData: TWasmPointer; aWebsocketID: TWasmWebSocketID): TWasmWebsocketResult;
 
 var
   lURL,lProtocols : String;
   lSocket : TWasmWebSocket;
-  lID : TWasmWebsocketID;
 
 begin
   lURL:=env.GetUTF8StringFromMem(aURL,aUrlLen);
   lProtocols:=env.GetUTF8StringFromMem(aProtocols,aProtocolLen);
   {$IFNDEF NOLOGAPICALLS}
   If LogAPICalls then
-    LogCall('HTTP.WebSocketAllocate("%s","%s",%d,[%x])',[lURL,lProtocols,aUserData,aWebSocketID]);
+    LogCall('HTTP.WebSocketAllocate("%s","%s",%d,%d)',[lURL,lProtocols,aUserData,aWebSocketID]);
   {$ENDIF}
   if (lUrl='') then
     Exit(WASMWS_RESULT_NO_URL);
-  lID:=GetNextID;
-  lSocket:=CreateWebSocket(lID,aUserData,lURL,lProtocols);
+  if Assigned(GetWebsocket(aWebSocketID)) then
+    Exit(WASMWS_RESULT_DUPLICATEID);
+  lSocket:=CreateWebSocket(aWebsocketID,aUserData,lURL,lProtocols);
   if Assigned(lSocket) then
-    begin
-    env.SetMemInfoInt32(aWebSocketID,lID);
-    Result:=WASMWS_RESULT_SUCCESS;
-    end
+    Result:=WASMWS_RESULT_SUCCESS
   else
     Result:=WASMWS_RESULT_ERROR;
-
 {$IFNDEF NOLOGAPICALLS}
   If LogAPICalls then
-    LogCall('HTTP.WebSocketAllocate("%s","%s",%d,[%x]) => %d',[lURL,lProtocols,aUserData,aWebSocketID,lID]);
+    LogCall('HTTP.WebSocketAllocate("%s","%s",%d,%d) => %d',[lURL,lProtocols,aUserData,aWebSocketID,Result]);
 {$ENDIF}
 end;
 
@@ -476,164 +450,6 @@ begin
   Result:=WASMWS_RESULT_SUCCESS;
 end;
 
-{ TWorkerWebSocketAPI }
-
-procedure TWorkerWebSocketAPI.SetSharedMem(AValue: TJSSharedArrayBuffer);
-begin
-  if FSharedMem=AValue then Exit;
-  FSharedMem:=AValue;
-  if Assigned(aValue) then
-    begin
-    FArray:=TJSUint8Array.New(FSharedMem);
-    FView:=TJSDataView.New(FSharedMem);
-    end
-  else
-    begin
-    FArray:=Nil;
-    FView:=Nil;
-    end
-end;
-
-function TWorkerWebSocketAPI.LockMem: boolean;
-
-
-begin
-  // Wait while it is set.
-  Result:=Assigned(FView);
-  if Result then
-    TJSAtomics.wait(FArray,WASM_SHMSG_SEMAPHORE,WASM_SEM_SET);
-  // Now, when here we definitely have value WASM_SEM_NOT_SET
-end;
-
-function TWorkerWebSocketAPI.AwaitResult : TWasmWebsocketResult;
-
-var
-  S : String;
-
-begin
-  if not Assigned(FView) then
-    Result:=WASMWS_RESULT_FAILEDLOCK
-  else
-    begin
-    S:=TJSAtomics.wait(FArray,WASM_SHMSG_SEMAPHORE,WASM_SEM_SET);
-    if s='ok' then
-      Result:=TJSAtomics.load(FArray,WASM_SHMSG_RESULT) // get a result
-    else // no result
-      Result:=WASMWS_RESULT_FAILEDLOCK;
-    end;
-end;
-
-
-procedure TWorkerWebSocketAPI.UnlockMem;
-begin
-  // Set and notify.
-  if not Assigned(FView) then
-    exit;
-  TJSAtomics.store(FArray, WASM_SHMSG_SEMAPHORE, WASM_SEM_SET);
-  TJSAtomics.notify(FArray, WASM_SHMSG_SEMAPHORE, 1);
-end;
-
-function TWorkerWebSocketAPI.WebsocketAllocate(aURL: PByte; aUrlLen: Longint; aProtocols: PByte; aProtocolLen: Longint;
-  aUserData: TWasmPointer; aWebsocketID: PWasmWebSocketID): TWasmWebsocketResult;
-
-
-var
-  lID : TWasmWebsocketID;
-  lTmp : TJSUint8Array;
-  lProtocolOffset : Longint;
-
-begin
-  lID:=GetNextID;
-  if (aURLLen+aProtocolLen)>(FArray.byteLength-WASM_SHMSG_FIXED_LEN) then
-     Exit(WASMWS_RESULT_INVALIDSIZE);
-  if (aURLLen<=0) then
-    Exit(WASMWS_RESULT_INVALIDSIZE);
-  if (aProtocolLen<0) then
-    Exit(WASMWS_RESULT_INVALIDSIZE);
-  if Not LockMem then
-    Exit(WASMWS_RESULT_FAILEDLOCK);
-  try
-    FView.setInt32(WASM_SHMSG_WEBSOCKETID,lID,Env.IsLittleEndian);
-    FView.setInt8(WASM_SHMSG_OPERATION,WASM_WSOPERATION_CREATE);
-    FView.setInt32(WASM_SHMSG_CREATE_USERDATA,aUserData,Env.IsLittleEndian);
-    FView.setInt32(WASM_SHMSG_CREATE_URL_LENGTH,aUrlLen,Env.IsLittleEndian);
-    FView.setInt32(WASM_SHMSG_CREATE_PROTOCOL_LENGTH,aProtocolLen,Env.IsLittleEndian);
-    // Write URL to shared buffer (it may no longer exist when the message is treated)
-    lTmp:=TJSUInt8Array.New(FSharedMem,aURL,aUrlLen);
-    FArray._set(lTmp,WASM_SHMSG_CREATE_URL_DATA);
-    // Write protocols if they are present.
-    if aProtocolLen>0 then
-      begin
-      lTmp:=TJSUInt8Array.New(FSharedMem,aProtocols,aProtocolLen);
-      lProtocolOffset:=WASM_SHMSG_CREATE_PROTOCOL_DATA_OFFSET+aURLLen;
-      FArray._set(lTmp,lProtocolOffset);
-      end;
-    // Result:=AwaitResult;
-  finally
-    UnlockMem;
-  end;
-  getModuleMemoryDataView.setInt32(aWebsocketID,lID);
-  Result:=WASMWS_RESULT_SUCCESS;
-end;
-
-function TWorkerWebSocketAPI.WebsocketDeAllocate(aWebsocketID: TWasmWebSocketID): TWasmWebsocketResult;
-
-begin
-  if Not LockMem then
-    Exit(WASMWS_RESULT_FAILEDLOCK);
-  try
-    FView.setInt32(WASM_SHMSG_WEBSOCKETID,aWebsocketID,Env.IsLittleEndian);
-    FView.setInt8(WASM_SHMSG_OPERATION,WASM_WSOPERATION_FREE);
-    // Result:=AwaitResult;
-  finally
-    UnlockMem;
-  end;
-  Result:=WASMWS_RESULT_SUCCESS;
-end;
-
-function TWorkerWebSocketAPI.WebsocketClose(aWebsocketID: TWasmWebSocketID; aCode: Longint; aReason: PByte; aReasonLen: Longint): TWasmWebsocketResult;
-
-var
-  lTmp : TJSUint8Array;
-
-begin
-  if Not LockMem then
-    Exit(WASMWS_RESULT_FAILEDLOCK);
-  try
-    FView.setInt32(WASM_SHMSG_WEBSOCKETID,aWebsocketID,Env.IsLittleEndian);
-    FView.setInt8(WASM_SHMSG_OPERATION,WASM_WSOPERATION_CLOSE);
-    FView.setInt32(WASM_SHMSG_CLOSE_CODE,aCode,Env.IsLittleEndian);
-    FView.setInt32(WASM_SHMSG_CLOSE_REASON_LENGTH,aReasonLen,Env.IsLittleEndian);
-    if aReasonLen>0 then
-      begin
-      lTmp:=TJSUInt8Array.New(FSharedMem,aReason,aReasonLen);
-      FArray._set(lTmp,WASM_SHMSG_CLOSE_REASON_DATA);
-      end;
-    // Result:=AwaitResult;
-  finally
-    UnlockMem;
-  end;
-  Result:=WASMWS_RESULT_SUCCESS;
-end;
-
-
-function TWorkerWebSocketAPI.WebsocketSend(aWebsocketID: TWasmWebSocketID; aData: PByte; aDataLen: Longint; aType: Longint
-  ): TWasmWebsocketResult;
-
-begin
-  if Not LockMem then
-    Exit(WASMWS_RESULT_FAILEDLOCK);
-  try
-    FView.setInt32(WASM_SHMSG_WEBSOCKETID,aWebsocketID,Env.IsLittleEndian);
-    FView.setInt8(WASM_SHMSG_OPERATION,WASM_WSOPERATION_SEND);
-    FView.setInt32(WASM_SHMSG_SEND_DATA_LENGTH,aDataLen,Env.IsLittleEndian);
-    FView.setInt32(WASM_SHMSG_SEND_DATA_TYPE,aType);
-    FView.setInt32(WASM_SHMSG_SEND_DATA_ADDRESS,aData,Env.IsLittleEndian);
-    // Result:=AwaitResult;
-  finally
-    UnlockMem;
-  end;
-end;
 
 
 constructor TWasmBaseWebSocketAPI.Create(aEnv: TPas2JSWASIEnvironment);

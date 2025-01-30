@@ -18,13 +18,6 @@ unit wasm.websocket.shared;
 
 interface
 
-uses
-  {$IFDEF FPC_DOTTEDUNITS}
-  System.SysUtils;
-  {$ELSE}
-  sysutils;
-  {$ENDIF}
-
 Type
   TWasmWebsocketResult = longint;
   TWasmWebsocketID = longint;
@@ -47,6 +40,8 @@ Const
   WASMWS_RESULT_INVALIDID   = -3;
   WASMWS_RESULT_FAILEDLOCK  = -4;
   WASMWS_RESULT_INVALIDSIZE = -5;
+  WASMWS_RESULT_NOSHAREDMEM = -6;
+  WASMWS_RESULT_DUPLICATEID = -7;
 
   WASMWS_CALLBACK_SUCCESS   = 0;
   WASMWS_CALLBACK_NOHANDLER = -1;
@@ -124,6 +119,12 @@ const
   WASM_WSOPERATION_CLOSE  = 4;
 
   WASM_SHMSG_FIXED_LEN = WASM_SHMSG_CREATE_URL_DATA+4;
+
+const
+  // These are for workers. Must be lowercase. Command names are lowercased.
+  cmdEnableLog = 'enablelog';
+  cmdDisableLog = 'disablelog';
+  cmdWebsocketSharedMem = 'websocketmem';
 
 implementation
 

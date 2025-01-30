@@ -24,16 +24,17 @@ Type
 
   TWasmTimerAPI = class(TImportExtension)
   private
-    FLogApiCalls: Boolean;
     function AllocateTimer(ainterval: longint; userdata: TWasmPointer): TWasmTimerID;
     procedure DeallocateTimer(timerid: TWasmTimerID);
+    function GetLogApiCalls: Boolean;
+    procedure SetLogApiCalls(AValue: Boolean);
   Protected
     Procedure LogCall(const Msg : String);
     Procedure LogCall(Const Fmt : String; const Args : Array of const);
   Public
     function ImportName: String; override;
     procedure FillImportObject(aObject: TJSObject); override;
-    property LogAPICalls : Boolean Read FLogApiCalls Write FLogApiCalls;
+    property LogAPICalls : Boolean Read GetLogApiCalls Write SetLogApiCalls;
   end;
 
 
@@ -45,16 +46,15 @@ implementation
 procedure TWasmTimerAPI.LogCall(const Msg: String);
 begin
 {$IFNDEF NOLOGAPICALLS}
-  If not LogAPICalls then exit;
-  Writeln('TimerApi.'+Msg);
+  DoLog(Msg);
 {$ENDIF}
 end;
 
 procedure TWasmTimerAPI.LogCall(const Fmt: String; const Args: array of const);
 begin
 {$IFNDEF NOLOGAPICALLS}
-  If not LogAPICalls then exit;
-  Writeln('TimerApi.'+Format(Fmt,Args));
+  if LogAPI then
+    DoLog(Fmt,Args);
 {$ENDIF}
 end;
 
@@ -71,7 +71,7 @@ begin
 end;
 
 
-function TWasmTimerApi.AllocateTimer(ainterval: longint; userdata: TWasmPointer): TWasmTimerID;
+function TWasmTimerAPI.AllocateTimer(ainterval: longint; userdata: TWasmPointer): TWasmTimerID;
 
 var
   aTimerID : TWasmTimerID;
@@ -121,15 +121,27 @@ begin
   {$ENDIF}
 end;
 
-procedure TWasmTimerApi.DeallocateTimer(timerid: TWasmTimerID);
+procedure TWasmTimerAPI.DeallocateTimer(timerid: TWasmTimerID);
 begin
+  {$IFNDEF NOLOGAPICALLS}
   If LogAPICalls then
     LogCall('DeAllocateTimer(%d)',[TimerID]);
+  {$ENDIF}
   {$IFDEF JOB_WORKER}
   self_.clearInterval(TimerID);
   {$else}
   window.clearInterval(TimerID);
   {$endif}
+end;
+
+function TWasmTimerAPI.GetLogApiCalls: Boolean;
+begin
+  Result:=LogAPI;
+end;
+
+procedure TWasmTimerAPI.SetLogApiCalls(AValue: Boolean);
+begin
+  LogAPI:=aValue;
 end;
 
 

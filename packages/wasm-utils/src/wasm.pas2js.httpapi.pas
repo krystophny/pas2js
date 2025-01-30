@@ -89,11 +89,12 @@ Type
   TWasmHTTPAPI = class(TImportExtension)
   private
     FNextRequestID : TWasmHTTPRequestID;
-    FLogApiCalls: Boolean;
     FRequests : TJSOBject;
     class function ContentTypeIsString(aType: String): boolean;
+    function GetLogApiCalls: Boolean;
     function ReadRequest(aRequest :PWasmHTTPRequest) : TWasmHTTPRequest;
     function RequestExecute(aRequestID: TWasmHTTPRequestID): TWasmHTTPResult;
+    procedure SetLogApiCalls(AValue: Boolean);
   Protected
     Procedure LogCall(const Msg : String);
     Procedure LogCall(Const Fmt : String; const Args : Array of const);
@@ -113,7 +114,7 @@ Type
     Constructor Create(aEnv: TPas2JSWASIEnvironment); override;
     Procedure FillImportObject(aObject: TJSObject); override;
     Function ImportName : String; override;
-    property LogApiCalls : Boolean Read FLogApiCalls Write FLogApiCalls;
+    property LogApiCalls : Boolean Read GetLogApiCalls Write SetLogApiCalls;
   end;
 
 Function CacheToString(aCache : Integer) : String;
@@ -318,6 +319,11 @@ begin
   end;
 end;
 
+function TWasmHTTPAPI.GetLogApiCalls: Boolean;
+begin
+  Result:=LogAPI;
+end;
+
 function TWasmHTTPAPI.ReadRequest(aRequest: PWasmHTTPRequest): TWasmHTTPRequest;
 
 Var
@@ -416,16 +422,16 @@ end;
 procedure TWasmHTTPAPI.LogCall(const Msg: String);
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If not LogAPICalls then exit;
-  Writeln(Msg);
+  if LogAPI then
+    DoLog(Msg);
   {$ENDIF}
 end;
 
 procedure TWasmHTTPAPI.LogCall(const Fmt: String; const Args: array of const);
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If not LogAPICalls then exit;
-  Writeln(Format(Fmt,Args));
+  if LogAPI then
+    DoLog(Fmt,Args);
   {$ENDIF}
 end;
 
@@ -522,6 +528,11 @@ begin
     Exit(WASMHTTP_RESULT_INVALIDID);
   lFetch.Execute;
   Result:=WASMHTTP_RESULT_SUCCESS;
+end;
+
+procedure TWasmHTTPAPI.SetLogApiCalls(AValue: Boolean);
+begin
+  LogAPI:=aValue;
 end;
 
 function TWasmHTTPAPI.RequestDeallocate(aRequestID: TWasmHTTPRequestID): TWasmHTTPResult;

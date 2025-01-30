@@ -60,9 +60,9 @@ Type
     FLogAPICalls: Boolean;
     FNextID : TWasmRegexpID;
     FRegExps : TJSObject;
+    function GetLogAPICalls: Boolean;
+    procedure SetLogAPICalls(AValue: Boolean);
   protected
-    procedure DoError(const Msg : String);
-    Procedure DoError(Const Fmt : String; const Args : Array of const);
     Procedure LogCall(const Msg : String);
     Procedure LogCall(Const Fmt : String; const Args : Array of const);
     Function GetNextID : TWasmRegExpID;
@@ -85,7 +85,7 @@ Type
     constructor Create(aEnv: TPas2JSWASIEnvironment); override;
     procedure FillImportObject(aObject: TJSObject); override;
     function ImportName: String; override;
-    Property LogAPICalls : Boolean Read FLogAPICalls Write FLogAPICalls;
+    Property LogAPICalls : Boolean Read GetLogAPICalls Write SetLogAPICalls;
   end;
 
 implementation
@@ -589,29 +589,30 @@ begin
   FRegExps:=TJSObject.new;
 end;
 
-procedure TWasmRegExpAPI.DoError(const Msg: String);
+function TWasmRegExpAPI.GetLogAPICalls: Boolean;
 begin
-  Console.Error(Msg);
+  Result:=LogAPI;
 end;
 
-procedure TWasmRegExpAPI.DoError(const Fmt: String; const Args: array of const);
+procedure TWasmRegExpAPI.SetLogAPICalls(AValue: Boolean);
 begin
-  Console.Error(Format(Fmt,Args));
+  LogAPI:=aValue;
 end;
+
 
 procedure TWasmRegExpAPI.LogCall(const Msg: String);
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If not LogAPICalls then exit;
-  Writeln(Msg);
+  if LogAPI then
+    DoLog(Msg);
   {$ENDIF}
 end;
 
 procedure TWasmRegExpAPI.LogCall(const Fmt: String; const Args: array of const);
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If not LogAPICalls then exit;
-  Writeln(Format(Fmt,Args));
+  if LogAPI then
+    DoLog(Fmt,Args);
   {$ENDIF}
 end;
 
