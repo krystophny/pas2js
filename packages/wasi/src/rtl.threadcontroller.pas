@@ -4,6 +4,8 @@ unit rtl.threadcontroller;
 {$modeswitch externalclass}
 {$modeswitch typehelpers}
 
+{ $define NOLOGAPICALLS}
+
 interface
 
 uses
@@ -56,11 +58,13 @@ Type
   // This object has the thread support that is needed  by the 'main' program
 
   { TThreadController }
+  TWasmThreadEvent = procedure (Sender : TObject; aWorker : TWasmThread) of object;
 
   TThreadController = class(TWasmThreadSupport)
   private
     FInitialWorkerCount: Integer;
     FMaxWorkerCount: Integer;
+    FOnAllocateWorker: TWasmThreadEvent;
     FOnUnknownMessage: TJSRawEventHandler;
     FHost: TWASIHost;
     FWorkerScript: String;
@@ -83,7 +87,7 @@ Type
     // Handle worker messages. If it is a command, it is set to handlecommand.
     procedure DoWorkerMessage(aEvent: TJSEvent);
     // Create & set up new worker
-    Function AllocateNewWorker(Const aWorkerScript : string) : TWasmThread;
+    Function AllocateNewWorker(Const aWorkerScript : string) : TWasmThread; virtual;
     // Send a load command
     procedure SendLoadCommand(aThreadWorker: TWasmThread); virtual;
     // Get new worker from pool, create new if needed.
@@ -113,6 +117,8 @@ Type
     Procedure HandleCommand(aWorker : TWasmThread; aCommand : TWorkerCommand); overload; virtual;
     // Send load commands to all workers that still need it.
     procedure SendLoadCommands;
+    // Send a command to all workers
+    procedure SendCommandToAllWorkers(aCommand : TWorkerCommand);
     // Name of worker script
     Property WorkerScript : String Read FWorkerScript;
     // Initial number of threads, set by constructor
@@ -120,6 +126,7 @@ Type
     // Maximum number of workers. If more workers are requested, the GetNewWorker will return Nil.
     Property MaxWorkerCount : Integer Read FMaxWorkerCount Write FMaxWorkerCount;
     Property OnUnknownMessage : TJSRawEventHandler Read FOnUnknownMessage Write FOnUnknownMessage;
+    Property OnAllocateWorker : TWasmThreadEvent Read FOnAllocateWorker Write FonAllocateWorker;
     // The WASI host, used to run routines.
     Property Host : TWASIHost Read FHost Write SetWasiHost;
   end;
@@ -223,7 +230,6 @@ end;
 
 procedure TWasmThreadHelper.SendCommand(aCommand: TWorkerCommand);
 begin
-  // Writeln('Sending command '+TJSJSON.Stringify(aCommand));
   PostMessage(aCommand);
 end;
 
@@ -235,7 +241,10 @@ Var
   aWorker : TWasmThread;
 
 begin
-  // Writeln('Received worker message '+TJSJSON.Stringify(aMessageEvent.Data));
+  {$IFNDEF NOLOGAPICALLS}
+  if LogAPI then
+    DoLog('Received worker message '+TJSJSON.Stringify(aMessageEvent.Data));
+  {$ENDIF}
   if IsObject(aMessageEvent.Data) and TJSObject(aMessageEvent.Data).hasOwnProperty('Command') then
     begin
     aData:=TWorkerCommand(aMessageEvent.Data);
@@ -244,8 +253,10 @@ begin
     end
   else if Assigned(FOnUnknownMessage) then
     FOnUnknownMessage(aEvent)
-  else
-    Writeln('Unknown worker message : ',TJSJSON.stringify(aEvent));
+  {$IFNDEF NOLOGAPICALLS}
+  else if LogAPI then
+    DoLog('Unknown worker message : '+TJSJSON.stringify(aEvent));
+  {$ENDIF}
 end;
 
 function TThreadController.GetNextThreadIDRange : Integer;
@@ -258,14 +269,21 @@ end;
 function TThreadController.AllocateNewWorker(const aWorkerScript: string): TWasmThread;
 
 begin
-  // Writeln('Allocating new worker for: '+aWorkerScript);
+  {$IFNDEF NOLOGAPICALLS}
+  DoLog('Allocating new worker for: '+aWorkerScript);
+  {$ENDIF}
   Result:=TWasmThread.Create(aWorkerScript);
   Result.ThreadIDRange:=GetNextThreadIDRange;
   Result.addEventListener('message',@DoWorkerMessage);
   if Assigned(Host) and Host.StartDescriptorReady then
     SendLoadCommand(Result)
-  else
-    Writeln('Host not set, delaying sending load command.'+aWorkerScript);
+  else if LogAPI then
+    {$IFNDEF NOLOGAPICALLS}
+    DoLog('Host not set, delaying sending load command to: '+aWorkerScript)
+    {$ENDIF}
+    ;
+  If Assigned(OnAllocateWorker) then
+    OnAllocateWorker(Self,Result);
 end;
 
 procedure TThreadController.SendLoadCommand(aThreadWorker: TWasmThread);
@@ -287,7 +305,8 @@ Var
 begin
   if Length(FIdleWorkers)=0 then
     begin
-    // Writeln('No idle workers, creating new one');
+    if LogAPI then
+      DoLog('No idle workers, creating new one');
     if Length(FBusyWorkers)<MaxWorkerCount then
       WT:=AllocateNewWorker(FWorkerScript)
     else
@@ -317,7 +336,6 @@ procedure TThreadController.SetWasiHost(AValue: TWASIHost);
 
 
 begin
-  // Writeln('Setting wasi host');
   if FHost=AValue then
     Exit;
   FHost:=AValue;
@@ -331,7 +349,6 @@ var
   aInfo : TThreadInfo;
 
 begin
-  Writeln('In host thread_spawn');
   aInfo.ThreadID:=AllocateThreadID;
   aInfo.Arguments:=start_arg;
   aInfo.OriginThreadID:=0;
@@ -367,10 +384,24 @@ Var
   WT : TWasmThread;
 
 begin
-  // Writeln('Sending load command to all workers');
+  {$IFNDEF NOLOGAPICALLS}
+  DoLog('Sending load command to all workers');
+  {$ENDIF}
   For WT in FIdleWorkers do
     if not WT.LoadSent then
       SendLoadCommand(WT);
+end;
+
+procedure TThreadController.SendCommandToAllWorkers(aCommand: TWorkerCommand);
+
+Var
+  WT : TWasmThread;
+
+begin
+  For WT in FIdleWorkers do
+    WT.postMessage(aCommand);
+  For WT in FBusyWorkers do
+    WT.postMessage(aCommand);
 end;
 
 procedure TThreadController.RunTimeOut(aInfo: TThreadInfo; aInterval: Integer);
@@ -380,7 +411,7 @@ var
 
 begin
   Msg:=Format('Failed to run thread %d spawned from thread %d: load timed out after %d ms.',[aInfo.ThreadID,aInfo.OriginThreadID,aInterval]);
-  Writeln(msg);
+  DoLog(msg);
 end;
 
 function TThreadController.SpawnThread(aInfo: TThreadInfo): Integer;
@@ -390,18 +421,22 @@ Var
 
 
 begin
-  // Writeln('Enter TThreadController.SpawnThread for ID ',aInfo.ThreadID);
+  {$IFNDEF NOLOGAPICALLS}
+  DoLog('Enter SpawnThread for ID %d',[aInfo.ThreadID]);
+  {$ENDIF}
   WT:=GetNewWorker;
   if WT=nil then
     begin
-    Writeln('Error: no worker !');
+    DoError('Error: no worker !');
     exit(-1)
     end;
   WT.ThreadInfo:=aInfo;
   FThreads[aInfo.ThreadID]:=WT;
   SendRunCommand(WT);
-  Result:=aInfo.ThreadID
- // Writeln('Exit: TThreadController.SpawnThread for ID ',WT.ThreadID);
+  Result:=aInfo.ThreadID;
+  {$IFNDEF NOLOGAPICALLS}
+  DoLog('Exit: SpawnThread for ID %d',[WT.ThreadID]);
+  {$ENDIF}
 end;
 
 
@@ -455,12 +490,16 @@ end;
 procedure TThreadController.HandleLoadedCommand(aWorker : TWasmThread; aCommand: TWorkerLoadedCommand);
 
 begin
-  // Writeln('Host: Entering TThreadController.HandleLoadedCommand');
+  {$IFNDEF NOLOGAPICALLS}
+  DoLog('Entering TThreadController.HandleLoadedCommand');
+  {$ENDIF}
   aWorker.Loaded:=True;
   // if a thread is scheduled to run in this thread, run it.
   if aWorker.ThreadID>0 then
     SendRunCommand(aWorker);
-  // Writeln('Host: exiting TThreadController.HandleLoadedCommand');
+  {$IFNDEF NOLOGAPICALLS}
+  DoLog('Host: exiting TThreadController.HandleLoadedCommand');
+  {$ENDIF}
   if (aCommand<>Nil) then ;
 end;
 
