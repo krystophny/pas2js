@@ -4,6 +4,7 @@ unit wasiworkerthreadhost;
 
 {$mode ObjFPC}
 {$modeswitch externalclass}
+{ $define NOLOGAPICALLS}
 
 interface
 
@@ -453,12 +454,16 @@ procedure TWorkerThreadSupport.RunWasmModule(aCommand : TWorkerRunCommand);
 begin
   if (FState=wsNeutral) then
     begin
-    Writeln('No webassembly loaded');
+    {$IFNDEF NOLOGAPICALLS}
+    DoLog('No webassembly loaded');
+    {$ENDIF}
     exit; // Todo: send error back
     end;
   if (FState in [wsRunning,wsRunWaiting]) then
     begin
-    Writeln('Webassembly already running');
+    {$IFNDEF NOLOGAPICALLS}
+    DoLog('Webassembly already running');
+    {$ENDIF}
     exit; // Todo: send error back
     end;
   // Writeln('Entering TWorkerThreadSupport.RunWasmModule '+TJSJSON.Stringify(aCommand));
@@ -763,9 +768,15 @@ Var
   aData : TWorkerCommand;
 
 begin
+  {$IFNDEF NOLOGAPICALLS}
+  DoLog(etDebug,'Message received in worker');
+  {$ENDIF}
   if IsObject(aMessageEvent.Data) and TJSObject(aMessageEvent.Data).hasOwnProperty('Command') then
     begin
     aData:=TWorkerCommand(aMessageEvent.Data);
+    {$IFNDEF NOLOGAPICALLS}
+    DoLog(etDebug,'Command Message received in worker: '+TJSJSON.Stringify(aData));
+    {$ENDIF}
     if not HandleCustomCommand(aData) then
       FThreadSupport.HandleCommand(aData);
     end
@@ -899,9 +910,11 @@ var
   aData: TWorkerCommand;
 
 begin
+  Writeln('Thread Message received');
   if IsObject(aMessageEvent.Data) and TJSObject(aMessageEvent.Data).hasOwnProperty('Command') then
     begin
     aData:=TWorkerCommand(aMessageEvent.Data);
+    Writeln('Command message received: '+TJSJSON.Stringify(aData));
     case aData.Command of
       cmdExecute : HandleExecuteCommand(TWorkerExecuteCommand(aData));
       cmdRpc : HandleRPCCommand(TWorkerRpcCommand(aData));
