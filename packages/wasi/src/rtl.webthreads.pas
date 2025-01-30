@@ -49,7 +49,7 @@ Const
   cmdRun = 'run';
   cmdExecute = 'execute';
   cmdRPC = 'rpc';
-  cmdRPCResult = 'rpcResult';
+  cmdRPCResult = 'rpcresult';
 
   channelConsole = 'console_output';
 
@@ -314,6 +314,7 @@ Type
   private
     FOnSendCommand: TCommandNotifyEvent;
   Protected
+
     // Proposed WASI standard, modeled after POSIX pthreads.
     function thread_spawn(start_arg : longint) : longint; virtual; abstract;
     Function thread_detach(thread_id : longint) : Integer; virtual; abstract;
@@ -326,6 +327,8 @@ Type
     Procedure SendCommand(aCommand : TWorkerCommand); virtual;
     // Set this to actually send commands. Normally set by TWorkerWASIHostApplication
     Property OnSendCommand : TCommandNotifyEvent Read FOnSendCommand Write FOnSendCommand;
+
+
   end;
 
 
