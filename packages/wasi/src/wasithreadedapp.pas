@@ -82,8 +82,8 @@ Var
 begin
   Res:=ThreadAppWASIHost.Create(Self);
   Res.UseSharedMemory:=True;
-  Res.ThreadSupport:=CreateThreadSupport(Res.WasiEnvironment);
-
+  FThreadSupport:=CreateThreadSupport(Res.WasiEnvironment);
+  Res.ThreadSupport:=FThreadSupport;
   Result:=Res;
 end;
 
