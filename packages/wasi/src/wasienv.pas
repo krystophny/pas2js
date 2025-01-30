@@ -254,7 +254,13 @@ type
   Private
     FEnv : TPas2JSWASIEnvironment;
     FInstanceExports: TWASIExports;
+    FLogAPI: Boolean;
   Protected
+    property LogAPI : Boolean Read FLogAPI Write FLogAPI;
+    procedure DoError(const Msg: String); overload;
+    procedure DoError(const Fmt: String; const Args: array of const); overload;
+    procedure DoLog(const Msg : String); overload;
+    procedure DoLog(const Fmt : String; const args : Array of const); overload;
     procedure SetInstanceExports(const AValue: TWASIExports); virtual;
     function getModuleMemoryDataView : TJSDataView;
   Public
@@ -754,6 +760,28 @@ constructor EWasiFSError.CreateFmt(const aErrorCode: Integer; aFmt: String;
 begin
   FErrorcode:=aErrorCode;
   Inherited CreateFmt(aFmt,aArgs);
+end;
+
+procedure TImportExtension.DoLog(const Msg: String);
+begin
+  if LogApi then
+    Writeln(ClassName+': '+Msg);
+end;
+
+procedure TImportExtension.DoLog(const Fmt: String; const args: array of const);
+begin
+  if LogApi then
+    DoLog(Format(Fmt,Args));
+end;
+
+procedure TImportExtension.DoError(const Msg: String);
+begin
+  Console.Error(ClassName+': '+Msg);
+end;
+
+procedure TImportExtension.DoError(const Fmt: String; const Args: array of const);
+begin
+  Console.Error(ClassName+': '+Format(Fmt,Args));
 end;
 
 procedure TImportExtension.SetInstanceExports(const AValue: TWASIExports);
