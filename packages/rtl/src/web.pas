@@ -123,6 +123,7 @@ Type
   TJSCacheStorage = BrowserApi.WebOrWorker.TJSCacheStorage;
   TJSPermissions = BrowserApi.WebOrWorker.TJSPermissions;
   TJSRequest = BrowserApi.WebOrWorker.TJSRequest;
+  TJSPerformance = BrowserApi.WebOrWorker.TJSPerformance;
 {$ELSE}
   TJSServiceWorker = weborworker.TJSServiceWorker;
   TJSServiceWorkerRegistration = weborworker.TJSServiceWorkerRegistration;
@@ -195,6 +196,7 @@ Type
   TJSCacheStorage = weborworker.TJSCacheStorage;
   TJSRequest = webOrworker.TJSRequest;
   TJSAbortController = webOrworker.TJSAbortController;
+  TJSPerformance = WebOrWorker.TJSPerformance;
 {$ENDIF}
   TJSMessagePortArray = TJSMessagePortDynArray;
   TEventListenerEvent = TJSEvent;
@@ -1486,7 +1488,6 @@ Type
   end;
 
 
-  TJSPerformance = class external name 'Performance' (TJSObject);
 
   TJSScreen = class external name 'Screen' (TJSObject)
   private

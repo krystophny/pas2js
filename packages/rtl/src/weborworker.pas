@@ -1351,6 +1351,70 @@ type
     resizeQuality : String;
   end;
 
+  TJSEventCountsMap = class external name 'EventCounts' (TJSMap)
+  end;
+
+  TJSDOMHighResTimeStamp = Double;
+
+  { TJSPerformanceEntry }
+
+  TJSPerformanceEntry = class external name 'PerformanceEntry' (TJSObject)
+  private
+    FDuration: TJSDOMHighResTimeStamp; external name 'duration';
+    FEntryType: string; external name 'entryType';
+    FName: string; external name 'name';
+    FStartTime: TJSDOMHighResTimeStamp; external name 'startTime';
+  Public
+    Property Duration : TJSDOMHighResTimeStamp Read FDuration;
+    Property EntryType : string Read FEntryType;
+    Property Name : string Read FName;
+    Property StartTime : TJSDOMHighResTimeStamp Read FStartTime;
+  end;
+  TJSPerformanceEntryArray = Array of TJSPerformanceEntry;
+
+  TJSPerformanceMarkOptions = class external name 'Object' (TJSObject)
+    detail : JSValue;
+    startTime: TJSDOMHighResTimeStamp;
+  end;
+
+  TJSPerformanceMeasureOptions = class external name 'Object' (TJSObject)
+    detail : JSValue;
+    startTime: TJSDOMHighResTimeStamp;
+    duration: TJSDOMHighResTimeStamp;
+    end_: TJSDOMHighResTimeStamp; external name 'end';
+  end;
+
+  TJSPerformance = class external name 'Performance' (TJSObject)
+  Private
+    FEventCounts : TJSEventCountsMap; external name 'eventcounts';
+    FTimeOrigin : TJSDOMHighResTimeStamp; external name 'timeOrigin';
+  public
+    procedure clearMarks; overload;
+    procedure clearMarks(aName : String); overload;
+    procedure clearMeasures; overload;
+    procedure clearMeasures(aName : String); overload;
+    procedure clearResourceTimings; overload;
+    function getEntries : TJSPerformanceEntryArray;
+    function getEntriesByName(aName : string) : TJSPerformanceEntryArray;
+    function getEntriesByName(aName,aType : string) : TJSPerformanceEntryArray;
+    function getEntriesByType(aType : string) : TJSPerformanceEntryArray;
+    procedure mark(aName : String); overload;
+    procedure mark(aName : String; aOptions : TJSObject); overload;
+    procedure mark(aName : String; aOptions : TJSPerformanceMarkOptions); overload;
+    procedure measure(aName : String); overload;
+    procedure measure(aName, aStartmark : String); overload;
+    procedure measure(aName, aStartmark, aEndMark : String); overload;
+    procedure measure(aName : String; aOptions : TJSObject); overload;
+    procedure measure(aName : String; aOptions : TJSPerformanceMeasureOptions); overload;
+    procedure measure(aName : String; aOptions : TJSObject; aEndMark : string); overload;
+    procedure measure(aName : String; aOptions : TJSPerformanceMeasureOptions; aEndMark : string); overload;
+    function now : TJSDOMHighResTimeStamp;
+    function toJSON : TJSObject;
+    procedure setResourceTimingBufferSize(aMaxSize : NativeInt);
+    property eventCounts : TJSEventCountsMap read FEventCounts;
+    property timeOrigin : TJSDOMHighResTimeStamp Read FTimeOrigin;
+  end;
+
   { TWindowOrWorkerGlobalScope }
 
   TWindowOrWorkerGlobalScope = Class external name 'Object' (TJSEventTarget)
@@ -1359,6 +1423,7 @@ type
     FisSecureContext : boolean; external name 'isSecureContext';
     FIDBFactory : TJSIDBFactory; external name 'indexedDB';
     fcaches : TJSCacheStorage; external name 'caches';
+    FPerformance : TJSPerformance; external name 'performanc';
   Public
     Function setInterval(ahandler : TJSTimerCallBack; aInterval : NativeUInt) : NativeInt; varargs;
     Function setTimeout(ahandler : TJSTimerCallBack; aTimeout : NativeUInt) : NativeInt; varargs;
@@ -1376,6 +1441,7 @@ type
     function fetch(resource: String): TJSResponse; {$IFNDEF SkipAsync}async;{$ENDIF} overload; external name 'fetch';
     function fetch(resource: TJSObject; init: TJSObject): TJSPromise; overload; external name 'fetch';
     function fetch(resource: TJSObject): TJSPromise; overload; external name 'fetch';
+    property Performance: TJSPerformance read FPerformance;
     property isSecureContext : Boolean Read FisSecureContext;
     property IDBFactory : TJSIDBFactory Read FIDBFactory;
     property caches : TJSCacheStorage read fcaches;
@@ -1554,6 +1620,7 @@ var
   Crypto: TJSCrypto; external name 'crypto';
   indexedDB : TJSIDBFactory; external name 'indexedDB';
   self_ : TWindowOrWorkerGlobalScope; external name 'self';
+  performance : TJSPerformance; external name 'self.performance';
 
   function fetch(resource: String; init: TJSObject): TJSPromise; overload; external name 'fetch';
   //function fetch(resource: String): TJSPromise; overload; external name 'fetch';
