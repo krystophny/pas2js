@@ -31,6 +31,11 @@ type
   TCallConv = (ccReg, ccCdecl, ccPascal, ccStdCall, ccSafeCall, ccCppdecl,
     ccFar16, ccOldFPCCall, ccInternProc, ccSysCall, ccSoftFloat, ccMWPascal);
 
+  TPas2JSRtlCallback = class external name 'Function' (TJSFunction)
+    scope: TJSObject;
+    fn : JSValue; // string or TJSFunction
+  end;
+
   TTypeInfoModule = class;
 
   { TSectionRTTI }
