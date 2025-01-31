@@ -29,8 +29,10 @@ uses
 resourcestring
   SErrInvokeInvalidCodeAddr = 'CodeAddress is not a function';
   SErrTypeIsNotEnumerated  = 'Type %s is not an enumerated type';
+  SErrDimensionOutOfRange = 'Dimension %d out of range [0..%d]';
 
 type
+  ERtti = Class(Exception);
   { TValue }
 
   TValue = record
@@ -49,20 +51,27 @@ type
     class function FromArray(TypeInfo: TTypeInfo; const Values: specialize TArray<TValue>): TValue; static;
     class function FromJSValue(v: JSValue): TValue; static;
     class function FromOrdinal(ATypeInfo: TTypeInfo; AValue: JSValue): TValue; static;
+    class function FromVarRec(const aValue: TVarRec): TValue; static;
+
     class procedure Make(const ABuffer: JSValue; const ATypeInfo: PTypeInfo; var Result: TValue); overload; static;
     generic class procedure Make<T>(const Value: T; var Result: TValue); overload; static;
 
     function AsBoolean: boolean;
     function AsClass: TClass;
-    //ToDo: function AsCurrency: Currency;
     function AsExtended: Extended;
+    function AsDouble: Double;
+    function AsDateTime: TDateTime;
     function AsInteger: Integer;
     function AsInterface: IInterface;
     function AsJSValue: JSValue;
     function AsNativeInt: NativeInt;
+    function AsNativeUInt: NativeUInt;
     function AsObject: TObject;
     function AsOrdinal: NativeInt;
     function AsString: string;
+    function AsWideChar: WideChar;
+    function AsCurrency: Currency;
+    function TryAsOrdinal(out AResult: nativeint): boolean;
     generic function AsType<T>: T;
     function AsUnicodeString: UnicodeString;
     function Cast(ATypeInfo: TTypeInfo; const EmptyAsAnyType: Boolean = True): TValue; overload;
@@ -77,7 +86,6 @@ type
     function IsObject: boolean;
     function IsObjectInstance: boolean;
     function IsOrdinal: boolean;
-    function IsType(ATypeInfo: TTypeInfo): boolean;
     function ToString: String; overload;
     function ToString(const AFormatSettings: TFormatSettings): String; overload;
     function TryCast(ATypeInfo: TTypeInfo; out AResult: TValue; const EmptyAsAnyType: Boolean = True): Boolean;
@@ -89,6 +97,7 @@ type
     property Kind: TTypeKind read GetTypeKind;
     property TypeInfo: TTypeInfo read FTypeInfo;
   end;
+  TValueArray = array of TValue;
 
   TRttiType = class;
   TRttiInstanceType = class;
@@ -145,6 +154,7 @@ type
     property Name: string read GetName;
   end;
 
+
   { TRttiMember }
 
   TMemberVisibility = (
@@ -154,18 +164,21 @@ type
     mvPublished);
 
   TRttiMember = class(TRttiNamedObject)
+  private
   protected
     function GetMemberTypeInfo: TTypeMember;
     function GetName: String; override;
     function GetParent: TRttiType;
     function GetStrictVisibility: Boolean; virtual;
     function GetVisibility: TMemberVisibility; virtual;
+    function GetStrictVisibility: Boolean; virtual;
     function LoadCustomAttributes: TCustomAttributeArray; override;
   public
     constructor Create(AParent: TRttiType; ATypeInfo: TTypeMember); reintroduce;
 
     property MemberTypeInfo: TTypeMember read GetMemberTypeInfo;
     property Parent: TRttiType read GetParent;
+    Property StrictVisibility: Boolean Read GetStrictVisibility;
     property Visibility: TMemberVisibility read GetVisibility;
     property StrictVisibility: Boolean Read GetStrictVisibility;
   end;
@@ -350,6 +363,26 @@ type
 
   TRttiTypeClass = class of TRttiType;
 
+  TRttiStringKind = (skShortString, skAnsiString, skWideString, skUnicodeString);
+
+  { TRttiStringType }
+
+  TRttiStringType = class(TRttiType)
+  private
+    function GetStringKind: TRttiStringKind;
+  public
+    property StringKind: TRttiStringKind read GetStringKind;
+  end;
+
+  { TRttiAnsiStringType }
+
+  TRttiAnsiStringType = class(TRttiStringType)
+  private
+    function GetCodePage: Word;
+  public
+    property CodePage: Word read GetCodePage;
+  end;
+
   { TRttiStructuredType }
 
   TRttiStructuredType = class abstract(TRttiType)
@@ -489,6 +522,23 @@ type
     generic class function GetValue<T>(const AValue: String): T;
   end;
 
+    { TRttiArrayType }
+
+  TRttiArrayType = class(TRttiType)
+  private
+    function GetDimensionCount: SizeUInt; inline;
+    function GetDimension(aIndex: SizeInt): TRttiType; inline;
+    function GetElementType: TRttiType; inline;
+    function GetStaticArrayTypeInfo: TTypeInfoStaticArray;
+    function GetTotalElementCount: SizeInt; inline;
+  public
+    property DimensionCount: SizeUInt read GetDimensionCount;
+    property Dimensions[Index: SizeInt]: TRttiType read GetDimension;
+    property ElementType: TRttiType read GetElementType;
+    property TotalElementCount: SizeInt read GetTotalElementCount;
+    property StaticArrayTypeInfo: TTypeInfoStaticArray read GetStaticArrayTypeInfo;
+  end;
+
   { TRttiDynamicArrayType }
 
   TRttiDynamicArrayType = class(TRttiType)
@@ -541,12 +591,87 @@ type
     property OnInvokeJS: TVirtualInterfaceInvokeEventJS read FOnInvokeJS write FOnInvokeJS;
   end;
 
+  TFunctionCallFlag = (
+    fcfStatic,
+    fcfVarargs,  //  // 2^1 = 2
+    fcfExternal, // // 2^2 = 4  name may be an expression
+    fcfSafeCall,  // 2^3 = 8
+    fcfAsync      // 2^4 = 16
+  );
+  TFunctionCallFlags = set of TFunctionCallFlag;
+
+  { TRttiInvokableType }
+
+  TRttiInvokableType = class(TRttiType)
+  private
+    function GetIsAsyncCall: Boolean;
+  protected
+    function GetParameters(aWithHidden: Boolean): TRttiParameterArray; virtual; abstract;
+    function GetCallingConvention: TCallConv; virtual; abstract;
+    function GetReturnType: TRttiType; virtual; abstract;
+    function GetFlags: TFunctionCallFlags; virtual; abstract;
+  public type
+    TCallbackMethod = procedure(aInvokable: TRttiInvokableType; const aArgs: TValueArray; out aResult: TValue) of object;
+    TCallbackProc = procedure(aInvokable: TRttiInvokableType; const aArgs: TValueArray; out aResult: TValue);
+  public
+    function GetParameters: TRttiParameterArray; inline;
+    property CallingConvention: TCallConv read GetCallingConvention;
+    property ReturnType: TRttiType read GetReturnType;
+    function Invoke(const aProcOrMeth: TValue; const aArgs: array of TValue): TValue; virtual; abstract;
+    function ToString : string; override;
+    property IsAsyncCall : Boolean Read GetIsAsyncCall;
+    property Flags : TFunctionCallFlags Read GetFlags;
+  end;
+
+
+  { TRttiMethodType }
+
+  TRttiMethodType = class(TRttiInvokableType)
+  private
+    FCallConv: TCallConv;
+    FReturnType: TRttiType;
+    FParams, FParamsAll: TRttiParameterArray;
+    function GetMethodKind: TMethodKind;
+  protected
+    function GetMethodTypeInfo : TTypeInfoMethodVar;
+    function GetParameters(aWithHidden: Boolean): TRttiParameterArray; override;
+    function GetCallingConvention: TCallConv; override;
+    function GetReturnType: TRttiType; override;
+    function GetFlags: TFunctionCallFlags; override;
+  public
+    function Invoke(const aCallable: TValue; const aArgs: array of TValue): TValue; override;
+    property MethodTypeInfo : TTypeInfoMethodVar Read GetMethodTypeInfo;
+    property MethodKind: TMethodKind read GetMethodKind;
+
+    function ToString: string; override;
+  end;
+
+  { TRttiProcedureType }
+
+  TRttiProcedureType = class(TRttiInvokableType)
+  private
+    FParams, FParamsAll: TRttiParameterArray;
+    function GetProcTypeInfo: TTypeInfoProcVar;
+  protected
+    function GetParameters(aWithHidden: Boolean): TRttiParameterArray; override;
+    function GetCallingConvention: TCallConv; override;
+    function GetReturnType: TRttiType; override;
+    function GetFlags: TFunctionCallFlags; override;
+  public
+    property ProcTypeInfo :  TTypeInfoProcVar Read GetProcTypeInfo;
+    function Invoke(const aCallable: TValue; const aArgs: array of TValue): TValue; override;
+  end;
+
+
 procedure CreateVirtualCorbaInterface(InterfaceTypeInfo: Pointer;
   const MethodImplementation: TVirtualInterfaceInvokeEvent; out IntfVar); assembler;
 
 function Invoke(ACodeAddress: Pointer; const AArgs: TJSValueDynArray;
   ACallConv: TCallConv; AResultType: PTypeInfo; AIsStatic: Boolean;
   AIsConstructor: Boolean): TValue;
+
+function ArrayOfConstToTValueArray(const aValues: array of const): TValueArray;
+generic function OpenArrayToDynArrayValue<T>(constref aArray: array of T): TValue;
 
 implementation
 
@@ -659,9 +784,9 @@ var
     TRttiType, // tkSet
     TRttiType, // tkDouble
     TRttiType, // tkBool
-    TRttiType, // tkProcVar
-    TRttiType, // tkMethod
-    TRttiType, // tkArray
+    TRttiProcedureType, // tkProcVar
+    TRttiMethodType, // tkMethod
+    TRttiArrayType, // tkArray
     TRttiDynamicArrayType, // tkDynArray
     TRttiRecordType, // tkRecord
     TRttiInstanceType, // tkClass
@@ -963,6 +1088,25 @@ begin
   end;
 end;
 
+class function TValue.FromVarRec(const aValue: TVarRec): TValue;
+
+begin
+  Result:=Default(TValue);
+  case aValue.VType of
+    vtInteger:  TValue.Make(aValue.VInteger,System.TypeInfo(Integer),Result);
+    vtBoolean: TValue.Make(aValue.VBoolean,System.TypeInfo(Boolean),Result);
+    vtWideChar: TValue.Make(aValue.VWideChar,System.TypeInfo(WideChar),Result);
+    vtNativeInt: TValue.Make(aValue.VNativeInt,System.TypeInfo(NativeInt),Result);
+    vtUnicodeString: TValue.Make(aValue.VUnicodeString,System.TypeInfo(UnicodeString),Result);
+    vtObject: TValue.Make(aValue.VObject,TObject.ClassInfo,Result);
+    vtInterface: TValue.Make(aValue.VInterface,System.TypeInfo(IInterface),Result);
+    vtClass: TValue.Make(aValue.VClass,System.TypeInfo(TClass),Result);
+    vtJSValue: TValue.Make(aValue.VJSValue,System.TypeInfo(JSValue),result);
+    vtExtended: TValue.Make(aValue.VExtended,System.TypeInfo(Extended),result);
+    vtCurrency: TValue.Make(aValue.VCurrency,System.TypeInfo(Currency),result);
+  end;
+end;
+
 class function TValue.FromJSValue(v: JSValue): TValue;
 var
   i: NativeInt;
@@ -1119,6 +1263,14 @@ begin
     raise EInvalidCast.Create(SErrInvalidTypecast);
 end;
 
+function TValue.AsNativeUInt: NativeUInt;
+begin
+  if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.isInteger(GetData) then
+    Result:=NativeUInt(GetData)
+  else
+    raise EInvalidCast.Create(SErrInvalidTypecast);
+end;
+
 function TValue.AsInterface: IInterface;
 var
   k: TTypeKind;
@@ -1140,6 +1292,30 @@ begin
     raise EInvalidCast.Create(SErrInvalidTypecast);
 end;
 
+function TValue.AsWideChar: WideChar;
+
+begin
+  if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.isString(GetData) then
+    Result:=String(GetData)[1]
+  else
+    raise EInvalidCast.Create(SErrInvalidTypecast);
+end;
+
+function TValue.AsCurrency: Currency;
+begin
+  if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.isNumber(GetData) then
+    Result:=Currency(GetData)
+  else
+    raise EInvalidCast.Create(SErrInvalidTypecast);
+end;
+
+function TValue.TryAsOrdinal(out AResult: nativeint): boolean;
+begin
+  result := IsOrdinal;
+  if result then
+    AResult := AsOrdinal;
+end;
+
 function TValue.AsUnicodeString: UnicodeString;
 begin
   Result:=AsString;
@@ -1149,6 +1325,22 @@ function TValue.AsExtended: Extended;
 begin
   if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.isNumber(GetData) then
     Result:=Double(GetData)
+  else
+    raise EInvalidCast.Create(SErrInvalidTypecast);
+end;
+
+function TValue.AsDouble: Double;
+begin
+  if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.isNumber(GetData) then
+    Result:=Double(GetData)
+  else
+    raise EInvalidCast.Create(SErrInvalidTypecast);
+end;
+
+function TValue.AsDateTime: TDateTime;
+begin
+  if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.isNumber(GetData) then
+    Result:=TDateTime(GetData)
   else
     raise EInvalidCast.Create(SErrInvalidTypecast);
 end;
@@ -1231,10 +1423,6 @@ begin
   Result := Pointer(GetData);
 end;
 
-function TValue.IsType(ATypeInfo: TTypeInfo): boolean;
-begin
-  Result := ATypeInfo = TypeInfo;
-end;
 
 function TValue.GetData: JSValue;
 begin
@@ -1752,6 +1940,47 @@ begin
   Result:='';
 end;
 
+{ TRttiArrayType }
+
+function TRttiArrayType.GetDimensionCount: SizeUInt;
+begin
+  Result:=Length(StaticArrayTypeInfo.Dims);
+end;
+
+function TRttiArrayType.GetDimension(aIndex: SizeInt): TRttiType;
+Var
+  I : Integer;
+  Res : TRttiType;
+
+begin
+  if (aIndex >= DimensionCount) then
+    raise ERtti.CreateFmt(SErrDimensionOutOfRange, [aIndex, DimensionCount]);
+  if ElementType is TRttiArrayType then
+    Result:=TRttiArrayType(ElementType).Dimensions[aIndex-1]
+  else
+    Result :=ElementType;
+//  Result:=StaticArrayTypeInfo.Dims[aIndex];
+end;
+
+function TRttiArrayType.GetElementType: TRttiType;
+begin
+  Result:=Pool.GetType(GetStaticArrayTypeInfo.ElType);
+end;
+
+function TRttiArrayType.GetStaticArrayTypeInfo: TTypeInfoStaticArray;
+begin
+  Result:=TTypeInfoStaticArray(Handle);
+end;
+
+function TRttiArrayType.GetTotalElementCount: SizeInt;
+var
+  I : integer;
+begin
+  Result:=StaticArrayTypeInfo.Dims[0];
+  For I:=1 to Length(StaticArrayTypeInfo.Dims)-1 do
+    Result:=Result*StaticArrayTypeInfo.Dims[i]
+end;
+
 { TRttiMember }
 
 function TRttiMember.GetName: String;
@@ -1790,6 +2019,11 @@ end;
 function TRttiMember.LoadCustomAttributes: TCustomAttributeArray;
 begin
   Result := GetRTTIAttributes(MemberTypeInfo.Attributes);
+end;
+
+function TRttiMember.GetStrictVisibility: Boolean;
+begin
+  Result:=False;
 end;
 
 function TRttiMember.GetMemberTypeInfo: TTypeMember;
@@ -2209,13 +2443,26 @@ begin
   Result := Format('%s.%s', [DeclaringUnitName, Name]);
 end;
 
+{ TRttiStringType }
+
+function TRttiStringType.GetStringKind: TRttiStringKind;
+begin
+  Result:=skUnicodeString;
+end;
+
+{ TRttiAnsiStringType }
+
+function TRttiAnsiStringType.GetCodePage: Word;
+begin
+  Result:=0;
+end;
+
 { TRttiPointerType }
 
 constructor TRttiPointerType.Create(AParent: TRttiObject; ATypeInfo: PTypeInfo);
 begin
   if not (TTypeInfo(ATypeInfo) is TTypeInfoPointer) then
     raise EInvalidCast.Create('');
-
   inherited;
 end;
 
@@ -2270,19 +2517,15 @@ var
 begin
   FContext := TRttiContext.Create;
   FInterfaceType := FContext.GetType(PIID) as TRttiInterfaceType;
-
   if Assigned(FInterfaceType) then
   begin
     InterfaceInfo := FInterfaceType.InterfaceTypeInfo;
     InterfaceMaps := TJSObject.Create(TJSObject(JSThis['$intfmaps']));
-
     while Assigned(InterfaceInfo) do
     begin
       InterfaceMaps[InterfaceInfo.InterfaceInfo.GUID] := GenerateNewMap(InterfaceInfo);
-
       InterfaceInfo := InterfaceInfo.Ancestor;
     end;
-
     JSThis['$intfmaps'] := InterfaceMaps;
   end
   else
@@ -2292,49 +2535,39 @@ end;
 constructor TVirtualInterface.Create(PIID: PTypeInfo; const InvokeEvent: TVirtualInterfaceInvokeEvent);
 begin
   Create(PIID);
-
   OnInvoke := InvokeEvent;
 end;
 
 constructor TVirtualInterface.Create(PIID: PTypeInfo; const InvokeEvent: TVirtualInterfaceInvokeEventJS);
 begin
   Create(PIID);
-
   OnInvokeJS := InvokeEvent;
 end;
 
 destructor TVirtualInterface.Destroy;
 begin
   FContext.Free;
-
   inherited;
 end;
 
 function TVirtualInterface.Invoke(const MethodName: String; const Args: TJSFunctionArguments): JSValue;
 var
   Method: TRttiMethod;
-
   Return: TValue;
 
   function GenerateParams: specialize TArray<TValue>;
   var
     A: Integer;
-
     Param: TRttiParameter;
-
     Parameters: specialize TArray<TRttiParameter>;
 
   begin
     Parameters := Method.GetParameters;
-
     SetLength(Result, Length(Parameters));
-
     for A := Low(Parameters) to High(Parameters) do
     begin
       Param := Parameters[A];
-
       TValue.Make(Args[A], Param.ParamType.Handle, Result[A]);
-
       Result[A].FReferenceVariableData := (pfVar in Param.Flags) or (pfOut in Param.Flags);
     end;
   end;
@@ -2345,11 +2578,203 @@ begin
   else
   begin
     Method := FInterfaceType.GetMethod(MethodName);
-
     FOnInvoke(Method, GenerateParams, Return);
-
     Result := Return.AsJSValue;
   end;
+end;
+
+{ TRttiInvokableType }
+
+function TRttiInvokableType.GetIsAsyncCall: Boolean;
+begin
+  Result:=fcfAsync in GetFlags;
+end;
+
+function TRttiInvokableType.GetParameters: TRttiParameterArray;
+begin
+  Result:=GetParameters(False);
+end;
+
+function TRttiInvokableType.ToString: string;
+var
+  P : TRTTIParameter;
+  A : TRTTIParameterArray;
+  I : integer;
+  RT : TRttiType;
+
+begin
+  RT:=GetReturnType;
+  if RT=nil then
+    Result:=name+' = procedure ('
+  else
+    Result:=name+' = function (';
+  A:=GetParameters(False);
+  for I:=0 to Length(a)-1 do
+    begin
+      P:=A[I];
+      if I>0 then
+        Result:=Result+'; ';
+      Result:=Result+P.Name;
+      if Assigned(P.ParamType) then
+        Result:=Result+' : '+P.ParamType.Name;
+    end;
+  result:=Result+')';
+  if Assigned(RT) then
+    Result:=Result+' : '+RT.Name;
+end;
+
+{ TRttiMethodType }
+
+function TRttiMethodType.GetMethodKind: TMethodKind;
+begin
+  Result:=MethodTypeInfo.MethodKind
+end;
+
+function TRttiMethodType.GetMethodTypeInfo: TTypeInfoMethodVar;
+begin
+  Result:=TTypeInfoMethodVar(Handle);
+end;
+
+function TRttiMethodType.GetParameters(aWithHidden: Boolean): TRttiParameterArray;
+
+var
+  I : Integer;
+
+begin
+  SetLength(Result,Length(MethodTypeInfo.ProcSig.Params));
+  For I:=0 to  Length(MethodTypeInfo.ProcSig.Params)-1 do
+    Result[i]:=TRttiParameter.Create(Self,MethodTypeInfo.ProcSig.Params[i]);
+end;
+
+function TRttiMethodType.GetCallingConvention: TCallConv;
+begin
+  Result:=ccPascal
+end;
+
+function TRttiMethodType.GetReturnType: TRttiType;
+begin
+  if Assigned(MethodTypeInfo.ProcSig.ResultType) then
+    Result:=Pool.GetType(MethodTypeInfo.ProcSig.ResultType)
+  else
+    Result:=Nil;
+end;
+
+const
+  ConvertFlags : Array[TFunctionCallFlag] of TProcedureFlag
+        = (pfStatic,pfVarArgs,pfExternal,pfSafeCall,pfAsync);
+
+function TRttiMethodType.GetFlags: TFunctionCallFlags;
+
+var
+  FF : TFunctionCallFlag;
+  lFlag : Integer;
+
+begin
+  Result:=[];
+  for FF in TFunctionCallFlag do
+    begin
+    lFlag:=1 shl Ord(ConvertFlags[FF]);
+    if (MethodTypeInfo.ProcSig.Flags and lFlag)<>0 then
+      Include(Result,FF);
+    end;
+end;
+
+function TRttiMethodType.Invoke(const aCallable: TValue; const aArgs: array of TValue): TValue;
+
+var
+  lLen,lIdx: Integer;
+  lArgs: TJSValueDynArray;
+  lResult : JSValue;
+  cb : TPas2JSRtlCallback;
+
+begin
+  lLen:=Length(aArgs);
+  SetLength(lArgs,lLen);
+  for lIdx:=0 to lLen-1 do
+    lArgs[lIdx]:=aArgs[lIdx].AsJSValue;
+  cb:=TPas2JSRtlCallback(aCallable.AsJSValue);
+  if isString(cb.fn) then
+    lResult:=TJSFunction(cb.scope[string(cb.fn)]).apply(cb.scope,lArgs)
+  else
+    lResult:=TJSFunction(cb.fn).apply(cb.scope,lArgs);
+  if Assigned(ReturnType) then
+     TValue.Make(lResult,ReturnType.Handle,Result)
+  else if IsAsyncCall then
+    TValue.Make(lResult, TypeInfo(TJSPromise), Result)
+end;
+
+function TRttiMethodType.ToString: string;
+begin
+  Result:=inherited ToString;
+  Result:=Result+' of object';
+end;
+
+{ TRttiProcedureType }
+
+function TRttiProcedureType.GetProcTypeInfo: TTypeInfoProcVar;
+begin
+  Result:=TTypeInfoProcVar(Handle);
+end;
+
+function TRttiProcedureType.GetParameters(aWithHidden: Boolean): TRttiParameterArray;
+var
+  I : Integer;
+
+begin
+  SetLength(Result,Length(ProcTypeInfo.ProcSig.Params));
+  For I:=0 to  Length(ProcTypeInfo.ProcSig.Params)-1 do
+    Result[i]:=TRttiParameter.Create(Self,ProcTypeInfo.ProcSig.Params[i]);
+end;
+
+function TRttiProcedureType.GetCallingConvention: TCallConv;
+begin
+  Result:=ccPascal;
+end;
+
+function TRttiProcedureType.GetReturnType: TRttiType;
+begin
+  if Assigned(ProcTypeInfo.ProcSig.ResultType) then
+    Result:=Pool.GetType(ProcTypeInfo.ProcSig.ResultType)
+  else
+    Result:=Nil;
+end;
+
+function TRttiProcedureType.GetFlags: TFunctionCallFlags;
+var
+  FF : TFunctionCallFlag;
+  lFlag : Integer;
+
+begin
+  Result:=[];
+  for FF in TFunctionCallFlag do
+    begin
+    lFlag:=1 shl Ord(ConvertFlags[FF]);
+    if (ProcTypeInfo.ProcSig.Flags and lFlag)<>0 then
+      Include(Result,FF);
+    end;
+end;
+
+function TRttiProcedureType.Invoke(const aCallable: TValue; const aArgs: array of TValue): TValue;
+var
+  lLen,lIdx: Integer;
+  lArgs: TJSValueDynArray;
+  lResult : JSValue;
+  cb : TPas2JSRtlCallback;
+
+begin
+  lLen:=Length(aArgs);
+  SetLength(lArgs,lLen);
+  for lIdx:=0 to lLen-1 do
+    lArgs[lIdx]:=aArgs[lIdx].AsJSValue;
+  cb:=TPas2JSRtlCallback(aCallable.AsJSValue);
+  if isString(cb.fn) then
+    lResult:=TJSFunction(cb.scope[string(cb.fn)]).apply(cb.scope,lArgs)
+  else
+    lResult:=TJSFunction(cb.fn).apply(cb.scope,lArgs);
+  if Assigned(ReturnType) then
+     TValue.Make(lResult,ReturnType.Handle,Result)
+  else if IsAsyncCall then
+    TValue.Make(lResult, TypeInfo(TJSPromise), Result)
 end;
 
 function Invoke(ACodeAddress: Pointer; const AArgs: TJSValueDynArray;
@@ -2371,6 +2796,34 @@ begin
   else
     raise EInvoke.Create(SErrInvokeInvalidCodeAddr);
 end;
+
+function ArrayOfConstToTValueArray(const aValues: array of const): TValueArray;
+
+var
+  I,Len: Integer;
+
+begin
+  Result:=[];
+  Len:=Length(aValues);
+  SetLength(Result,Len);
+  for I:=0 to Len-1 do
+    Result[I]:=TValue.FromVarRec(aValues[I]);
+end;
+
+generic function OpenArrayToDynArrayValue<T>(constref aArray: array of T): TValue;
+var
+  arr: specialize TArray<T>;
+  i: SizeInt;
+begin
+  arr:=[];
+  SetLength(arr, Length(aArray));
+  for i := 0 to High(aArray) do
+    arr[i] := aArray[i];
+  Result := TValue.specialize From<specialize TArray<T>>(arr);
+end;
+
+
+
 
 end.
 
