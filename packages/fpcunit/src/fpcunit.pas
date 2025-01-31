@@ -126,6 +126,7 @@ type
     class procedure CheckEquals(expected, actual: double; delta: double; msg: string = ''); overload;
     class procedure CheckEquals(expected, actual: string; msg: string = ''); overload;
     class procedure CheckEquals(expected, actual: integer; msg: string = ''); overload;
+    class procedure CheckEquals(expected, actual: NativeInt; msg: string = ''); overload;
     class procedure CheckEquals(expected, actual: boolean; msg: string = ''); overload;
     class procedure CheckEquals(expected, actual: TClass; msg: string = ''); overload;
     class procedure CheckNotEquals(expected, actual: string; msg: string = ''); overload;
@@ -224,6 +225,8 @@ type
   Public
     Class Var CheckAssertCalled : Boolean;
   public
+    procedure Status(const Msg: String);
+    procedure Status(const Fmt: String; const aArgs : Array of const);
     constructor Create; virtual; reintroduce;
     constructor CreateWith(const ATestName: string; const ATestSuiteName: string); virtual;
     constructor CreateWithName(const AName: string); virtual;
@@ -979,6 +982,16 @@ begin
   Result:=False;
 end;
 
+procedure TTestCase.Status(const Msg: String);
+begin
+  Writeln(msg);
+end;
+
+procedure TTestCase.Status(const Fmt: String; const aArgs: array of const);
+begin
+  Status(Format(Fmt,aArgs));
+end;
+
 constructor TTestCase.Create;
 begin
   inherited Create;
@@ -1105,7 +1118,7 @@ begin
   raise EAssertionFailedError.Create(AMessage);
 end;
 
-class procedure TAssert.Fail(const AFmt: string; Args: array of Const);
+class procedure TAssert.Fail(const AFmt: string; Args: array of const);
 begin
   Inc(AssertCount);
   raise EAssertionFailedError.CreateFmt(AFmt,Args);
@@ -1374,6 +1387,11 @@ begin
 end;
 
 class procedure TAssert.CheckEquals(expected, actual: integer; msg: string);
+begin
+  AssertEquals(msg, expected, actual);
+end;
+
+class procedure TAssert.CheckEquals(expected, actual: NativeInt; msg: string);
 begin
   AssertEquals(msg, expected, actual);
 end;
