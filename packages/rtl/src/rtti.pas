@@ -158,6 +158,7 @@ type
     function GetMemberTypeInfo: TTypeMember;
     function GetName: String; override;
     function GetParent: TRttiType;
+    function GetStrictVisibility: Boolean; virtual;
     function GetVisibility: TMemberVisibility; virtual;
     function LoadCustomAttributes: TCustomAttributeArray; override;
   public
@@ -166,6 +167,7 @@ type
     property MemberTypeInfo: TTypeMember read GetMemberTypeInfo;
     property Parent: TRttiType read GetParent;
     property Visibility: TMemberVisibility read GetVisibility;
+    property StrictVisibility: Boolean Read GetStrictVisibility;
   end;
 
   { TRttiDataMember }
@@ -1752,7 +1754,7 @@ end;
 
 { TRttiMember }
 
-function TRttiMember.GetName: string;
+function TRttiMember.GetName: String;
 begin
   Result := MemberTypeInfo.Name;
 end;
@@ -1762,12 +1764,19 @@ begin
   Result := TRttiType(inherited Parent);
 end;
 
+function TRttiMember.GetStrictVisibility: Boolean;
+begin
+  Result:=MemberTypeInfo.Visibility in [tmvStrictPrivate,tmvStrictProtected];
+end;
+
 function TRttiMember.GetVisibility: TMemberVisibility;
 begin
-  if MemberTypeInfo.Visibility=tmvPublishedPublic then
-    Result:=mvPublic
-  else
-    Result:=TMemberVisibility(ord(MemberTypeInfo.Visibility));
+  case MemberTypeInfo.Visibility of
+    tmvPrivate, tmvStrictPrivate: Result:=mvPrivate;
+    tmvProtected, tmvStrictProtected: Result:=mvProtected;
+    tmvPublic, tmvPublishedPublic: Result:=mvPublic;
+  else Result:=mvPublished;
+  end;
 end;
 
 constructor TRttiMember.Create(AParent: TRttiType; ATypeInfo: TTypeMember);
