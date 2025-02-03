@@ -570,14 +570,16 @@ begin
   try
     protect(ATestCase, Self);
   except
-    on E: EIgnoredTest do
-      AddFailure(ATestCase, E, FIgnoredTests{, ExceptAddr});
-    on E: EAssertionFailedError do
-      AddFailure(ATestCase, E, FFailures{, ExceptAddr});
-    on E: Exception do
+    on EI: EIgnoredTest do
+      AddFailure(ATestCase, EI, FIgnoredTests{, ExceptAddr});
+    on EF: EAssertionFailedError do
+      AddFailure(ATestCase, EF, FFailures{, ExceptAddr});
+    on EE: Exception do
       begin
-        AddError(ATestCase, E{, ExceptAddr});
+        AddError(ATestCase, EE{, ExceptAddr});
       end;
+    on EJ: TJSError do
+      AddError(ATestCase, EJSException.Create(EJ){, ExceptAddr});
   end;
 end;
 
