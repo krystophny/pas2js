@@ -171,7 +171,6 @@ type
     function GetParent: TRttiType;
     function GetStrictVisibility: Boolean; virtual;
     function GetVisibility: TMemberVisibility; virtual;
-    function GetStrictVisibility: Boolean; virtual;
     function LoadCustomAttributes: TCustomAttributeArray; override;
   public
     constructor Create(AParent: TRttiType; ATypeInfo: TTypeMember); reintroduce;
@@ -180,7 +179,6 @@ type
     property Parent: TRttiType read GetParent;
     Property StrictVisibility: Boolean Read GetStrictVisibility;
     property Visibility: TMemberVisibility read GetVisibility;
-    property StrictVisibility: Boolean Read GetStrictVisibility;
   end;
 
   { TRttiDataMember }
@@ -2025,11 +2023,6 @@ end;
 function TRttiMember.LoadCustomAttributes: TCustomAttributeArray;
 begin
   Result := GetRTTIAttributes(MemberTypeInfo.Attributes);
-end;
-
-function TRttiMember.GetStrictVisibility: Boolean;
-begin
-  Result:=False;
 end;
 
 function TRttiMember.GetMemberTypeInfo: TTypeMember;
