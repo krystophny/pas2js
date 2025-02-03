@@ -56,6 +56,8 @@ type
   end;
 
 procedure ReloadEnvironmentStrings;
+procedure SetCommandLineParams(aExe : String; Pars : Array of string);
+procedure ReloadParamStrings;
 
 implementation
 
@@ -102,11 +104,18 @@ begin
   else
     SetLength(Pars,0);
   SetLength(Params,1+Length(Pars));
+  SetCommandLineParams(Window.location.pathname,Pars);
+end;
+
+procedure SetCommandLineParams(aExe : String; Pars : Array of string);
+
+var
+  I : integer;
+begin
   Params[0]:=Window.location.pathname;
   For I:=0 to Length(Pars)-1 do
     Params[1+I]:=Pars[I];
 end;
-
 
 function GetParamCount: longint;
 begin
