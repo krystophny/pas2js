@@ -173,6 +173,14 @@ type
   EHeapException = EHeapMemoryError;
 
   EExternalException = class(EExternal);
+
+  { EJSException }
+
+  EJSException = class(EExternalException)
+  Public
+    constructor create(aJSError : TJSError);
+    property JSError : TJSError Read FJSError;
+  end;
   EInvalidPointer  = Class(EHeapMemoryError);
   EOutOfMemory     = Class(EHeapMemoryError);
 
@@ -3062,6 +3070,13 @@ end;
 function Exception.ToString: String;
 begin
   Result:=ClassName+': '+Message;
+end;
+
+{ EJSException }
+
+constructor EJSException.create(aJSError: TJSError);
+begin
+  Inherited CreateFmt('Javascript %s exception : %s',[JS.JSClassName(aJSError),aJSError.Message]);
 end;
 
 Const
