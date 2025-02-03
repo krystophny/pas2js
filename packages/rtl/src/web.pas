@@ -2546,185 +2546,27 @@ Type
     property Result : JSValue Read FResult;
   end;
 
-  TCanvasCoordType = double; // Is in fact a number.
 
-  // Opaque objects
-  TJSCanvasGradient = class external name 'CanvasGradient'  (TJSObject)
-    procedure addColorStop(offset : double; aColor : string);
-  end;
+  TCanvasCoordType = weborworker.TCanvasCoordType;
 
-  TJSCanvasPattern = class external name 'CanvasPattern'  (TJSObject)
-  end;
-
-  TJSPath2D = class external name 'Path2D'  (TJSObject)
-  Public
-    constructor new; overload;
-    constructor new(aPath : TJSPath2D); overload;
-    constructor new(SVGPath : String); overload;
-    Procedure addPath(aPath : TJSPath2D);
-    procedure arc(x,y, radius,startAngle,endAngle : TCanvasCoordType); overload;
-    procedure arc(x,y, radius,startAngle,endAngle : TCanvasCoordType; antiClockWise : boolean); overload;
-    procedure arcTo(x1,y1,x2,y2,radius : TCanvasCoordType); overload;
-    procedure bezierCurveTo(cp1x,cp1y,cp2x,cp2y,x,y : TCanvasCoordType); overload;
-    Procedure closePath;
-    procedure ellipse(x, y, radiusX, radiusY : TCanvasCoordType; rotation, startAngle, endAngle : Double); overload;
-    procedure ellipse(x, y, radiusX, radiusY : TCanvasCoordType; rotation, startAngle, endAngle : Double; anticlockwise : Boolean); overload;
-    Procedure lineTo(X,Y : TCanvasCoordType);
-    Procedure moveTo(X,Y : TCanvasCoordType);
-    procedure quadraticCurveTo(cpx,cpy,x,y : TCanvasCoordType);
-    procedure rect(x,y,awidth,aheight: TCanvasCoordType); overload;
-  end;
-
-  { TJSImageData }
-
-  TJSImageData = class external name 'ImageData'  (TJSObject)
-  private
-    FData: TJSUint8ClampedArray; external name 'data';
-    FHeight: Integer; external name 'height';
-    FWidth: Integer; external name 'width';
-  Public
-    constructor new(awidth,aheight : integer); overload;
-    constructor new(anArray :TJSUint8ClampedArray; awidth,aheight : integer); overload;
-    property data : TJSUint8ClampedArray read FData;
-    property height : Integer Read FHeight;
-    property width : Integer Read FWidth;
-  end;
-
-
-  TJSTextMetrics = class external name 'TextMetrics' (TJSObject)
-    width : TCanvasCoordType;
-    actualBoundingBoxLeft : TCanvasCoordType;
-    actualBoundingBoxRight : TCanvasCoordType;
-    fontBoundingBoxAscent : TCanvasCoordType;
-    fontBoundingBoxDescent : TCanvasCoordType;
-    actualBoundingBoxAscent : TCanvasCoordType;
-    actualBoundingBoxDescent : TCanvasCoordType;
-    emHeightAscent : TCanvasCoordType;
-    emHeightDescent : TCanvasCoordType;
-    hangingBaseline : TCanvasCoordType;
-    alphabeticBaseline : TCanvasCoordType;
-    ideographicBaseline : TCanvasCoordType;
-  end;
-
-  { TJSCanvasRenderingContext2D }
-  TJSCanvasRenderingContext2D = class external name 'CanvasRenderingContext2D'  (TJSObject)
+  TJSCanvasGradient = weborworker.TJSCanvasGradient;
+  TJSCanvasPattern = weborworker.TJSCanvasPattern;
+  TJSPath2D = weborworker.TJSPath2D;
+  TJSCanvasRenderingContext2D = class external name 'CanvasRenderingContext2D' (TJSBaseCanvasRenderingContext2D)
   private
     FCanvas: TJSHTMLCanvasElement; external name 'canvas';
-    FfillStyleColor: String; external name 'fillStyle';
-    FfillStyleGradient: TJSCanvasGradient; external name 'fillStyle';
-    FfillStylePattern: TJSCanvasPattern; external name 'fillStyle';
-    FimageSmoothingEnabled: Boolean; external name 'imageSmoothingEnabled';
-    FstrokeStyleColor: String; external name 'strokeStyle';
-    FstrokeStyleGradient: TJSCanvasGradient; external name 'strokeStyle';
-    FstrokeStylePattern: TJSCanvasPattern; external name 'strokeStyle';
-  Public
-    fillStyle : JSValue;
-    font : string;
-    globalAlpha : double;
-    globalCompositeOperation : String;
-    lineCap : string;
-    lineDashOffset : Double;
-    lineJoin : String;
-    lineWidth : Double;
-    miterLimit : Double;
-    shadowBlur : Double;
-    shadowColor : String;
-    shadowOffsetX : Double;
-    shadowOffsetY : Double;
-    strokeStyle : JSValue;
-    textAlign : String;
-    textBaseline : String;
-    procedure arc(x,y, radius,startAngle,endAngle : TCanvasCoordType); overload;
-    procedure arc(x,y, radius,startAngle,endAngle : TCanvasCoordType; antiClockWise : boolean); overload;
-    procedure arcTo(x1,y1,x2,y2,radius : TCanvasCoordType); overload;
-    procedure beginPath;
-    procedure bezierCurveTo(cp1x,cp1y,cp2x,cp2y,x,y : TCanvasCoordType); overload;
-    procedure clearRect(x,y,width,height : TCanvasCoordType);
-    procedure clip; overload;
-    procedure clip(aFillRule : String); overload;
-    procedure clip(aPath : TJSPath2D); overload;
-    procedure closePath;
-    function createImageData(aWidth,aHeight : Integer) : TJSImageData; overload;
-    function createImageData(aImage : TJSImageData) : TJSImageData; overload;
-    function createLinearGradient(x0,y0,x1,y1 : TCanvasCoordType) : TJSCanvasGradient;
-    function createPattern(aImage : TJSObject; repetition : string) : TJSCanvasPattern;
-    function createRadialGradient(x0,y0,r0,x1,y1,r1 : TCanvasCoordType) : TJSCanvasGradient;
+  public
     procedure drawFocusIfNeeded(aElement : TJSElement); overload;
     procedure drawFocusIfNeeded(aPath : TJSPath2D; aElement : TJSElement); overload;
-    procedure drawImage(image : TJSObject; dx,dy : TCanvasCoordType); overload;
-    procedure drawImage(image : TJSObject; dx,dy,dwidth,dheight : TCanvasCoordType); overload;
-    procedure drawImage(image : TJSObject; sx,sy,sWidth,sHeight,dx,dy,dwidth,dheight : TCanvasCoordType); overload;
-    procedure ellipse(x, y, radiusX, radiusY : TCanvasCoordType; rotation, startAngle, endAngle : Double); overload;
-    procedure ellipse(x, y, radiusX, radiusY : TCanvasCoordType; rotation, startAngle, endAngle : Double; anticlockwise : Boolean); overload;
-    procedure fill; overload;
-    procedure fill(aRule : String); overload;
-    procedure fill(aPath : TJSPath2D); overload;
-    procedure fill(aPath : TJSPath2D;aRule : String); overload;
-    procedure fillRect(x,y,awidth,aheight: TCanvasCoordType); overload;
-    procedure fillText(aText : string; x,y : TCanvasCoordType); overload;
-    procedure fillText(aText : string; x,y, aMaxWidth : TCanvasCoordType); overload;
-    function getImageData(x,y,awidth,aheight: TCanvasCoordType) : TJSImageData; overload;
-    function getLineDash : TJSArray;
-    function isPointInPath(x,y : TCanvasCoordType) : Boolean; overload;
-    function isPointInPath(x,y : TCanvasCoordType; aFillRule : String) : Boolean; overload;
-    function isPointInPath(aPath : TJSPath2D; x,y : TCanvasCoordType) : Boolean; overload;
-    function isPointInPath(aPath : TJSPath2D; x,y : TCanvasCoordType; aFillRule : String) : Boolean; overload;
-    function isPointInStroke(x,y : TCanvasCoordType) : Boolean; overload;
-    function isPointInStroke(aPath : TJSPath2D; x,y : TCanvasCoordType) : Boolean; overload;
-    procedure lineTo(x,y : TCanvasCoordType);
-    function measureText(S : String) : TJSTextMetrics;
-    procedure moveTo(x,y : TCanvasCoordType);
-    procedure putImageData(aData : TJSImageData; x,y: TCanvasCoordType) ; overload;
-    procedure putImageData(aData : TJSImageData; x,y,dityX,dirtyY,dirtyWidth,dirtyHeight: TCanvasCoordType) ; overload;
-    procedure quadraticCurveTo(cpx,cpy,x,y : TCanvasCoordType);
-    procedure rect(x,y,awidth,aheight: TCanvasCoordType); overload;
-    procedure restore;
-    procedure rotate(anAngle : double);
-    procedure roundRect(x,y,width,height : double; Radii : TJSArray);
-    procedure save;
-    procedure scale(x,y : double);
-    procedure setLineDash(segments : TJSArray); overload;
-    procedure setLineDash(segments : array of integer); overload;
-    procedure resetTransform;
-    procedure setTransform(a,b,c,d,e,f : double);
-    procedure stroke; overload;
-    procedure stroke(aPath : TJSPath2D); overload;
-    procedure strokeRect(x,y,awidth,aheight: TCanvasCoordType);
-    procedure strokeText(aText : string; x,y : TCanvasCoordType); overload;
-    procedure strokeText(aText : string; x,y, aMaxWidth : TCanvasCoordType); overload;
-    procedure transform(a,b,c,d,e,f : double);
-    procedure translate(x,y : TCanvasCoordType);
-
     property canvas : TJSHTMLCanvasElement Read FCanvas;
-    property fillStyleAsColor : String Read FfillStyleColor Write FfillStyleColor;
-    property fillStyleAsGradient : TJSCanvasGradient Read FfillStyleGradient Write FfillStyleGradient;
-    property fillStyleAsPattern : TJSCanvasPattern Read FfillStylePattern Write FfillStylePattern;
-    property imageSmoothingEnabled : Boolean Read FimageSmoothingEnabled Write FimageSmoothingEnabled;
-    property strokeStyleAsColor : String Read FstrokeStyleColor Write FstrokeStyleColor;
-    property strokeStyleAsGradient : TJSCanvasGradient Read FstrokeStyleGradient Write FstrokeStyleGradient;
-    property strokeStyleAsPattern : TJSCanvasPattern Read FstrokeStylePattern Write FstrokeStylePattern;
-  end;
-  
-  TJSImageBitmap = class external name 'ImageBitmap'  (TJSObject)
-  public
-    procedure    close();
   end;
 
-  TJSOffscreenCanvasRenderingContext2D = class external name 'CanvasRenderingContext2D'  (TJSCanvasRenderingContext2D)
-  private
-  Public
-     { subclassing TJSCanvasRenderingContext2D just in case some new methods are required}
-  end;
 
-  TJSHTMLOffscreenCanvasElement = Class external name 'OffscreenCanvas' (TJSHTMLCanvasElement)
-  Public
-    constructor New(x,y : Cardinal); overload;
-    { getContextAs2DContext reintroduced here to return the subclassed context }
-    Function getContextAs2DContext(contextType : string; contextAttributes : TJSObject) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
-    Function getContextAs2DContext(contextType : string) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
-    function transferToImageBitmap: TJSImageBitmap;
-  end;
-  
+  TJSImageBitmap = weborworker.TJSImageBitmap;
+  TJSOffscreenCanvasRenderingContext2D = weborworker.TJSOffscreenCanvasRenderingContext2D;
+  TJSHTMLOffscreenCanvasElement = weborworker.TJSHTMLOffscreenCanvas;
+
+
 
   { TJSHTMLIFrameElement }
 
