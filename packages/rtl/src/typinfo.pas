@@ -252,6 +252,7 @@ const
   pfStoredFunction = 12; // stored function, function name is in Stored
   pfHasIndex = 16; { if getter is function, append Index as last param
                      if setter is function, append Index as second last param }
+  pfClassProperty = 32;
 type
   { TTypeMemberProperty - Kind = tmkProperty }
 

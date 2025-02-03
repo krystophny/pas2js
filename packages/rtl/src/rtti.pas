@@ -283,6 +283,9 @@ type
   TRttiProperty = class(TRttiDataMember)
   private
     function GetDataType: TRttiType; override;
+    function GetDefault: JSValue;
+    function GetIndex: Integer;
+    function GetIsClassProperty: boolean;
     function GetPropertyTypeInfo: TTypeMemberProperty;
     function GetPropertyType: TRttiType;
     function GetIsWritable: boolean; override;
@@ -298,6 +301,9 @@ type
 
     property PropertyTypeInfo: TTypeMemberProperty read GetPropertyTypeInfo;
     property PropertyType: TRttiType read GetPropertyType;
+    property Default: JSValue read GetDefault;
+    property Index: Integer read GetIndex;
+    property IsClassProperty: boolean read GetIsClassProperty;
     property IsReadable: boolean read GetIsReadable;
     property IsWritable: boolean read GetIsWritable;
     property Visibility: TMemberVisibility read GetVisibility;
@@ -2269,6 +2275,24 @@ end;
 function TRttiProperty.GetDataType: TRttiType;
 begin
   Result := GetPropertyType;
+end;
+
+function TRttiProperty.GetDefault: JSValue;
+begin
+  Result:=PropertyTypeInfo.Default;
+end;
+
+function TRttiProperty.GetIndex: Integer;
+begin
+  if isUndefined(PropertyTypeInfo.Index) then
+    Result:=0
+  else
+    Result:=Integer(PropertyTypeInfo.Index);
+end;
+
+function TRttiProperty.GetIsClassProperty: boolean;
+begin
+  Result:=(PropertyTypeInfo.Flags and pfClassProperty) > 0;
 end;
 
 function TRttiProperty.GetPropertyTypeInfo: TTypeMemberProperty;
