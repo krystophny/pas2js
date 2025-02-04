@@ -1372,6 +1372,7 @@ begin
     tkEnumeration: Result := GetEnumName(TTypeInfoEnum(TypeInfo), AsOrdinal);
     tkFloat: Result := FloatToStr(AsExtended, AFormatSettings);
     tkInteger: Result := IntToStr(AsNativeInt);
+    tkChar,
     tkString: Result := AsString;
   else
     Result := '';
