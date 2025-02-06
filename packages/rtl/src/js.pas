@@ -1495,13 +1495,18 @@ begin
 end;
 
 function SharedToNonShared(aArray : TJSTypedArray; aWordSized : Boolean = False): TJSTypedArray;
+var
+  Buf : TJSSharedArrayBuffer;
 
 begin
   if HaveSharedArrayBuffer and (aArray.bufferObj is TJSSharedArrayBuffer) then
+    begin
+    Buf:=TJSSharedArrayBuffer(aArray.bufferObj).slice(aArray.byteOffset,aArray.byteLength);
     if aWordSized then
-      Result:=TJSUInt16Array.New(SharedToNonShared(aArray.bufferObj))
+      Result:=TJSUInt16Array.New(SharedToNonShared(Buf))
     else
-      Result:=TJSUInt8Array.New(SharedToNonShared(aArray.bufferObj))
+      Result:=TJSUInt8Array.New(SharedToNonShared(Buf))
+    end
   else
     Result:=aArray;
 end;
