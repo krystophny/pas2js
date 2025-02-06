@@ -1785,10 +1785,13 @@ type
   TJSHTMLOffscreenCanvas = Class external name 'OffscreenCanvas' (TJSObject)
   Public
     constructor New(x,y : Cardinal); overload;
-    { getContextAs2DContext reintroduced here to return the subclassed context }
+    Function getContext(contextType : string; contextAttributes : TJSObject) : JSValue;
+    Function getContext(contextType : string) : JSValue;
     Function getContextAs2DContext(contextType : string; contextAttributes : TJSObject) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
     Function getContextAs2DContext(contextType : string) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
     function transferToImageBitmap: TJSImageBitmap;
+    height : Integer;
+    width : Integer;
   end;
 
   TJSOffscreenCanvasRenderingContext2D = class external name 'CanvasRenderingContext2D'  (TJSBaseCanvasRenderingContext2D)
