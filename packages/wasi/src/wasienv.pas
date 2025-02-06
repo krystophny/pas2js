@@ -202,6 +202,7 @@ type
     Destructor Destroy; override;
     function GetUTF8ByteLength(const AString: String): Integer;
     Function GetUTF8StringFromMem(aLoc, aLen : Longint) : String;
+    function GetUTF8StringFromArray(aSourceArray: TJSUint8Array): String;
     // Write string as UTF8 string in memory at aLoc, with max aLen bytes.
     // Return number of bytes written, or -NeededLen if not enough room.
     function SetUTF8StringInMem(aLoc: TWasmMemoryLocation; aLen: Longint; AString: String): Integer;
@@ -1392,7 +1393,7 @@ Var
 
 begin
   try
-    S:=UTF8TextDecoder.decode(aBytes);
+    S:=GetUTF8StringFromArray(aBytes);
   except
     // Depending on buffer size, FPC can do a flush mid-codepoint.
     // The resulting bytes will not form a complete codepoint at the end.
@@ -2315,6 +2316,27 @@ begin
   inherited Destroy;
 end;
 
+
+function TPas2JSWASIEnvironment.GetUTF8StringFromArray(aSourceArray:TJSUint8Array): String;
+
+var
+  src : TJSSharedArrayBuffer;
+  tmpBuf: TJSAbstractArrayBuffer;
+  SrcBytes,tmpBytes : TJSUint8Array;
+
+begin
+  if isDefined(Self_['SharedArrayBuffer']) and (aSourceArray.bufferObj is TJSSharedArrayBuffer) then
+    begin
+    src:=TJSSharedArrayBuffer(aSourceArray.bufferObj);
+    SrcBytes:=TJSUint8Array.new(src);
+    tmpBuf:=TJSArrayBuffer.new(Src.byteLength);
+    tmpBytes:=TJSUint8Array.new(tmpBuf);
+    tmpBytes._set(SrcBytes);
+    Result:=UTF8TextDecoder.Decode(tmpBytes);
+    end
+  else
+    Result:=UTF8TextDecoder.Decode(aSourceArray.Buffer);
+end;
 
 function TPas2JSWASIEnvironment.GetUTF8StringFromMem(aLoc, aLen: Longint): String;
 
