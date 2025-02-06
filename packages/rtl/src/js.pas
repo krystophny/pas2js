@@ -623,7 +623,7 @@ type
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aElementLength: NativeInt);
     class function from(aValue : jsValue) : TJSInt8Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSInt8Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSInt8Array; reintroduce;
@@ -646,7 +646,7 @@ type
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aElementLength: NativeInt);
     class function from(aValue : jsValue) : TJSUInt8Array; reintroduce; overload;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSUInt8Array; reintroduce;overload;
     // class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSUInt8Array; reintroduce;overload;
@@ -668,7 +668,7 @@ type
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aElementLength: NativeInt);
     class function from(aValue : jsValue) : TJSUInt8ClampedArray; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSUInt8ClampedArray; reintroduce;overload;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSUInt8ClampedArray; reintroduce;overload;
@@ -690,7 +690,7 @@ type
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aElementLength: NativeInt);
     class function from(aValue : jsValue) : TJSInt16Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSInt16Array; reintroduce;overload;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSInt16Array; reintroduce;overload;
@@ -712,7 +712,7 @@ type
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aElementLength: NativeInt);
     class function from(aValue : jsValue) : TJSUInt16Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSUInt16Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSUInt16Array; reintroduce;
@@ -734,7 +734,7 @@ type
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aElementLength: NativeInt);
     class function from(aValue : jsValue) : TJSInt32Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSInt32Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSInt32Array; reintroduce;
@@ -756,7 +756,7 @@ type
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aElementLength: NativeInt);
     class function from(aValue : jsValue) : TJSUInt32Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSUInt32Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSUInt32Array; reintroduce;
@@ -778,7 +778,7 @@ type
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aElementLength: NativeInt);
     class function from(aValue : jsValue) : TJSFloat32Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSFloat32Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSFloat32Array; reintroduce;
@@ -800,7 +800,7 @@ type
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
-    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aLength: NativeInt);
+    constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset, aElementLength: NativeInt);
     class function from(aValue : jsValue) : TJSFloat64Array; reintroduce;
     class function from(aValue : jsValue; Map : TJSTypedArrayMapCallBack) : TJSFloat64Array; reintroduce;
 //    class function from(aValue : jsValue; aMap : TJSTypedArrayMapEvent) : TJSFloat64Array; reintroduce;
