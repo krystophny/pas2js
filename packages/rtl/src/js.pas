@@ -537,6 +537,7 @@ type
   TJSTypedArray = class external name 'TypedArray' (TJSBufferSource)
   Private
     FBuffer: TJSArrayBuffer; external name 'buffer';
+    FBufferObj: TJSAbstractArrayBuffer; external name 'buffer';
     FByteLength: NativeInt; external name 'byteLength';
     FLength: NativeInt; external name 'length';
     FByteOffset: NativeInt; external name 'byteOffset';
@@ -599,6 +600,7 @@ type
     function toLocaleString(locales : string; const Options : TLocaleCompareOptions) : String; overload;
     function unshift : NativeInt; varargs;
     property buffer : TJSArrayBuffer read FBuffer;
+    property bufferObj : TJSAbstractArrayBuffer read FBufferObj;
     property byteLength : NativeInt Read FByteLength;
     property byteOffset : NativeInt Read FByteOffset;
     property length : NativeInt Read FLength;
