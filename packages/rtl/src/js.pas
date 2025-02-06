@@ -606,6 +606,7 @@ type
     property length : NativeInt Read FLength;
     property values[Index : NativeInt] : JSValue Read getValue Write SetValue; default;
   end;
+  TJSTypedArrayClass = Class of TJSTypedArray;
 
   { TJSInt8Array }
 
@@ -1207,6 +1208,10 @@ Type
 
 Function GetValueType(JS : JSValue) : TJSValueType;
 
+Function HaveSharedArrayBuffer : Boolean;
+Function SharedToNonShared(aBuffer : TJSAbstractArrayBuffer) : TJSArrayBuffer;
+Function SharedToNonShared(aArray : TJSTypedArray; aWordSized : Boolean = False) : TJSTypedArray;
+
 Const
   Null : JSValue; external name 'null';
   Undefined : JSValue; external name 'undefined';
@@ -1465,6 +1470,40 @@ begin
       else
         result:=jvtFloat
     end;
+end;
+
+Function HaveSharedArrayBuffer : Boolean; assembler;
+
+asm
+  return (typeof SharedArrayBuffer !== 'undefined');
+end;
+
+
+function SharedToNonShared(aBuffer: TJSAbstractArrayBuffer): TJSArrayBuffer;
+var
+  Src,Dest : TJSUint8Array;
+begin
+  if HaveSharedArrayBuffer and (aBuffer is TJSSharedArrayBuffer) then
+    begin
+    Result:=TJSArrayBuffer.new(aBuffer.byteLength);
+    Src:=TJSUint8Array.New(aBuffer);
+    Dest:=TJSUint8Array.New(Result);
+    Dest._set(Src);
+    end
+  else
+    Result:=TJSArrayBuffer(aBuffer);
+end;
+
+function SharedToNonShared(aArray : TJSTypedArray; aWordSized : Boolean = False): TJSTypedArray;
+
+begin
+  if HaveSharedArrayBuffer and (aArray.bufferObj is TJSSharedArrayBuffer) then
+    if aWordSized then
+      Result:=TJSUInt16Array.New(SharedToNonShared(aArray.bufferObj))
+    else
+      Result:=TJSUInt8Array.New(SharedToNonShared(aArray.bufferObj))
+  else
+    Result:=aArray;
 end;
 
 function Symbol : TJSSymbol; assembler;

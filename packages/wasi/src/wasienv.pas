@@ -2320,42 +2320,21 @@ end;
 function TPas2JSWASIEnvironment.GetUTF8StringFromArray(aSourceArray:TJSUint8Array): String;
 
 var
-  src : TJSSharedArrayBuffer;
-  tmpBuf: TJSAbstractArrayBuffer;
-  SrcBytes,tmpBytes : TJSUint8Array;
+ TmpBytes : TJSTypedArray;
 
 begin
-  if isDefined(Self_['SharedArrayBuffer']) and (aSourceArray.bufferObj is TJSSharedArrayBuffer) then
-    begin
-    src:=TJSSharedArrayBuffer(aSourceArray.bufferObj);
-    SrcBytes:=TJSUint8Array.new(src);
-    tmpBuf:=TJSArrayBuffer.new(Src.byteLength);
-    tmpBytes:=TJSUint8Array.new(tmpBuf);
-    tmpBytes._set(SrcBytes);
-    Result:=UTF8TextDecoder.Decode(tmpBytes);
-    end
-  else
-    Result:=UTF8TextDecoder.Decode(aSourceArray.Buffer);
+  TmpBytes:=SharedToNonShared(aSourceArray);
+  Result:=UTF8TextDecoder.Decode(tmpBytes);
 end;
 
 function TPas2JSWASIEnvironment.GetUTF8StringFromMem(aLoc, aLen: Longint): String;
 
 var
-  src,tmpBuf : TJSArrayBuffer;
-  SrcBytes,tmpBytes : TJSUint8Array;
+  tmpBuf : TJSArrayBuffer;
 
 begin
-  if isDefined(Self_['SharedArrayBuffer']) and (getModuleMemoryDataView.bufferObj is TJSSharedArrayBuffer) then
-    begin
-    src:=getModuleMemoryDataView.buffer.slice(aLoc,aLoc+alen);
-    SrcBytes:=TJSUint8Array.new(src);
-    tmpBuf:=TJSArrayBuffer.new(aLen);
-    tmpBytes:=TJSUint8Array.new(tmpBuf);
-    tmpBytes._set(SrcBytes);
-    Result:=UTF8TextDecoder.Decode(tmpBuf);
-    end
-  else
-    Result:=UTF8TextDecoder.Decode(getModuleMemoryDataView.buffer.slice(aLoc,aLoc+alen));
+  tmpBuf:=SharedToNonShared(getModuleMemoryDataView.buffer.slice(aLoc,aLoc+alen));
+  Result:=UTF8TextDecoder.Decode(tmpBuf);
 end;
 
 function TPas2JSWASIEnvironment.GetUTF8ByteLength(const AString: String) : Integer;

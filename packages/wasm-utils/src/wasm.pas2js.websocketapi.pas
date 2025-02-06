@@ -444,7 +444,7 @@ begin
     lSocket.SendBinary(lData)
   else
     begin
-    lText:=FDecoder.Decode(lData);
+    lText:=FDecoder.Decode(SharedToNonShared(lData));
     lSocket.SendText(lText);
     end;
   Result:=WASMWS_RESULT_SUCCESS;

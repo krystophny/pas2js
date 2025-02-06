@@ -360,7 +360,7 @@ begin
       enc:='utf-16be';
     FDecoderUTF16:=TJSTextDecoder.New(enc);
     end;
-  Result:=FDecoderUTF16.decode(Arr);
+  Result:=FDecoderUTF16.decode(SharedToNonShared(Arr));
 end;
 
 function TJSObjectBridge.DecodeUTF8Buffer(Arr: TJSUint8Array): String;
@@ -368,7 +368,7 @@ function TJSObjectBridge.DecodeUTF8Buffer(Arr: TJSUint8Array): String;
 begin
   if FDecoderUTF8=Nil then
     FDecoderUTF8:=TJSTextDecoder.New('utf8');
-  Result:=FDecoderUTF8.decode(Arr);
+  Result:=FDecoderUTF8.decode(SharedToNonShared(Arr));
 end;
 
 procedure TJSObjectBridge.SetArrayFromMem(ObjId: TJOBObjectID; Mem : TWasmPointer; aMaxLen : NativeInt);
