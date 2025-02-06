@@ -1501,7 +1501,7 @@ var
 begin
   if HaveSharedArrayBuffer and (aArray.bufferObj is TJSSharedArrayBuffer) then
     begin
-    Buf:=TJSSharedArrayBuffer(aArray.bufferObj).slice(aArray.byteOffset,aArray.byteLength);
+    Buf:=TJSSharedArrayBuffer(aArray.bufferObj).slice(aArray.byteOffset,aArray.byteOffset+aArray.ByteLength);
     if aWordSized then
       Result:=TJSUInt16Array.New(SharedToNonShared(Buf))
     else
