@@ -1953,9 +1953,6 @@ begin
 end;
 
 function TRttiArrayType.GetDimension(aIndex: SizeInt): TRttiType;
-Var
-  I : Integer;
-  Res : TRttiType;
 
 begin
   if (aIndex >= DimensionCount) then
