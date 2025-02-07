@@ -58,24 +58,15 @@ Type
     procedure DoRunThread(aExports: TWASIExports);
   Private
     FState: TWorkerState;
-    FStartThreadID : Integer;
-    FNextThreadID : Integer;
     FCurrentThreadInfo : TThreadinfo;
     FModule : TJSWebAssemblyModule;
     FMemory : TJSWebAssemblyMemory;
     FWasiHost: TWASIThreadHost;
   Protected
-    // Set new thread range
-    procedure InitThreadRange(aRange: Integer);
-    // allocate new thread ID.
-    Function AllocateNewThreadID : NativeInt;
     // Incoming messages
     procedure LoadWasmModule(aCommand: TWorkerLoadCommand); virtual;
     procedure RunWasmModule(aCommand: TWorkerRunCommand); virtual;
     procedure CancelWasmModule(aCommand: TWorkerCancelCommand); virtual;
-    procedure SetThreadRange(aCommand: TWorkerThreadIDRangeCommand); virtual;
-    // outgoing messages
-    procedure RequestNewThreadBlock; virtual;
     procedure SendLoaded; virtual;
     Procedure SendConsoleMessage(aMessage : String); overload;
     Procedure SendConsoleMessage(aFmt : String; const aArgs : array of const); overload;
@@ -322,12 +313,11 @@ function TWorkerThreadSupport.thread_spawn(start_arg: longint): longint;
 
 Var
   P : TWorkerSpawnThreadCommand;
-  lThreadID : Integer;
+
 begin
-  lThreadID:=AllocateNewThreadID;
-  P:=TWorkerSpawnThreadCommand.Create(lThreadID,start_arg);
+  P:=TWorkerSpawnThreadCommand.Create(start_arg,start_arg);
   SendCommand(P);
-  Result:=lThreadID;
+  Result:=start_arg;
 end;
 
 function TWorkerThreadSupport.thread_detach(thread_id: Integer): Integer;
@@ -345,17 +335,6 @@ end;
 function TWorkerThreadSupport.thread_self: Integer;
 begin
   Result:=0;
-end;
-
-function TWorkerThreadSupport.AllocateNewThreadID: NativeInt;
-
-begin
-  if (FNextThreadID-FStartThreadID)>=ThreadIDInterval then
-    FNextThreadID:=FStartThreadID;
-  Inc(FNextThreadID);
-  if (FNextThreadID-FStartThreadID)=ThreadIDInterval-ThreadIDMargin then
-    RequestNewThreadBlock;
-  Result:=FNextThreadID;
 end;
 
 procedure TWorkerThreadSupport.SendLoaded;
@@ -520,7 +499,6 @@ begin
   FState:=wsLoading;
   FMemory:=aCommand.Memory;
   FModule:=aCommand.Module;
-  InitThreadRange(aCommand.ThreadRangeStart);
   try
     aTable:=TJSWebAssemblyTable.New(Host.TableDescriptor);
     WASD:=Host.InitStartDescriptor(FMemory,aTable,Nil);
@@ -533,26 +511,6 @@ begin
   end;
 end;
 
-procedure TWorkerThreadSupport.InitThreadRange(aRange: Integer);
-
-begin
-  FStartThreadID:=aRange;
-  FNextThreadID:=FStartThreadID;
-end;
-
-procedure TWorkerThreadSupport.RequestNewThreadBlock;
-
-begin
-  SendCommand(TWorkerNeedIdBlockCommand.Create(FNextThreadID));
-end;
-
-procedure TWorkerThreadSupport.SetThreadRange(
-  aCommand: TWorkerThreadIDRangeCommand);
-
-begin
-  InitThreadRange(aCommand.RangeStart);
-end;
-
 procedure TWorkerThreadSupport.HandleCommand(aCommand: TWorkerCommand);
 
 begin
@@ -560,7 +518,6 @@ begin
     cmdload : LoadWasmModule(TWorkerLoadCommand(aCommand));
     cmdRun : RunWasmModule(TWorkerRunCommand(aCommand));
     cmdCancel : CancelWasmModule(TWorkerCancelCommand(aCommand));
-    cmdThreadIdRange : SetThreadRange(TWorkerThreadIDRangeCommand(aCommand));
   end;
 end;
 

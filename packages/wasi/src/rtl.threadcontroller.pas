@@ -68,8 +68,6 @@ Type
     FOnUnknownMessage: TJSRawEventHandler;
     FHost: TWASIHost;
     FWorkerScript: String;
-    FNextIDRange : Integer;
-    FNextThreadID : Integer;
     procedure SetWasiHost(AValue: TWASIHost);
   Protected
     procedure RunTimeOut(aInfo: TThreadInfo; aInterval: Integer); virtual;
@@ -77,13 +75,10 @@ Type
     Function thread_detach(thread_id : longint) : Integer; override;
     Function thread_cancel(thread_id : longint) : Integer; override;
     Function thread_self() : Integer; override;
-    function AllocateThreadID : Integer;
   Protected
     FIdleWorkers : Array of TWasmThread;
     FBusyWorkers : Array of TWasmThread;
     FThreads : TThreadHash; // ThreadID is key,
-    // Allocate new thread ID range
-    function GetNextThreadIDRange: Integer;
     // Handle worker messages. If it is a command, it is set to handlecommand.
     procedure DoWorkerMessage(aEvent: TJSEvent);
     // Create & set up new worker
@@ -259,13 +254,6 @@ begin
   {$ENDIF}
 end;
 
-function TThreadController.GetNextThreadIDRange : Integer;
-
-begin
-  Inc(FNextIDRange,ThreadIDInterval);
-  Result:=FNextIDRange;
-end;
-
 function TThreadController.AllocateNewWorker(const aWorkerScript: string): TWasmThread;
 
 begin
@@ -273,7 +261,6 @@ begin
   DoLog('Allocating new worker for: '+aWorkerScript);
   {$ENDIF}
   Result:=TWasmThread.Create(aWorkerScript);
-  Result.ThreadIDRange:=GetNextThreadIDRange;
   Result.addEventListener('message',@DoWorkerMessage);
   if Assigned(Host) and Host.StartDescriptorReady then
     SendLoadCommand(Result)
@@ -349,7 +336,7 @@ var
   aInfo : TThreadInfo;
 
 begin
-  aInfo.ThreadID:=AllocateThreadID;
+  aInfo.ThreadID:=start_arg;
   aInfo.Arguments:=start_arg;
   aInfo.OriginThreadID:=0;
   Result:=SpawnThread(aInfo);
@@ -372,11 +359,6 @@ begin
   Result:=-1;
 end;
 
-function TThreadController.AllocateThreadID: Integer;
-begin
-  Inc(FNextThreadID);
-  Result:=FNextThreadID;
-end;
 
 procedure TThreadController.SendLoadCommands;
 

@@ -42,8 +42,6 @@ Const
   cmdCancel = 'cancel';
   cmdLoaded = 'loaded';
   cmdKill = 'kill';
-  cmdNeedIdBlock = 'needidblock';
-  cmdThreadIdRange = 'threadidrange';
   cmdSpawn = 'spawn';
   cmdLoad = 'load';
   cmdRun = 'run';
@@ -172,17 +170,6 @@ Type
     Class function Create: TWorkerLoadedCommand; static; reintroduce;
   end;
 
-  // Sent to notify main thread that a new range of IDs is needed.
-  TWorkerNeedIdBlockCommand = class external name 'Object' (TWorkerCommand)
-    Current : NativeInt;
-  end;
-
-  { TWorkerNeedIdBlockCommandHelper }
-
-  TWorkerNeedIdBlockCommandHelper = class helper for TWorkerNeedIdBlockCommand
-    Class function CommandName : string; static;
-    Class function Create(aCurrent : NativeInt): TWorkerNeedIdBlockCommand; static; reintroduce;
-  end;
 
 
   // Sent to notify main thread that a new thread must be started.
@@ -283,18 +270,6 @@ Type
   end;
 
 
-
-  // Sent to worker with new range of thread IDs.
-  TWorkerThreadIDRangeCommand = class external name 'Object' (TWorkerCommand)
-    RangeStart : NativeInt;
-  end;
-
-  { TWorkerThreadIDRangeCommandHelper }
-
-  TWorkerThreadIDRangeCommandHelper = class helper for TWorkerThreadIDRangeCommand
-    Class function CommandName : string; static;
-    class function Create(aRangeStart: NativeInt): TWorkerThreadIDRangeCommand;  static; reintroduce;
-  end;
 
 
 
@@ -425,33 +400,6 @@ begin
   Result.Arguments:=aArgs;
 end;
 
-{ TWorkerThreadIDRangeCommandHelper }
-
-class function TWorkerThreadIDRangeCommandHelper.CommandName: string;
-begin
-  Result:=cmdThreadIdRange;
-end;
-
-class function TWorkerThreadIDRangeCommandHelper.Create(aRangeStart: NativeInt
-  ): TWorkerThreadIDRangeCommand;
-begin
-  Result:=TWorkerThreadIDRangeCommand(TWorkerCommand.NewWorker(CommandName));
-  Result.RangeStart:=aRangeStart;
-end;
-
-{ TWorkerNeedIdBlockCommandHelper }
-
-class function TWorkerNeedIdBlockCommandHelper.CommandName: string;
-begin
-  Result:=cmdNeedIdBlock;
-end;
-
-class function TWorkerNeedIdBlockCommandHelper.Create(aCurrent: NativeInt
-  ): TWorkerNeedIdBlockCommand;
-begin
-  Result:=TWorkerNeedIdBlockCommand(TWorkerCommand.NewWorker(CommandName));
-  Result.Current:=aCurrent;
-end;
 
 
 { TWorkerLoadedCommandHelper }
