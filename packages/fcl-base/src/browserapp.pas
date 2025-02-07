@@ -95,7 +95,6 @@ procedure ReloadParamStrings;
 Var
   ParsLine : String;
   Pars : Array of String;
-  I : integer;
 
 begin
   ParsLine:=Copy(window.location.hash,2);
