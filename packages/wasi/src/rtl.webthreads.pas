@@ -292,9 +292,11 @@ Type
 
     // Proposed WASI standard, modeled after POSIX pthreads.
     function thread_spawn(start_arg : longint) : longint; virtual; abstract;
+    // These are extensions
     Function thread_detach(thread_id : longint) : Integer; virtual; abstract;
     Function thread_cancel(thread_id : longint) : Integer; virtual; abstract;
-    Function thread_self() : Integer; virtual; abstract;
+    Function thread_self() : Integer; virtual;
+    Function thread_main() : Integer; virtual;
   Public
     Function ImportName : String; override;
     procedure FillImportObject(aObject: TJSObject); override;
@@ -497,6 +499,34 @@ end;
 
 
 { TWasmThreadSupport }
+
+function TWasmThreadSupport.thread_self(): Integer;
+
+Type
+  TGetThreadIDFunction = Function : Longint;
+var
+  F : TGetThreadIDFunction;
+begin
+  F:=TGetThreadIDFunction(InstanceExports['GetSelfThread']);
+  if Assigned(F) then
+    Result:=F()
+  else
+    Result:=0;
+end;
+
+function TWasmThreadSupport.thread_main: Integer;
+
+Type
+  TGetThreadIDFunction = Function : Longint;
+var
+  F : TGetThreadIDFunction;
+begin
+  F:=TGetThreadIDFunction(InstanceExports['GetMainThread']);
+  if Assigned(F) then
+    Result:=F()
+  else
+    Result:=0;
+end;
 
 function TWasmThreadSupport.ImportName: String;
 begin

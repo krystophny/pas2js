@@ -74,7 +74,6 @@ Type
     function thread_spawn(start_arg : longint) : longint; override;
     Function thread_detach(thread_id : longint) : Integer; override;
     Function thread_cancel(thread_id : longint) : Integer; override;
-    Function thread_self() : Integer; override;
   Protected
     FIdleWorkers : Array of TWasmThread;
     FBusyWorkers : Array of TWasmThread;
@@ -353,12 +352,6 @@ begin
   if thread_id=-1 then;
   Result:=-1;
 end;
-
-function TThreadController.thread_self: Integer;
-begin
-  Result:=-1;
-end;
-
 
 procedure TThreadController.SendLoadCommands;
 

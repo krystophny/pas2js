@@ -77,7 +77,6 @@ Type
     function thread_spawn(start_arg : longint) : longint; override;
     Function thread_detach(thread_id : Integer) : Integer; override;
     Function thread_cancel(thread_id : Integer) : Integer; override;
-    Function thread_self() : Integer; override;
   Public
     // Handle incoming command
     Procedure HandleCommand(aCommand : TWorkerCommand); override;
@@ -332,10 +331,6 @@ begin
   if thread_id=0 then ;
 end;
 
-function TWorkerThreadSupport.thread_self: Integer;
-begin
-  Result:=0;
-end;
 
 procedure TWorkerThreadSupport.SendLoaded;
 
