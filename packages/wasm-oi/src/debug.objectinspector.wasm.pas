@@ -21,7 +21,7 @@ unit debug.objectinspector.wasm;
 interface
 
 uses
-  Classes, SysUtils, js, typinfo, debug.objectinspector.html, wasm.debuginspector.shared, wasienv;
+  SysUtils, js, typinfo, debug.objectinspector.html, wasm.debuginspector.shared, wasienv;
 
 
 type

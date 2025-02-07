@@ -19,10 +19,6 @@ unit wasm.debuginspector.shared;
 
 interface
 
-{$IFDEF PAS2JS}
-uses typinfo, rtti;
-{$ENDIF}
-
 Const
   // API return values
   WASMOI_SUCCESS         = 0;

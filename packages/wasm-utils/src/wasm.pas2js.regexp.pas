@@ -20,7 +20,7 @@ unit wasm.pas2js.regexp;
 interface
 
 uses
-  sysutils, js, wasienv, weborworker, wasm.regexp.shared, types;
+  sysutils, js, wasienv, wasm.regexp.shared, types;
 
 Type
   PByte = TWasmPointer;
@@ -57,7 +57,6 @@ Type
 
   TWasmRegExpAPI = class(TImportExtension)
   Private
-    FLogAPICalls: Boolean;
     FNextID : TWasmRegexpID;
     FRegExps : TJSObject;
     function GetLogAPICalls: Boolean;
