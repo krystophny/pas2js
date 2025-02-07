@@ -360,7 +360,7 @@ begin
       enc:='utf-16be';
     FDecoderUTF16:=TJSTextDecoder.New(enc);
     end;
-  Result:=FDecoderUTF16.decode(SharedToNonShared(Arr));
+  Result:=FDecoderUTF16.decode(SharedToNonShared(Arr,True));
 end;
 
 function TJSObjectBridge.DecodeUTF8Buffer(Arr: TJSUint8Array): String;
