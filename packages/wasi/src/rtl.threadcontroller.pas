@@ -27,12 +27,10 @@ Type
     function GetLoaded: Boolean;
     function GetLoadSent: Boolean;
     function GetThreadID: Integer;
-    function GetThreadIDRange: Integer;
     function GetThreadInfo: TThreadinfo;
     procedure SetLoaded(AValue: Boolean);
     procedure SetLoadSent(AValue: Boolean);
     procedure SetThreadID(AValue: Integer);
-    procedure SetThreadIDRange(AValue: Integer);
     procedure SetThreadInfo(AValue: TThreadinfo);
   Public
     Class function Create(aScript : String) : TWasmThread; reintroduce; static;
@@ -41,7 +39,6 @@ Type
     Property Loaded : Boolean Read GetLoaded Write SetLoaded;
     Property ThreadInfo : TThreadinfo Read GetThreadInfo Write SetThreadInfo;
     Property ThreadID : Integer Read GetThreadID Write SetThreadID;
-    Property ThreadIDRange : Integer Read GetThreadIDRange Write SetThreadIDRange;
   end;
 
 
@@ -113,6 +110,8 @@ Type
     procedure SendLoadCommands;
     // Send a command to all workers
     procedure SendCommandToAllWorkers(aCommand : TWorkerCommand);
+    // Send a command to a specific thread. TWorkerCommand has the thread ID.
+    procedure SendCommandToThread(aCommand : TWorkerCommand);
     // Name of worker script
     Property WorkerScript : String Read FWorkerScript;
     // Initial number of threads, set by constructor
@@ -140,7 +139,6 @@ begin
   Result.ThreadID:=-1;
   Result.Loaded:=False;
   Result.LoadSent:=False;
-  Result.ThreadIDRange:=-1;
   Result.ThreadInfo:=Default(TThreadInfo);
 end;
 
@@ -172,16 +170,6 @@ begin
   Result:=ThreadInfo.ThreadID;
 end;
 
-function TWasmThreadHelper.GetThreadIDRange: Integer;
-Var
-  S : JSValue;
-begin
-  S:=Properties['FThreadIDRange'];
-  if isNumber(S) then
-    Result:=Integer(S)
-  else
-    Result:=0;
-end;
 
 function TWasmThreadHelper.GetThreadInfo: TThreadinfo;
 Var
@@ -211,10 +199,6 @@ begin
   ThreadInfo.ThreadID:=aValue;
 end;
 
-procedure TWasmThreadHelper.SetThreadIDRange(AValue: Integer);
-begin
-  Properties['FThreadIDRange']:=aValue
-end;
 
 procedure TWasmThreadHelper.SetThreadInfo(AValue: TThreadinfo);
 begin
@@ -278,7 +262,7 @@ Var
   WLC: TWorkerLoadCommand;
 
 begin
-  WLC:=TWorkerLoadCommand.Create(aThreadWorker.ThreadIDRange, Host.PreparedStartDescriptor.Module, Host.PreparedStartDescriptor.Memory);
+  WLC:=TWorkerLoadCommand.Create(Host.PreparedStartDescriptor.Module, Host.PreparedStartDescriptor.Memory);
   aThreadWorker.SendCommand(WLC);
   aThreadWorker.LoadSent:=True;
 end;
@@ -377,6 +361,15 @@ begin
     WT.postMessage(aCommand);
   For WT in FBusyWorkers do
     WT.postMessage(aCommand);
+end;
+
+procedure TThreadController.SendCommandToThread(aCommand: TWorkerCommand);
+var
+  W : TJSWorker;
+begin
+  W:=TJSWorker(FThreads[aCommand.ThreadID]);
+  if Assigned(W) then
+    W.postMessage(aCommand);
 end;
 
 procedure TThreadController.RunTimeOut(aInfo: TThreadInfo; aInterval: Integer);
