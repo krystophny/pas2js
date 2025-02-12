@@ -113,6 +113,7 @@ Type
     Function ImportName: String; override;
     function FindObject(ObjId: TJOBObjectID): TJSObject; virtual;
     function FindGlobalObject(const aName: string): TJOBObjectID; virtual; // 0=not found
+    function RegisterLocalObjectAt(Obj: TJSObject; aObjectID : TJOBObjectID) : Boolean; virtual;
     function RegisterLocalObject(Obj: TJSObject): TJOBObjectID; virtual;
     Function RegisterGlobalObject(Obj: JSValue; const aName: string): TJOBObjectID; virtual;
     Procedure RegisterObjectFactory(const aName : string; aFunc : TObjectFactory); overload;
@@ -123,6 +124,19 @@ Type
     property CallbackHandler: TJOBCallback read FCallbackHandler write FCallbackHandler;
     property OnCallBackJSError : TCallbackErrorJSEventHandler read FOnCallBackJSError Write FOnCallBackJSError;
     property OnCallBackPasError : TCallbackErrorPasEventHandler read FOnCallBackPasError Write FOnCallBackPasError;
+  end;
+
+  { TJSThreadAwareObjectBridge }
+  TShareObjectEvent = procedure (aObjectID: TJOBObjectID; aThreadID: Longint; aObj : TJSObject) of object;
+
+  TJSThreadAwareObjectBridge = class(TJSObjectBridge)
+  private
+    FOnShareObject: TShareObjectEvent;
+  Protected
+    function ShareObject(aObjectID: TJOBObjectID; aThreadID: Longint): TJOBResult; virtual;
+  public
+    procedure FillImportObject(aObject: TJSObject); override;
+    Property OnShareObject : TShareObjectEvent Read FOnShareObject Write FOnShareObject;
   end;
 
 Implementation
@@ -315,6 +329,18 @@ begin
       exit(0);
     Result:=NativeInt(FGlobalNames[aName]);
     end;
+end;
+
+function TJSObjectBridge.RegisterLocalObjectAt(Obj: TJSObject; aObjectID: TJOBObjectID): Boolean;
+var
+  lExisting : TJSObject;
+begin
+  lExisting:=TJSObject(FLocalObjects[aObjectID]);
+  Result:=Not assigned(lExisting);
+  if Result then
+    FLocalObjects[aObjectID]:=Obj
+  else
+    Result:=(Obj=lExisting); // It's OK if it is the same object
 end;
 
 function TJSObjectBridge.RegisterLocalObject(Obj: TJSObject): TJOBObjectID;
@@ -1245,6 +1271,32 @@ begin
   Console.debug(FLocalObjects);
   Console.Log(S,'Global objects:');
   Console.debug(FGlobalObjects);
+end;
+
+{ TJSThreadAwareObjectBridge }
+
+function TJSThreadAwareObjectBridge.ShareObject(aObjectID : TJOBObjectID; aThreadID : Longint) : TJOBResult;
+
+var
+  Obj : TJSObject;
+
+begin
+  Result:=JOBResult_None;
+  Obj:=FindObject(aObjectID);
+  if not Assigned(Obj) then
+    exit(JOBResult_UnknownObjId);
+  if not Assigned(OnShareObject) then
+    exit(JOBResult_UnImplemented);
+  OnShareObject(aObjectID,aThreadId,Obj);
+  Result:=JOBResult_Success;
+end;
+
+
+
+procedure TJSThreadAwareObjectBridge.FillImportObject(aObject: TJSObject);
+begin
+  inherited FillImportObject(aObject);
+  aObject[JOBFn_ShareObject]:=@ShareObject;
 end;
 
 end.  
