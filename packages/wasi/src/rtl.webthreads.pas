@@ -193,14 +193,13 @@ Type
   public
     Memory : TJSWebAssemblyMemory;
     Module : TJSWebAssemblyModule;
-    ThreadRangeStart : NativeInt;
   end;
 
   { TWorkerLoadCommandHelper }
 
   TWorkerLoadCommandHelper = class helper for TWorkerLoadCommand
     Class function CommandName : string; static;
-    Class function Create(aStartThreadIdRange : integer; aModule : TJSWebAssemblyModule; aMemory : TJSWebAssemblyMemory): TWorkerLoadCommand; static;reintroduce;
+    Class function Create(aModule : TJSWebAssemblyModule; aMemory : TJSWebAssemblyMemory): TWorkerLoadCommand; static;reintroduce;
   end;
 
 
@@ -379,12 +378,10 @@ begin
   Result:=cmdLoad;
 end;
 
-class function TWorkerLoadCommandHelper.Create(aStartThreadIdRange: integer;
-  aModule: TJSWebAssemblyModule; aMemory: TJSWebAssemblyMemory
+class function TWorkerLoadCommandHelper.Create(aModule: TJSWebAssemblyModule; aMemory: TJSWebAssemblyMemory
   ): TWorkerLoadCommand;
 begin
   Result:=TWorkerLoadCommand(TWorkerCommand.NewWorker(CommandName));
-  Result.ThreadRangeStart:=aStartThreadIdRange;
   Result.Memory:=aMemory;
   Result.Module:=aModule;
 end;
