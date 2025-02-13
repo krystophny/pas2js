@@ -87,6 +87,9 @@ Type
   Protected
     procedure RegisterGlobalObjects; virtual;
     procedure SetInstanceExports(const AValue: TWasiExports); override;
+    // IDs
+    function GetObjectID: TJOBObjectID;
+    procedure ReleaseJobID(aID: TJOBObjectID);
     function DecodeUTF16Buffer(Arr : TJSUint16Array) : String;
     function DecodeUTF8Buffer(Arr : TJSUint8Array) : String;
     function Invoke_JSResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP: NativeInt; out JSResult: JSValue): TJOBResult; virtual;
@@ -101,6 +104,7 @@ Type
     function Invoke_StringResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP, ResultP: NativeInt): TJOBResult; virtual;
     function Invoke_ObjectResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP, ResultP: NativeInt): TJOBResult; virtual;
     function Create_JSObject(NameP, NameLen,ArgsP : NativeInt): TJOBObjectID; virtual;
+    function Create_JSObjectAt(NameP, NameLen,ArgsP : NativeInt; aObjID : TJOBObjectID): Longint; virtual;
     function Invoke_JSValueResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP, ResultP: NativeInt): TJOBResult; virtual;
     function Invoke_ArrayStringResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP, ResultP: NativeInt): TJOBResult; virtual;
     function ReleaseObject(ObjId: TJOBObjectID): TJOBResult; virtual;
@@ -296,6 +300,7 @@ begin
   aObject[JOBFn_InvokeJSValueResult]:=@Invoke_JSValueResult;
   aObject[JOBFn_InvokeArrayStringResult]:=@Invoke_ArrayStringResult;
   aObject[JOBFn_CreateObject]:=@Create_JSObject;
+  aObject[JOBFn_CreateObjectAt]:=@Create_JSObjectAt;
   aObject[JOBFn_SetMemFromArray]:=@SetMemFromArray;
   aObject[JOBFn_SetArrayFromMem]:=@SetArrayFromMem;
   aObject[JOBFn_DebugObject]:=@DebugObject;
@@ -645,7 +650,45 @@ begin
   Result:=TJSFunction(fn);
 end;
 
+procedure TJSObjectBridge.ReleaseJobID(aID : TJOBObjectID);
+
+Type
+  TReleaseObjectIDProc = procedure(aID : TJOBObjectID);
+
+var
+  lProc : TReleaseObjectIDProc;
+
+begin
+  lProc:=TReleaseObjectIDProc(InstanceExports.functions['AllocateJobObjectID']);
+  if Not assigned(lProc) then
+    Raise EJOBBridge.Create('No function to release job ID');
+  lProc(aID);
+end;
+
+function TJSObjectBridge.GetObjectID : TJOBObjectID;
+
+Type
+  TAllocateObjectIDFunc = Function : TJOBObjectID;
+
+var
+  lFunc : TAllocateObjectIDFunc;
+
+begin
+  lFunc:=TAllocateObjectIDFunc(InstanceExports.functions['AllocateJobObjectID']);
+  if Not assigned(lFunc) then
+    Raise EJOBBridge.Create('No function to allocate job ID');
+  Result:=lFunc();
+end;
+
 function TJSObjectBridge.Create_JSObject(NameP, NameLen, ArgsP: NativeInt): TJOBObjectID;
+
+begin
+  Result:=GetObjectID;
+  if Create_JSObjectAt(NameP,NameLen,ArgsP,Result)<>JOBResult_Success then
+    Result:=0;
+end;
+
+function TJSObjectBridge.Create_JSObjectAt(NameP, NameLen, ArgsP: NativeInt; aObjID: TJOBObjectID): Longint;
 
 var
   ObjName : String;
@@ -672,7 +715,7 @@ begin
     begin
     fn:=GetObjectConstructor(ObjName);
     if not Assigned(fn) then
-      exit(0);
+      exit(JOBResult_None);
     if ArgsP=0 then
       JSResult:=NewObj(fn,nil)
     else
@@ -682,9 +725,12 @@ begin
       end;
     end;
   if not (jsTypeOf(JSResult)='object') then
-    Result:=0
+    Result:=JOBResult_None
   else
-    Result:=RegisterLocalObject(TJSObject(JSResult));
+    begin
+    RegisterLocalObjectAt(TJSObject(JSResult),aObjID);
+    Result:=JOBResult_Success;
+    end;
   {$IFDEF VerboseJOB}
   writeln('Create_JSObject ObjName="',ObjName,'" result: ',Result);
   {$ENDIF}
