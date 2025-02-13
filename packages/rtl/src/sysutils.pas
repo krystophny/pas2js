@@ -3076,7 +3076,7 @@ end;
 
 constructor EJSException.create(aJSError: TJSError);
 begin
-  Inherited CreateFmt('Javascript %s exception : %s',[JS.JSClassName(aJSError),aJSError.Message]);
+  Inherited CreateFmt('Javascript %s exception : %s',[{$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.JSClassName(aJSError),aJSError.Message]);
 end;
 
 Const

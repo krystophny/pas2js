@@ -441,7 +441,11 @@ function UnionRectF(out Rect: TRectF; const R1, R2: TRectF): Boolean;
 
 implementation
 
+{$IFDEF FPC_DOTTEDUNITS}
+uses System.Math;
+{$ELSE FPC_DOTTEDUNITS}
 uses math;
+{$ENDIF FPC_DOTTEDUNITS}
 
 function RectCenter(var R: TRect; const Bounds: TRect): TRect;
 

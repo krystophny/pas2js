@@ -124,6 +124,13 @@ Type
   TJSPermissions = BrowserApi.WebOrWorker.TJSPermissions;
   TJSRequest = BrowserApi.WebOrWorker.TJSRequest;
   TJSPerformance = BrowserApi.WebOrWorker.TJSPerformance;
+  TCanvasCoordType = BrowserApi.WebOrWorker.TCanvasCoordType;
+  TJSCanvasGradient = BrowserApi.WebOrWorker.TJSCanvasGradient;
+  TJSCanvasPattern = BrowserApi.WebOrWorker.TJSCanvasPattern;
+  TJSPath2D = BrowserApi.WebOrWorker.TJSPath2D;
+  TJSImageBitmap = BrowserApi.WebOrWorker.TJSImageBitmap;
+  TJSOffscreenCanvasRenderingContext2D = BrowserApi.WebOrWorker.TJSOffscreenCanvasRenderingContext2D;
+  TJSHTMLOffscreenCanvasElement = BrowserApi.WebOrWorker.TJSHTMLOffscreenCanvas;
 {$ELSE}
   TJSServiceWorker = weborworker.TJSServiceWorker;
   TJSServiceWorkerRegistration = weborworker.TJSServiceWorkerRegistration;
@@ -197,6 +204,13 @@ Type
   TJSRequest = webOrworker.TJSRequest;
   TJSAbortController = webOrworker.TJSAbortController;
   TJSPerformance = WebOrWorker.TJSPerformance;
+  TCanvasCoordType = weborworker.TCanvasCoordType;
+  TJSCanvasGradient = weborworker.TJSCanvasGradient;
+  TJSCanvasPattern = weborworker.TJSCanvasPattern;
+  TJSPath2D = weborworker.TJSPath2D;
+  TJSImageBitmap = weborworker.TJSImageBitmap;
+  TJSOffscreenCanvasRenderingContext2D = weborworker.TJSOffscreenCanvasRenderingContext2D;
+  TJSHTMLOffscreenCanvasElement = weborworker.TJSHTMLOffscreenCanvas;
 {$ENDIF}
   TJSMessagePortArray = TJSMessagePortDynArray;
   TEventListenerEvent = TJSEvent;
@@ -2547,11 +2561,6 @@ Type
   end;
 
 
-  TCanvasCoordType = weborworker.TCanvasCoordType;
-
-  TJSCanvasGradient = weborworker.TJSCanvasGradient;
-  TJSCanvasPattern = weborworker.TJSCanvasPattern;
-  TJSPath2D = weborworker.TJSPath2D;
   TJSCanvasRenderingContext2D = class external name 'CanvasRenderingContext2D' (TJSBaseCanvasRenderingContext2D)
   private
     FCanvas: TJSHTMLCanvasElement; external name 'canvas';
@@ -2560,12 +2569,6 @@ Type
     procedure drawFocusIfNeeded(aPath : TJSPath2D; aElement : TJSElement); overload;
     property canvas : TJSHTMLCanvasElement Read FCanvas;
   end;
-
-
-  TJSImageBitmap = weborworker.TJSImageBitmap;
-  TJSOffscreenCanvasRenderingContext2D = weborworker.TJSOffscreenCanvasRenderingContext2D;
-  TJSHTMLOffscreenCanvasElement = weborworker.TJSHTMLOffscreenCanvas;
-
 
 
   { TJSHTMLIFrameElement }
