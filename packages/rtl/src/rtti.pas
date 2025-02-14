@@ -1328,7 +1328,11 @@ end;
 function TValue.AsExtended: Extended;
 begin
   if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.isNumber(GetData) then
-    Result:=Double(GetData)
+    begin
+    Result:=Double(GetData);
+    if TypeInfo=System.TypeInfo(Currency) then
+      Result:=Result/10000;
+    end
   else
     raise EInvalidCast.Create(SErrInvalidTypecast);
 end;
