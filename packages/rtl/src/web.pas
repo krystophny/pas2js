@@ -39,6 +39,9 @@ Type
   TJSElement = class;
   TJSCSSStyleSheet = Class;
   TJSNodeFilter = Class;
+  TJSShadowRoot = class;
+  TJSAnimation = class;
+  TJSAnimationTimeline = class;
 
   TJSMouseEvent = Class;
   TJSWheelEvent = Class;
@@ -406,7 +409,31 @@ Type
   end;
 
   TJSClientRectArray = array of TJSClientRect;
-  
+
+  TJSCheckVisibilityOptions = class external name 'Object' (TJSObject)
+    contentVisibilityAuto : Boolean;
+    opacityProperty : Boolean;
+    visibilityProperty : Boolean;
+    checkOpacity : Boolean;
+    checkVisibility : Boolean;
+  end;
+
+  TJSAttachShadowOptions = class external name 'Object' (TJSObject)
+    mode : string;
+    clonable : boolean;
+    delegatesFocus : boolean;
+    serializable : boolean;
+    slotAssignment : string;
+  end;
+
+  TJSAnimateOptions = class external name 'Object' (TJSObject)
+    id : string;
+    rangeEnd: JSValue;
+    rangeStart : JSValue;
+    timeline : TJSAnimationTimeline;
+
+  end;
+
   TJSElement = class external name 'Element' (TJSNode)
   Private
     FAttributes : TJSNamedNodeMap; external name 'attributes';
@@ -439,10 +466,20 @@ Type
     outerHTML : string;
     scrollLeft : NativeInt;
     scrollTop : NativeInt;
+    function animate(keyframes : TJSArray; options : TJSAnimateOptions) : TJSAnimation;
     procedure append(aText : String); overload;
     procedure append(aNode : TJSElement); overload;
     procedure append(aText : String; aNode : TJSElement); varargs; overload;
     procedure append(aNode1,aNode2: TJSElement); varargs; overload;
+    function attachShadow : TJSShadowRoot;
+    function attachShadow(aOptions : TJSAttachShadowOptions) : TJSShadowRoot;
+    procedure before(aText : String); overload;
+    procedure before(aText : String; aNode : TJSElement); varargs; overload;
+    procedure before(aNode : TJSElement); overload;
+    procedure before(aNode1,aNode2 : TJSElement); overload; varargs;
+    function checkVisibility : boolean;
+    function checkVisibility(Options : TJSCheckVisibilityOptions) : Boolean;
+    function closest(aSelector : String) : TJSElement;
     function getAttribute(aName : string) : string;
     function getAttributeNode(aName : string) : TJSAttr;
     function getAttributeNodeNS(aNameSpace, aName : string) : TJSAttr;
@@ -3303,6 +3340,41 @@ Type
     procedure observe(aTarget : TJSElement; aOptions :TJSHTMLResizeObserverOptions);
     procedure unobserve(aTarget : TJSElement);
   end;
+
+  TJSAnimationTimeline = class external name 'AnimationTimeline' (TJSObject)
+    currentTime : nativeInt;
+  end;
+
+  TJSAnimationTiming = class external name 'Object' (TJSObject)
+    delay : NativeInt;
+    direction : string;
+    duration: NativeInt;
+    durationString : string external name 'duration';
+    easing : string;
+    endDelay : NativeInt;
+    fill : string;
+    iterations : NativeInt;
+    iterationStart : NativeInt;
+  end;
+
+  TJSAnimationEffect = class external name 'AnimationEffect' (TJSObject)
+    getTiming : TJSAnimationTiming;
+  end;
+
+  TJSAnimation = class external name 'Animation' (TJSObject)
+    currentTime : nativeInt;
+    effect : TJSAnimationEffect;
+    id : string;
+    overallProgress : double;
+    pending : boolean;
+    playbackRate : integer;
+    playState : string;
+    ready : TJSPromise;
+    replaceState : String;
+    startTime : double;
+    timeline  : TJSAnimationTimeline;
+  end;
+
 
 var
   document : TJSDocument; external name 'document';
