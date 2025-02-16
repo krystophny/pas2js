@@ -494,6 +494,11 @@ type
     property ExternalName: String read GetExternalName;
   end;
 
+  { TRttiFloatType }
+
+  TRttiFloatType = class(TRttiType)
+  end;
+
   { TRttiOrdinalType }
 
   TRttiOrdinalType = class(TRttiType)
@@ -783,10 +788,10 @@ var
     nil, // tkUnknown
     TRttiOrdinalType, // tkInteger
     TRttiOrdinalType, // tkChar
-    TRttiType, // tkString
+    TRttiStringType, // tkString
     TRttiEnumerationType, // tkEnumeration
     TRttiType, // tkSet
-    TRttiType, // tkDouble
+    TRttiFloatType, // tkDouble
     TRttiType, // tkBool
     TRttiProcedureType, // tkProcVar
     TRttiMethodType, // tkMethod
@@ -1359,25 +1364,63 @@ begin
 end;
 
 function TValue.ToString(const AFormatSettings: TFormatSettings): String;
+var
+  v: JSValue;
+  Cls: TClass;
 begin
   if IsEmpty then
     Exit('(empty)');
 
   case Kind of
+    tkInteger: Result := IntToStr(AsNativeInt);
+    tkChar,
+    tkString: Result := AsString;
+    tkEnumeration: Result := GetEnumName(TTypeInfoEnum(TypeInfo), AsOrdinal);
+    tkSet: Result := SetToString(TypeInfo, AsJSValue, True);
+    tkDouble: Result := FloatToStr(AsExtended, AFormatSettings);
     tkBool: Result := BoolToStr(AsBoolean, True);
+    tkProcVar: Result:='(function '+TypeInfo.Name+')';
+    tkMethod: Result:='(method '+str(TTypeInfoMethodVar(TypeInfo).MethodKind)+' '+TypeInfo.Name+')';
+    tkArray:
+      begin
+      // todo: multi Dims
+      Result:='(array[0..'+str(GetArrayLength)+'] of '+TTypeInfoStaticArray(TypeInfo).ElType.Name+')';
+      end;
+    tkDynArray:
+      Result:='(dynamic array[0..'+str(GetArrayLength)+'] of '+TTypeInfoDynArray(TypeInfo).ElType.Name+')';
+    tkRecord: Result := '(' + TypeInfo.Name + ' record)';
     tkClass:
-    begin
       if Assigned(AsObject) then
         Result := AsObject.ClassName
       else
         Result := '(empty)';
-    end;
-    tkClassRef: Result := AsClass.ClassName;
-    tkEnumeration: Result := GetEnumName(TTypeInfoEnum(TypeInfo), AsOrdinal);
-    tkFloat: Result := FloatToStr(AsExtended, AFormatSettings);
-    tkInteger: Result := IntToStr(AsNativeInt);
-    tkChar,
-    tkString: Result := AsString;
+    tkClassRef:
+      begin
+      Cls:=AsClass;
+      if Assigned(Cls) then
+        Result := '(class '''+Cls.ClassName+''')'
+      else
+        Result:='<empty class ref>';
+      end;
+    tkPointer:
+      if AsJSValue=nil then
+        Result:='(pointer nil)'
+      else
+        Result := '(pointer)';
+    tkJSValue:
+      begin
+      v:=AsJSValue;
+      if v=nil then
+        Result := '(jsvalue nil)'
+      else if isNumber(v) or isString(v) or isUndefined(v) or isBoolean(v) then
+        Result := '(jsvalue '+String(v)+')'
+      else
+        Result := '(jsvalue)';
+      end;
+    tkRefToProcVar: Result := '(variable of procedure type '+TypeInfo.Name+')';
+    tkInterface: Result := '(interface '+TypeInfo.Name+')';
+    tkHelper: Result := '(helper '+TypeInfo.Name+')';
+    tkExtClass: Result := '(external class '+TypeInfo.Name+')';
   else
     Result := '';
   end;
@@ -1957,7 +2000,6 @@ begin
 end;
 
 function TRttiArrayType.GetDimension(aIndex: SizeInt): TRttiType;
-
 begin
   if (aIndex >= DimensionCount) then
     raise ERtti.CreateFmt(SErrDimensionOutOfRange, [aIndex, DimensionCount]);
@@ -1965,7 +2007,6 @@ begin
     Result:=TRttiArrayType(ElementType).Dimensions[aIndex-1]
   else
     Result :=ElementType;
-//  Result:=StaticArrayTypeInfo.Dims[aIndex];
 end;
 
 function TRttiArrayType.GetElementType: TRttiType;

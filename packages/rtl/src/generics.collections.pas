@@ -1911,7 +1911,7 @@ end;
 procedure TQueue<T>.Rebase;
 
 Var
-  I,Spare : integer;
+  I : integer;
 
 begin
   if FLow>0 then

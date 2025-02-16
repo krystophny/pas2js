@@ -507,6 +507,10 @@ function GetRawInterfaceProp(Instance: TObject; PropInfo: TTypeMemberProperty): 
 procedure SetRawInterfaceProp(Instance: TObject; const PropName: string; const Value: Pointer);
 procedure SetRawInterfaceProp(Instance: TObject; PropInfo: TTypeMemberProperty; const Value: Pointer);
 
+function SetToString(TypeInfo: TTypeInfo; Value: JSValue; Brackets: Boolean) : String;
+function SetToString(PropInfo: TTypeMemberProperty; Value: JSValue; Brackets: Boolean) : String;
+function SetToString(PropInfo: TTypeMemberProperty; Value: JSValue) : String;
+
 implementation
 
 function GetTypeName(TypeInfo: TTypeInfo): string;
@@ -1282,31 +1286,9 @@ function GetSetProp(Instance: TObject; const PropInfo: TTypeMemberProperty
   ): String;
 var
   o: TJSObject;
-  key, Value: String;
-  n: NativeInt;
-  TIEnum: TTypeInfoEnum;
-  TISet: TTypeInfoSet;
 begin
-  Result:='';
-  // get enum type if available
-  TISet:=PropInfo.TypeInfo as TTypeInfoSet;
-  TIEnum:=nil;
-  if TISet.CompType is TTypeInfoEnum then
-    TIEnum:=TTypeInfoEnum(TISet.CompType);
-  // read value
   o:=TJSObject(GetJSValueProp(Instance,PropInfo));
-  // a set is a JS object, where included element is stored as: o[ElementDecimal]=true
-  for Key in o do
-  begin
-    n:=parseInt(Key,10);
-    if (TIEnum<>nil) and (n>=TIEnum.MinValue) and (n<=TIEnum.MaxValue) then
-      Value:=TIEnum.EnumType.IntToName[n]
-    else
-      Value:=str(n);
-    if Result<>'' then Result:=Result+',';
-    Result:=Result+Value;
-  end;
-  Result:='['+Result+']';
+  Result:=SetToString(PropInfo,o,true);
 end;
 
 function GetSetPropArray(Instance: TObject; const PropName: String
@@ -1620,6 +1602,44 @@ procedure SetRawInterfaceProp(Instance: TObject; PropInfo: TTypeMemberProperty;
   const Value: Pointer);
 begin
   SetJSValueProp(Instance,PropInfo,Value);
+end;
+
+function SetToString(TypeInfo: TTypeInfo; Value: JSValue; Brackets: Boolean): String;
+var
+  key, v: String;
+  n: NativeInt;
+  TIEnum: TTypeInfoEnum;
+  TISet: TTypeInfoSet;
+begin
+  Result:='';
+  TISet:=TypeInfo as TTypeInfoSet;
+  // get enum type if available
+  TIEnum:=nil;
+  if TISet.CompType is TTypeInfoEnum then
+    TIEnum:=TTypeInfoEnum(TISet.CompType);
+  // a set is a JS object, where included element is stored as: o[ElementDecimal]=true
+  for Key in Value do
+  begin
+    n:=parseInt(Key,10);
+    if (TIEnum<>nil) and (n>=TIEnum.MinValue) and (n<=TIEnum.MaxValue) then
+      v:=TIEnum.EnumType.IntToName[n]
+    else
+      v:=str(n);
+    if Result<>'' then Result:=Result+',';
+    Result:=Result+v;
+  end;
+  if Brackets then
+    Result:='['+Result+']';
+end;
+
+function SetToString(PropInfo: TTypeMemberProperty; Value: JSValue; Brackets: Boolean): String;
+begin
+  Result:=SetToString(PropInfo.TypeInfo, Value, Brackets);
+end;
+
+function SetToString(PropInfo: TTypeMemberProperty; Value: JSValue): String;
+begin
+  Result:=SetToString(PropInfo,Value,False);
 end;
 
 function GetFloatProp(Instance: TObject; PropInfo: TTypeMemberProperty): Double;
