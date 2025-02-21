@@ -1145,6 +1145,654 @@ type
     class function xor_(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer; external name 'xor';
   end;
 
+  TJSLocalesOfOptions = class external name 'Object' (TJSObject)
+  public
+    localeMatcher : string;
+  end;
+
+  TJSFormatRangePart = class external name 'Object' (TJSObject)
+  private
+    FType : string; external name 'string';
+    FValue : string; external name 'value';
+    FSource : string; external name 'source';
+  Public
+   property type_ : string read FType;
+   property value : string read FValue;
+   property source : string read FSource;
+  end;
+  TJSFormatRangePartArray = array of TJSFormatRangePart;
+
+  TJSFormatDatePart = class external name 'Object' (TJSObject)
+  private
+    FType : string; external name 'string';
+    FValue : string; external name 'value';
+  Public
+   property type_ : string read FType;
+   property value : string read FValue;
+  end;
+  TJSFormatDatePartArray = array of TJSFormatDatePart;
+
+  { TJSDateTimeResolvedOptions }
+
+  TJSDateTimeResolvedOptions = class external name 'Object' (TJSObject)
+  private
+    FCalendar: string; external name 'calendar';
+    FDateStyle: String; external name 'dateStyle';
+    FDay: string; external name 'day';
+    FDayPeriod: string; external name 'dayPeriod';
+    FEra: string; external name 'era';
+    FfractionalSecondDigits: Integer; external name 'fractionalSecondDigits';
+    FHour: string; external name 'hour';
+    FHour12: string; external name 'hour12';
+    FHourCycle: string; external name 'hourCycle';
+    FLocale: string; external name 'locale';
+    FMinute: string; external name 'minute';
+    FMonth: string; external name 'month';
+    FNumberingSystem: string; external name 'numberingSystem';
+    FSecond: string; external name 'second';
+    FTimeStyle: string; external name 'timeStyle';
+    FTimeZone: string; external name 'timeZone';
+    FtimeZoneName: string; external name 'timeZoneName';
+    FWeekday: string; external name 'weekday';
+    FYear: string; external name 'year';
+  Public
+    property locale : string read FLocale;
+    property calendar : string read FCalendar;
+    property numberingSystem : string read FNumberingSystem;
+    property timeZone : string read FTimeZone;
+    property hourCycle : string read FHourCycle;
+    property hour12 : string read FHour12;
+    property weekday : string read FWeekday;
+    property era : string read FEra;
+    property year : string read FYear;
+    property month : string read FMonth;
+    property day : string read FDay;
+    property hour : string read FHour;
+    property dayPeriod : string read FDayPeriod;
+    property minute :  string Read FMinute;
+    property second : string read FSecond;
+    property fractionalSecondDigits : Integer read FfractionalSecondDigits;
+    property timeZoneName : string read FtimeZoneName;
+    property dateStyle : String Read FDateStyle;
+    property timeStyle : string read FTimeStyle;
+  end;
+
+  TJSDateLocaleOptions = class external name 'Object' (TJSObject)
+  Public
+    localeMatcher : string;
+    locale : string;
+    calendar : string;
+    numberingSystem : string;
+    timeZone : string;
+    hourCycle : string;
+    hour12 : string;
+    weekday : string;
+    era : string;
+    year : string;
+    month : string;
+    day : string;
+    hour : string;
+    dayPeriod : string;
+    minute :  string;
+    second : string;
+    fractionalSecondDigits : Integer;
+    timeZoneName : string;
+    dateStyle : String;
+    timeStyle : string;
+  end;
+
+  TJSIntlDateTimeFormat = class external name 'Intl.DateTimeFormat' (TJSObject)
+  Public
+    constructor new ();
+    constructor new (locales : string);
+    constructor new (locales : string; Options : TJSDateLocaleOptions);
+    constructor new (locales : Array of string);
+    constructor new (locales : array of string; Options : TJSDateLocaleOptions);
+    class function supportedLocalesOf(locales : string) : TJSStringDynArray;
+    class function supportedLocalesOf(locales : string; Options: TJSLocalesOfOptions) : TJSStringDynArray;
+    function format(aDate : TJSDate) : string;
+    function formatRange(aStartDate, aEndDate : TJSDate) : string;
+    function formatRangeToParts(aStartDate, aEndDate : TJSDate) : TJSFormatRangePartArray;
+    function formatToParts(aStartDate, aEndDate : TJSDate) : TJSFormatDatePartArray;
+    function resolvedOptions : TJSDateTimeResolvedOptions;
+  end;
+
+  { TJSDisplayNamesOptions }
+
+  TJSDisplayNamesOptions = class external name 'Object' (TJSObject)
+  Public
+    locale : string ;
+    style : string ;
+    type_ : string ; external name 'type';
+    fallback : string ;
+    languageDisplay : string ;
+  end;
+
+  TJSIntlDisplayNamesResolvedOptions = class external name 'Object' (TJSObject)
+  private
+    FFallback: string; external name 'fallback';
+    FLanguageDisplay: string; external name 'languageDisplay';
+    FLocale: string; external name 'locale';
+    FStyle: string; external name 'style';
+    FType: string; external name 'type';
+  Public
+    property locale : string read FLocale;
+    property style : string read FStyle;
+    property type_ : string read FType;
+    property fallback : string read FFallback;
+    property languageDisplay : string read FLanguageDisplay;
+  end;
+
+  TJSIntlDisplayNames = class external name 'Intl.DisplayNames' (TJSObject)
+  Public
+    constructor new (locales : string; Options : TJSDisplayNamesOptions);
+    class function supportedLocalesOf(locales : string) : TStringDynArray;
+    class function supportedLocalesOf(locales : string; Options: TJSLocalesOfOptions) : TStringDynArray;
+    function of_ : string; external name 'of';
+    function resolvedOptions : TJSIntlDisplayNamesResolvedOptions;
+  end;
+
+  TJSDurationLocaleOptions = class external name 'Object' (TJSObject)
+  Public
+    localeMatcher : string;
+    style : string;
+    numberingSystem : string;
+    timeZone : string;
+    years : string;
+    yearsDisplay : string;
+    months : string;
+    monthsDisplay : string;
+    weeks : string;
+    weeksDisplay : string;
+    days : string;
+    daysDisplay : string;
+    hours : string;
+    hoursDisplay : string;
+    minutes : string;
+    minutesDisplay : string;
+    seconds : string;
+    secondsDisplay : string;
+    milliseconds : string;
+    millisecondsDisplay : string;
+    microseconds : string;
+    microsecondsDisplay : string;
+    nanoseconds : string;
+    nanosecondsDisplay : string;
+    fractionalDigits : byte;
+  end;
+
+  TJSFormatDurationPart = class external name 'Object' (TJSObject)
+  private
+    FType : string; external name 'string';
+    FValue : string; external name 'value';
+    FUnits : string; external name 'units';
+  Public
+   property type_ : string read FType;
+   property value : string read FValue;
+   property units : string read FUnits;
+  end;
+  TJSFormatDurationPartArray = array of TJSFormatDurationPart;
+
+  { TJSDurationResolvedOptions }
+
+  TJSDurationResolvedOptions = class external name 'Object' (TJSObject)
+  private
+    Fdays : string; external name 'days';
+    FdaysDisplay : string; external name 'daysDisplay';
+    FfractionalDigits : byte; external name 'fractionalDigits';
+    Fhours : string; external name 'hours';
+    FhoursDisplay : string; external name 'hoursDisplay';
+    FlocaleMatcher : string; external name 'localeMatcher';
+    Fmicroseconds : string; external name 'microseconds';
+    FmicrosecondsDisplay : string; external name 'microsecondsDisplay';
+    Fmilliseconds : string; external name 'milliseconds';
+    FmillisecondsDisplay : string; external name 'millisecondsDisplay';
+    Fminutes : string; external name 'minutes';
+    FminutesDisplay : string; external name 'minutesDisplay';
+    Fmonths : string; external name 'months';
+    FmonthsDisplay : string; external name 'monthsDisplay';
+    Fnanoseconds : string; external name 'nanoseconds';
+    FnanosecondsDisplay : string; external name 'nanosecondsDisplay';
+    FnumberingSystem : string; external name 'numberingSystem';
+    Fseconds : string; external name 'seconds';
+    FsecondsDisplay : string; external name 'secondsDisplay';
+    Fstyle : string; external name 'style';
+    FtimeZone : string; external name 'timeZone';
+    Fweeks : string; external name 'weeks';
+    FweeksDisplay : string; external name 'weeksDisplay';
+    Fyears : string; external name 'years';
+    FyearsDisplay : string; external name 'yearsDisplay';
+  Public
+    property localeMatcher : string read FlocaleMatcher;
+    property style : string read Fstyle;
+    property numberingSystem : string read FnumberingSystem;
+    property timeZone : string read FtimeZone;
+    property years : string read Fyears;
+    property yearsDisplay : string read FyearsDisplay;
+    property months : string read Fmonths;
+    property monthsDisplay : string read FmonthsDisplay;
+    property weeks : string read Fweeks;
+    property weeksDisplay : string read FweeksDisplay;
+    property days : string read Fdays;
+    property daysDisplay : string read FdaysDisplay;
+    property hours : string read Fhours;
+    property hoursDisplay : string read FhoursDisplay;
+    property minutes : string read Fminutes;
+    property minutesDisplay : string read FminutesDisplay;
+    property seconds : string read Fseconds;
+    property secondsDisplay : string read FsecondsDisplay;
+    property milliseconds : string read Fmilliseconds;
+    property millisecondsDisplay : string read FmillisecondsDisplay;
+    property microseconds : string read Fmicroseconds;
+    property microsecondsDisplay : string read FmicrosecondsDisplay;
+    property nanoseconds : string read Fnanoseconds;
+    property nanosecondsDisplay : string read FnanosecondsDisplay;
+    property fractionalDigits : byte read FfractionalDigits;
+  end;
+
+  TJSDuration = class external name 'Object' (TJSObject)
+  Public
+    years : integer;
+    months : integer;
+    weeks : integer;
+    days : integer;
+    hours : integer;
+    minutes : integer;
+    seconds : integer;
+    milliseconds : integer;
+    microseconds : integer;
+    nanoseconds : integer;
+  end;
+
+  TJSIntlDurationFormat = class external name 'Intl.DurationFormat' (TJSObject)
+  Public
+    constructor new ();
+    constructor new (locales : string);
+    constructor new (locales : string; Options : TJSDurationLocaleOptions);
+    class function supportedLocalesOf(locales : string) : TJSStringDynArray;
+    class function supportedLocalesOf(locales : string; Options: TJSLocalesOfOptions) : TJSStringDynArray;
+    function format(duration : TJSDuration) : String;
+    function formatToParts(duration : TJSDuration) : TJSFormatDurationPartArray;
+    function resolvedOptions  : TJSDurationResolvedOptions;
+  end;
+
+  TJSListFormatOptions = class external name 'Object' (TJSObject)
+    localeMatcher : string;
+    type_ : string; external name 'type';
+    style : string; external name 'style';
+  end;
+
+  TJSListFormatResolvedOptions = class external name 'Object' (TJSObject)
+  Private
+    FlocaleMatcher : string; external name 'localeMatched';
+    Ftype : string; external name 'type';
+    Fstyle : string; external name 'style';
+  Public
+    property localeMatcher : string read FlocaleMatcher;
+    property type_ : string read FType;
+    property style : string read FStyle;
+  end;
+
+  TJSFormatListPart = class external name 'Object' (TJSObject)
+  Public
+    type_ : string; external name 'type';
+    value : string;
+  end;
+  TJSFormatListPartArray = Array of TJSFormatListPart;
+
+  TJSIntlListFormat = class external name 'Intl.ListFormat' (TJSObject)
+  Public
+    constructor new ();
+    constructor new (locales : string);
+    constructor new (locales : string; Options : TJSListFormatOptions);
+    class function supportedLocalesOf(locales : string) : TJSStringDynArray;
+    class function supportedLocalesOf(locales : string; Options: TJSLocalesOfOptions) : TJSStringDynArray;
+    function format(aList : Array of string) : String;
+    function formatToParts(aList : array of string) : TJSFormatListPartArray;
+    function resolvedOptions  : TJSListFormatResolvedOptions;
+  end;
+
+  TJSIntlLocaleOptions = class external name 'Object' (TJSObject)
+  public
+    language : string;
+    script : string;
+    region : string;
+    calendar : string;
+    collation : string;
+    numberingSystem : string;
+    caseFirst : string;
+    hourCycle : string;
+    numeric : boolean;
+  end;
+
+  { TJSIntlTextInfo }
+
+  TJSIntlTextInfo = class external name 'Object' (TJSObject)
+  private
+    FDirection: string; external name 'direction';
+  Public
+    property direction : string read FDirection;
+  end;
+
+  { TJSIntlWeekInfo }
+
+  TJSIntlWeekInfo = class external name 'Object' (TJSObject)
+  private
+    FFirstDay: integer; external name 'firstDay';
+    FMInimalDays: Integer; external name 'minimalDays';
+    FWeekend: TIntegerDynArray; external name 'weekend';
+  Public
+    property firstDay : integer read FFirstDay;
+    property weekend : TIntegerDynArray read FWeekend;
+    property minimalDays : Integer Read FMInimalDays;
+  end;
+
+  { TJSIntlLocale }
+
+  TJSIntlLocale = class external name 'Intl.Locale' (TJSObject)
+  private
+    FBaseName: string; external name 'baseName';
+    FCalendar: string; external name 'calendar';
+    FCaseFirst: string; external name 'caseFirst';
+    FCollation: string; external name 'collation';
+    FHourCycle: string; external name 'hourCycle';
+    FLanguage: string; external name 'language';
+    FNumberingSystem: string; external name 'numberingSystem';
+    FNumeric: boolean; external name 'numeric';
+    FRegion: string; external name 'region';
+    FScript: string; external name 'script';
+  public
+    constructor new(aLocale : string);
+    constructor new(aLocale : string; Options : TJSIntlLocaleOptions);
+    function getCalendars : TStringDynArray;
+    function getCollations : TStringDynArray;
+    function getHourCycles : TStringDynArray;
+    function getNumberingSystems : TStringDynArray;
+    function getTextInfo : TJSIntlTextInfo;
+    function getTimeZones : TStringDynArray;
+    function getWeekInfo : TJSIntlWeekInfo;
+    function maximize : TJSIntlLocale;
+    function minimize : TJSIntlLocale;
+    property baseName : string read FBaseName;
+    property calendar : string read FCalendar;
+    property caseFirst : string read FCaseFirst;
+    property collation : string read FCollation;
+    property hourCycle : string read FHourCycle;
+    property language : string read FLanguage;
+    property numberingSystem : string read FNumberingSystem;
+    property numeric : boolean Read FNumeric;
+    property region : string read FRegion;
+    property script : string read FScript;
+  end;
+
+  TJSNumberFormatOptions = class external name 'Object' (TJSObject)
+    localeMatcher : string;
+    numberingSystem : string;
+    style : string;
+    currency_ : string; external name 'currency';
+    currencyDisplay : string;
+    currencySign : string;
+    unit_ : string; external name 'unit';
+    unitDisplay : string;
+    minimumIntegerDigits : Byte;
+    minimumFractionDigits : Byte;
+    maximumFractionDigits : Byte;
+    minimumSignificantDigits : Byte;
+    maximumSignificantDigits : Byte;
+    roundingpriority : string;
+    roundingIncrement : word;
+    roundingMode : string;
+    trailingZeroDisplay : string;
+    notation : string;
+    compactDisplay : string;
+    useGrouping : string;
+    signDisplay : string;
+  end;
+
+  TJSNumberFormatResolvedOptions = class external name 'Object' (TJSObject)
+  Private
+    FlocaleMatcher : string; external name 'localeMatcher';
+    FnumberingSystem : string; external name 'numberingSystem';
+    Fstyle : string; external name 'style';
+    Fcurrency_ : string; external name 'currency';
+    FcurrencyDisplay : string; external name 'currencyDisplay';
+    FcurrencySign : string; external name 'currencySign';
+    Funit_ : string; external name 'unit';
+    FunitDisplay : string; external name 'unitDisplay';
+    FminimumIntegerDigits : Byte; external name 'minimumIntegerDigits';
+    FminimumFractionDigits : Byte; external name 'minimumFractionDigits';
+    FmaximumFractionDigits : Byte; external name 'maximumFractionDigits';
+    FminimumSignificantDigits : Byte; external name 'minimumSignificantDigits';
+    FmaximumSignificantDigits : Byte; external name 'maximumSignificantDigits';
+    Froundingpriority : string; external name 'roundingpriority';
+    FroundingIncrement : word; external name 'roundingIncrement';
+    FroundingMode : string; external name 'roundingMode';
+    FtrailingZeroDisplay : string; external name 'trailingZeroDisplay';
+    Fnotation : string; external name 'notation';
+    FcompactDisplay : string; external name 'compactDisplay';
+    FuseGrouping : string; external name 'useGrouping';
+    FsignDisplay : string; external name 'signDisplay';
+  Public
+    property localeMatcher : string read FlocaleMatcher;
+    property numberingSystem : string read FnumberingSystem;
+    property style : string read Fstyle;
+    property currency_ : string read Fcurrency_;
+    property currencyDisplay : string read FcurrencyDisplay;
+    property currencySign : string read FcurrencySign;
+    property unit_ : string read Funit_;
+    property unitDisplay : string read FunitDisplay;
+    property minimumIntegerDigits : Byte read FminimumIntegerDigits;
+    property minimumFractionDigits : Byte read FminimumFractionDigits;
+    property maximumFractionDigits : Byte read FmaximumFractionDigits;
+    property minimumSignificantDigits : Byte read FminimumSignificantDigits;
+    property maximumSignificantDigits : Byte read FmaximumSignificantDigits;
+    property roundingpriority : string read Froundingpriority;
+    property roundingIncrement : word read FroundingIncrement;
+    property roundingMode : string read FroundingMode;
+    property trailingZeroDisplay : string read FtrailingZeroDisplay;
+    property notation : string read Fnotation;
+    property compactDisplay : string read FcompactDisplay;
+    property useGrouping : string read FuseGrouping;
+    property signDisplay : string read FsignDisplay;
+  end;
+
+  { TJSNumberPart }
+
+  TJSIntlNumberPart = class external name 'Object' (TJSObject)
+  private
+    FType: String; external name 'type';
+    FValue: string; external name 'value';
+  Public
+    Property Type_ : String read FType;
+    property Value : string read FValue;
+  end;
+  TJSIntlNumberPartArray = array of TJSIntlNumberPart;
+
+  TJSIntlNumberFormat = class external name 'Intl.NumberFormat' (TJSObject)
+  Public
+    constructor new ();
+    constructor new (locales : string);
+    constructor new (locales : string; Options : TJSNumberFormatOptions);
+    class function supportedLocalesOf(locales : string) : TJSStringDynArray;
+    class function supportedLocalesOf(locales : string; Options: TJSLocalesOfOptions) : TJSStringDynArray;
+    function format(aDate : TJSDate) : string;
+    function formatRange(aStart, aEnd: Double) : string;
+    function formatRange(aStart, aEnd: TJSBigint) : string;
+    function formatRange(aStart, aEnd: String) : string;
+    function formatRange(aStart: TJSBigint; aEnd : Double) : string;
+    function formatRange(aStart: Double; aEnd : TJSBigint) : string;
+    function formatRange(aStart: string; aEnd : Double) : string;
+    function formatRange(aStart: Double; aEnd : string) : string;
+    function formatRange(aStart: TJSBigint; aEnd : string) : string;
+    function formatRange(aStart: string; aEnd : TJSBigint) : TJSIntlNumberPartArray;
+    function formatRangeToParts(aStart, aEnd: Double) : TJSIntlNumberPartArray;
+    function formatRangeToParts(aStart, aEnd: TJSBigint) : TJSIntlNumberPartArray;
+    function formatRangeToParts(aStart, aEnd: String) : TJSIntlNumberPartArray;
+    function formatRangeToParts(aStart: TJSBigint; aEnd : Double) : TJSIntlNumberPartArray;
+    function formatRangeToParts(aStart: Double; aEnd : TJSBigint) : TJSIntlNumberPartArray;
+    function formatRangeToParts(aStart: string; aEnd : Double) : TJSIntlNumberPartArray;
+    function formatRangeToParts(aStart: Double; aEnd : string) : TJSIntlNumberPartArray;
+    function formatRangeToParts(aStart: TJSBigint; aEnd : string) : TJSIntlNumberPartArray;
+    function formatRangeToParts(aStart: string; aEnd : TJSBigint) : TJSIntlNumberPartArray;
+    function formatToParts(aValue : Double) : TJSIntlNumberPartArray;
+    function formatToParts(aValue : TJSBigint) : TJSIntlNumberPartArray;
+    function formatToParts(aValue : String) : TJSIntlNumberPartArray;
+    function resolvedOptions : TJSNumberFormatResolvedOptions;
+  end;
+
+  TJSIntlCollatorOptions = class external name 'Object' (TJSObject)
+  Public
+    usage : string;
+    localeMatcher : string;
+    collation : string;
+    numeric : boolean;
+    caseFirst : string;
+    sensitivity : string;
+    ignorePunctuation : boolean;
+  end;
+
+  { TJSIntlCollatorResolvedOptions }
+
+  TJSIntlCollatorResolvedOptions = class external name 'Object' (TJSObject)
+  private
+    FCaseFirst: string; external name 'caseFirst';
+    FCollation: string; external name 'collation';
+    FIgnorePunctuation: boolean; external name 'ignorePunctuation';
+    FLocale: string; external name 'locale';
+    FNumeric: boolean; external name 'numeric';
+    FSensitivity: string; external name 'sensitivity';
+    FUsage: string; external name 'usage';
+  Public
+    Property usage : string read FUsage;
+    Property locale : string read FLocale;
+    Property collation : string read FCollation;
+    Property numeric : boolean read FNumeric;
+    Property caseFirst : string read FCaseFirst;
+    Property sensitivity : string read FSensitivity;
+    Property ignorePunctuation : boolean read FIgnorePunctuation;
+  end;
+
+  TJSIntlCollator = class external name 'Intl.Collator' (TJSObject)
+    constructor new ();
+    constructor new (locales : string);
+    constructor new (locales : string; Options : TJSIntlCollatorOptions);
+    class function supportedLocalesOf(locales : string) : TJSStringDynArray;
+    class function supportedLocalesOf(locales : string; Options: TJSLocalesOfOptions) : TJSStringDynArray;
+    function compare (aString1, aString2 : string) : Integer;
+    function resolvedOptions : TJSIntlCollatorResolvedOptions;
+  end;
+
+  TJSIntlPluralRuleOptions = class external name 'Object' (TJSObject)
+  Public
+    localeMatcher : string;
+    type_ : string; external name 'type';
+    minimumIntegerDigits : Byte;
+    minimumFractionDigits : Byte;
+    maximumFractionDigits : Byte;
+    minimumSignificantDigits : Byte;
+    maximumSignificantDigits : Byte;
+    roundingpriority : string;
+    roundingIncrement : word;
+    roundingMode : string;
+  end;
+
+  { TJSIntlPluralRuleResolvedOptions }
+
+  TJSIntlPluralRuleResolvedOptions = class external name 'Object' (TJSObject)
+  private
+    FLocale: string; external name 'locale';
+    FmaximumFractionDigits: Byte; external name 'maximumFractionDigits';
+    FmaximumSignificantDigits: Byte; external name 'maximumSignificantDigits';
+    FminimumFractionDigits: Byte; external name 'minimumFractionDigits';
+    FminimumIntegerDigits: Byte; external name 'minimumIntegerDigits';
+    FminimumSignificantDigits: Byte; external name 'minimumSignificantDigits';
+    FroundingIncrement: word; external name 'roundingIncrement';
+    FroundingMode: string; external name 'roundingMode';
+    Froundingpriority: string; external name 'roundingPriority';
+    FType: string; external name 'type';
+  Public
+    property locale : string read FLocale;
+    property type_ : string read FType;
+    property minimumIntegerDigits : Byte read FminimumIntegerDigits;
+    property minimumFractionDigits : Byte read FminimumFractionDigits;
+    property maximumFractionDigits : Byte read FmaximumFractionDigits;
+    property minimumSignificantDigits : Byte read FminimumSignificantDigits;
+    property maximumSignificantDigits : Byte read FmaximumSignificantDigits;
+    property roundingpriority : string read Froundingpriority;
+    property roundingIncrement : word read FroundingIncrement;
+    property roundingMode : string read FroundingMode;
+  end;
+
+  TJSIntlPluralRules = class external name 'Intl.PluralRules' (TJSObject)
+    constructor new ();
+    constructor new (locales : string);
+    constructor new (locales : string; Options : TJSIntlPluralRuleOptions);
+    class function supportedLocalesOf(locales : string) : TJSStringDynArray;
+    class function supportedLocalesOf(locales : string; Options: TJSLocalesOfOptions) : TJSStringDynArray;
+    function select (aValue : Double) : string;
+    function selectRange (aValue1, aValue2: Double) : string;
+    function resolvedOptions : TJSIntlPluralRuleResolvedOptions;
+  end;
+
+  { TJSRelativeTimeParts }
+
+  TJSRelativeTimeParts = class external name 'Object' (TJSObject)
+  private
+    FType: string; external name 'type';
+    FUnits: string; external name 'units';
+    Fvalue: string; external name 'value';
+  Public
+    Property type_ : string read FType;
+    Property value : string read Fvalue;
+    Property units : string read FUnits;
+  end;
+  TJSRelativeTimePartsArray = array of TJSRelativeTimeParts;
+
+  TJSIntlRelativeTimeFormatOptions = class external name 'Object' (TJSObject)
+    localeMatcher : string;
+    numberingSystem :string;
+    style : string;
+    numeric : string;
+  end;
+
+  TJSIntlRelativeTimeFormatResolvedOptions = class external name 'Object' (TJSObject)
+  Private
+    Flocale : string; external name 'locale';
+    FnumberingSystem : string; external name 'numberingSystem';
+    Fstyle : string; external name 'style';
+    Fnumeric : string; external name 'numeric';
+  Public
+    property locale : string read Flocale;
+    property numberingSystem : string read FnumberingSystem;
+    property style : string read Fstyle;
+    property numeric : string read Fnumeric;
+  end;
+
+  TJSIntlRelativeTimeFormat = class external name 'Intl.RelativeTimeFormat' (TJSObject)
+    constructor new ();
+    constructor new (locales : string);
+    constructor new (locales : string; Options : TJSIntlRelativeTimeFormatOptions);
+    class function supportedLocalesOf(locales : string) : TJSStringDynArray;
+    class function supportedLocalesOf(locales : string; Options: TJSLocalesOfOptions) : TJSStringDynArray;
+    function format (aValue : Double; aUnits: string) : string;
+    function formatToParts (aValue : Double; aUnits: string) : TJSRelativeTimePartsArray;
+    function resolvedOptions : TJSIntlRelativeTimeFormatResolvedOptions;
+  end;
+
+  TJSIntl = class external name 'Intl' (TJSObject)
+  Public
+    class function DateTimeFormat() : TJSIntlDateTimeFormat;
+    class function DateTimeFormat(locales : string) : TJSIntlDateTimeFormat;
+    class function DateTimeFormat(locales : string; Options : TJSDateLocaleOptions) : TJSIntlDateTimeFormat;
+    class function DisplayNames(locales : string; Options : TJSDisplayNamesOptions) : TJSIntlDisplayNames;
+    class function NumberFormat() : TJSIntlNumberFormat;
+    class function NumberFormat(locales : string) : TJSIntlNumberFormat;
+    class function NumberFormat(locales : string; Options : TJSNumberFormatOptions) : TJSIntlNumberFormat;
+    class function Collator() : TJSIntlCollator;
+    class function Collator(locales : string) : TJSIntlCollator;
+    class function Collator(locales : string; Options : TJSIntlCollatorOptions) : TJSIntlCollator;
+  end;
+
 var
   // JSArguments can be used in procedures/functions to provide access to the 'arguments' array.
   JSArguments: TJSFunctionArguments; external name 'arguments';
