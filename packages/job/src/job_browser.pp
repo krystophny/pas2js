@@ -74,7 +74,6 @@ Type
     FGlobalObjects: TJSArray; // id to TJSObject
     FGlobalNames: TJSObject; // name to id
     FLocalObjects: TJSArray;
-    FFreeLocalIds: TJSArray; // free positions in FLocalObjects
     FOnCallBackJSError: TCallbackErrorJSEventHandler;
     FOnCallBackPasError: TCallbackErrorPasEventHandler;
     FStringResult: string;
@@ -251,7 +250,6 @@ begin
   RegisterGlobalObjects;
   FLocalObjects:=TJSArray.new;
   FLocalObjects.push(nil); // allocate FLocalObjects[0]
-  FFreeLocalIds:=TJSArray.new;
   FFactories:=TJSObject.New;
 end;
 
@@ -349,20 +347,10 @@ begin
 end;
 
 function TJSObjectBridge.RegisterLocalObject(Obj: TJSObject): TJOBObjectID;
-var
-  NewId: JSValue;
+
 begin
-  NewId:=FFreeLocalIds.pop;
-  if isUndefined(NewId) then
-  begin
-    NewId:=FLocalObjects.push(Obj)-1;
-    Result:=TJOBObjectID(NewId);
-    FLastAllocatedID:=Result;
-  end
-  else begin
-    Result:=TJOBObjectID(NewId);
-    FLocalObjects[Result]:=Obj;
-  end;
+  Result:=GetObjectID;
+  RegisterLocalObjectAt(Obj,Result);
   {$IFDEF VerboseJOB}
   writeln('TJSObjectBridge.RegisterLocalObject ',Result);
   {$ENDIF}
@@ -814,7 +802,8 @@ begin
   if FLocalObjects[ObjId]=nil then
     raise EJOBBridge.Create('object already released');
   FLocalObjects[ObjId]:=nil;
-  FFreeLocalIds.push(ObjId);
+  ReleaseJobID(ObjID);
+
   Result:=JOBResult_Success;
 end;
 
@@ -1306,7 +1295,6 @@ end;
 function TJSObjectBridge.GetStats: TJSObjectBridgeStats;
 begin
   Result.LastAllocatedID:=FLastAllocatedID;
-  Result.FreeIDCount:=FFreeLocalIds.Length;
   Result.LiveObjectCount:=FLocalObjects.Length;
   Result.GlobalObjectCount:=FGlobalObjects.Length;
 end;
