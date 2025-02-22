@@ -523,6 +523,10 @@ Type
     function render : JSValue;
     function render(aType : string) : JSValue;
   end;
+  
+  TJSDataTableRowsAPI  = Class external name 'Object' (TJSObject)
+    function data : JSValue;
+  end; 
 
   TJSDataTableAPI = Class external name 'DataTable' (TJSObject)
   Public
@@ -539,6 +543,7 @@ Type
     function page() : integer;
     function page(aPage : integer) : TJSDataTableAPI;
     function rows() : JSValue;
+    function rows(Modifier : TDTSelectorModifier) : TJSDataTableRowsAPI;
     function row() : JSValue;
     function columns() : JSValue;
     function column() : JSValue;
