@@ -1390,17 +1390,98 @@ Type
   end;
 
   TJSMediaStreamTrack = class external name 'MediaStreamTrack' (TJSEventTarget)
+       procedure stop;
+       function getCapabilities : TJSObject;
+       function getSettings : TJSObject;
   end;
+
+  TJSMediaStreamTrackProc = reference to procedure (aMediaStreamTrack : TJSMediaStreamTrack);
+
+  TJSMediaStreamTracks = class external name 'Array' (TJSArray)
+    procedure forEach(const aCallBack : TJSMediaStreamTrackProc); overload;
+  end;
+
   TJSMediaConstraints = class external name 'Object' (TJSObject)
     video : boolean;
     audio : boolean;
   end;
 
+  TJSMediaStream = class external name 'MediaStream' (TJSEventTarget)
+  Public
+    procedure addTrack(aTrack : TJSMediaStreamTrack);
+    function clone : TJSMediaStream;
+    function getTrackById(aID : String) : TJSMediaStreamTrack;
+    function getVideoTracks : TJSMediaStreamTracks;
+    function getTracks : TJSMediaStreamTracks;
+    procedure removeTrack(aTrack : TJSMediaStreamTrack);
+  end;
+
+  { TJSMediaDeviceInfo }
+
+  TJSMediaDeviceInfo = class external name 'MediaDeviceInfo' (TJSObject)
+  private
+    FDeviceID: string; external name 'deviceId';
+    FGroupID: string; external name 'groupId';
+    FKind: string; external name 'kind';
+    FLabel: string; external name 'label';
+  Public
+    property deviceId : string read FDeviceID;
+    property groupId : string read FGroupID;
+    property kind : string read FKind;
+    property label_ : string read FLabel;
+  end;
+
+  TJSMediaDeviceInfoProc = reference to procedure (aMediaStreamTrack : TJSMediaStreamTrack);
+
+  { TJSMediaDeviceInfoArray }
+
+  TJSMediaDeviceInfoArray = class external name 'Array' (TJSArray)
+  private
+    function GetDevices(Index: NativeInt): TJSMediaDeviceInfo; external name '[]';
+    procedure SetDevices(Index: NativeInt; const aValue: TJSMediaDeviceInfo); external name '[]';
+  public
+    procedure forEach(const aCallBack : TJSMediaDeviceInfoProc); overload;
+    property Devices[Index: NativeInt]: TJSMediaDeviceInfo read GetDevices write SetDevices; default;
+  end;
+
+  TJSMediaTrackSupportedConstraints = class external name 'MediaTrackSupportedConstraints' (TJSObject)
+    autoGainControl : boolean;
+    width : boolean;
+    height : boolean;
+    aspectRation : Boolean;
+    frameRate : Boolean;
+    resizeMode : boolean;
+    volume : boolean;
+    sampleRate : boolean;
+    sampleSize : Boolean;
+    echoCancellation : Boolean;
+    latency : boolean;
+    noiseSuppression : boolean;
+    channelCount : boolean;
+    deviceId : boolean;
+    groupId : boolean;
+    displaySurface : boolean;
+    logicalSurface : boolean;
+  end;
+
+  TJSMediaTrackSupportedConstraintsProc = reference to procedure(aConstraints :TJSMediaTrackSupportedConstraints);
+
+  TJSMediaTrackSupportedConstraintsArray = class external name 'Array' (TJSArray)
+  private
+    function GetConstraint(Index: NativeInt): TJSMediaTrackSupportedConstraints; external name '[]';
+    procedure SetConstraint(Index: NativeInt; const aValue: TJSMediaTrackSupportedConstraints); external name '[]';
+  public
+    procedure forEach(const aCallBack : TJSMediaTrackSupportedConstraintsProc); overload;
+    property Constraints[Index: NativeInt]: TJSMediaTrackSupportedConstraints read GetConstraint write SetConstraint; default;
+  end;
+
   TJSMediaDevices = class external name 'MediaDevices' (TJSEventTarget)
+    function enumerateDevices : TJSMediaDeviceInfoArray; async;
+    function getSupportedConstraints : TJSMediaTrackSupportedConstraintsArray;
     function getDisplayMedia: TJSPromise;
     function getDisplayMedia(options : TJSObject) : TJSPromise; overload;
     function getDisplayMedia(options : TJSMediaConstraints) : TJSPromise; overload;
-    Function getUserMedia(aConstraint : TJSOBject) : TJSPromise;
+    function selectAudioOutput : TJSMediaDeviceInfo; async;
   end;
 
 
