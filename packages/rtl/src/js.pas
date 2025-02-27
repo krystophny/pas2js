@@ -631,6 +631,8 @@ type
     class function _of(aValue : TJSValueDynArray) : TJSInt8Array; varargs; external name 'of'; reintroduce; overload;
     function subarray(aBegin, aEnd: Integer): TJSInt8Array;  overload;
     function subarray(aBegin: Integer): TJSInt8Array; overload;
+    function toBase64: String;
+    function toBase64(options: TJSObject): String;
     procedure _set(anArray : Array of ShortInt); external name 'set'; reintroduce; overload;
     procedure _set(anArray : Array of ShortInt; anOffset : NativeInt); external name 'set';
     property values[Index : NativeInt] : Shortint Read getTypedValue Write setTypedValue; default;
