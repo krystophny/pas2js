@@ -1000,15 +1000,15 @@ Type
 
   { Various events }
 
-  TJSFocusEvent = Class(TJSEvent)
+  TJSFocusEvent = Class external name 'FocusEvent' (TJSEvent)
   private
     FrelatedTarget : TJSElement external name 'relatedTarget';
   public
     property relatedTarget : TJSElement Read FrelatedTarget;
   end;
 
-  TJSAnimationEvent = Class(TJSEvent);
-  TJSLoadEvent = Class(TJSEvent);
+  TJSAnimationEvent = Class external name 'AnimationEvent' (TJSEvent);
+  TJSLoadEvent = Class external name 'LoadEvent' (TJSEvent);
 
   TJSErrorEvent = class external name 'ErrorEvent' (TJSEvent)
   Private
@@ -1025,7 +1025,7 @@ Type
     Property error : TJSObject read FError;
   end;
 
-  TJSPageTransitionEvent = class(TJSEvent)
+  TJSPageTransitionEvent = class external name 'PageTransitionEvent' (TJSEvent)
   end;
 
   TJSHashChangeEvent = class external name 'HashChangeEvent' (TJSEvent)
