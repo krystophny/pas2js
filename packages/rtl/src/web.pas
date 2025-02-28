@@ -3281,7 +3281,63 @@ Type
 
   end;
 
+  TJSVideoFrameMetaData = class external name 'Object' (TJSObject)
+    expectedDisplayTime : TJSDOMHighResTimeStamp;
+    height : NativeInt;
+    mediaTime : NativeInt;
+    presentationTime : TJSDOMHighResTimeStamp;
+    presentedFrames : NativeInt;
+    processingDuration : NativeInt;
+    width : NativeInt;
+    // WebRTC only
+    captureTime : TJSDOMHighResTimeStamp;
+    receiveTime : TJSDOMHighResTimeStamp;
+    rtpTimestamp : NativeInt;
+  end;
+
+  { TJSHTMLVideoElement }
+
+  { TJSPictureInPictureWindow }
+
+  TJSPictureInPictureWindow = class external name 'PictureInPictureWindow' (TJSEventTarget)
+  private
+    FHeigth: NativeInt; external name 'height';
+    FWidth: NativeInt; external name 'width';
+  Public
+    property height : NativeInt read FHeigth;
+    property width : NativeInt read FWidth;
+  end;
+
+  { TJSVideoPlaybackQuality }
+
+  TJSVideoPlaybackQuality = class external name 'VideoPlaybackQuality' (TJSObject)
+  private
+    FCreationTime: TJSDOMHighResTimeStamp; external name 'creationTime';
+    FdroppedVideoFrames: NativeInt; external name 'droppedVideoFrames';
+    FtotalVideoFrames: NativeInt; external name 'totalVideoFrames';
+  Public
+    property creationTime : TJSDOMHighResTimeStamp Read FCreationTime;
+    property droppedVideoFrames : NativeInt Read FdroppedVideoFrames;
+    property totalVideoFrames : NativeInt Read FtotalVideoFrames;
+  end;
+
+  TRequestVideoFrameCallback = reference to procedure(aNow : TJSDOMHighResTimeStamp; metaData : TJSVideoFrameMetaData);
+
   TJSHTMLVideoElement = Class external name 'HTMLVideoElement' (TJSHTMLMediaElement)
+  private
+    FvideoHeight: NativeInt; external name 'videoHeight';
+    FvideoWidth: NativeInt; external name 'videoWidth';
+  public
+    disablePictureInPicture : boolean;
+    height : NativeInt;
+    width : NativeInt;
+    poster : string;
+    procedure cancelVideoFrameCallback(id : NativeInt);
+    function getVideoPlaybackQuality : TJSVideoPlaybackQuality;
+    function requestVideoFrameCallback(aCallback : TRequestVideoFrameCallback) : NativeInt;
+    function requestPictureInPicture : TJSPictureInPictureWindow; async;
+    property videoWidth : NativeInt read FvideoWidth;
+    property videoHeight : NativeInt read FvideoHeight;
   end;
 
   { TJSHTMLStyleElement }
