@@ -1481,6 +1481,7 @@ Type
     function getDisplayMedia: TJSPromise;
     function getDisplayMedia(options : TJSObject) : TJSPromise; overload;
     function getDisplayMedia(options : TJSMediaConstraints) : TJSPromise; overload;
+    function getUserMedia(aConstraint : TJSOBject) : TJSPromise;
     function selectAudioOutput : TJSMediaDeviceInfo; async;
   end;
 
