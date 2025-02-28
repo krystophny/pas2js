@@ -3217,7 +3217,7 @@ Type
     message : string;
   end;
 
-  TJSHTMLMediaStream = class external name 'MediaStream' (TJSObject);
+  TJSHTMLMediaStream = TJSMediaStream;
 
   TJSHTMLMediaController = class external name 'MediaController' (TJSObject);
 
