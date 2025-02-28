@@ -1002,6 +1002,9 @@ begin
   end
   else
     Result.FData := ABuffer;
+
+  if (Result.FTypeInfo.Kind = tkClass) and Result.IsClass and not Result.IsEmpty then
+    Result.FTypeInfo := Result.AsObject.ClassInfo;
 end;
 
 generic class procedure TValue.Make<T>(const Value: T; var Result: TValue);
