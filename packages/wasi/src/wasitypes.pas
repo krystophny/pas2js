@@ -500,20 +500,23 @@ const
 type
   PUInt8 = NativeInt;
   size_t = longint;
+  // Int64 not really implemented.
+  WasiInt64 = NativeInt;
+  WasiUInt64 = NativeInt;
 
   __wasi_size_t = longint;
-  __wasi_filesize_t = UInt64;
-  __wasi_timestamp_t = UInt64;
+  __wasi_filesize_t = WasiUInt64;
+  __wasi_timestamp_t = WasiUInt64;
   __wasi_clockid_t = UInt32;
   __wasi_errno_t = UInt16;
   __wasi_fd_t = longint;
-  __wasi_filedelta_t = Int64;
+  __wasi_filedelta_t = WasiInt64;
   __wasi_whence_t = UInt8;
-  __wasi_dircookie_t = UInt64;
+  __wasi_dircookie_t = WasiUInt64;
   __wasi_dirnamlen_t = UInt32;
-  __wasi_inode_t = UInt64;
+  __wasi_inode_t = WasiUInt64;
   __wasi_filetype_t = UInt8;
-  __wasi_rights_t = UInt64;
+  __wasi_rights_t = WasiUInt64;
   __wasi_exitcode_t = UInt32;
   __wasi_signal_t = UInt8;
   __wasi_riflags_t = UInt16;
@@ -523,12 +526,12 @@ type
   __wasi_preopentype_t = UInt8;
   __wasi_advice_t = UInt8;
   __wasi_fdflags_t = UInt16;
-  __wasi_device_t = UInt64;
+  __wasi_device_t = WasiUInt64;
   __wasi_fstflags_t = UInt16;
   __wasi_lookupflags_t = UInt32;
   __wasi_oflags_t = UInt16;
-  __wasi_linkcount_t = UInt64;
-  __wasi_userdata_t = UInt64;
+  __wasi_linkcount_t = WasiUInt64;
+  __wasi_userdata_t = WasiUInt64;
   __wasi_eventtype_t = UInt8;
   __wasi_eventrwflags_t = UInt16;
   __wasi_subclockflags_t = UInt16;
