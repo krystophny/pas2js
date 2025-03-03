@@ -1708,7 +1708,7 @@ Type
     FOuterheight: NativeInt; external name 'outerHeight';
     FOuterWidth: NativeInt; external name 'outerWidth';
     FParent: TJSWindow; external name 'parent';
-    FPerformance: TJSPerformance; external name 'Performance';
+    FPerformance: TJSPerformance; external name 'performance';
     FPersonalBar: TJSPersonalBar; external name 'personalbar';
     FScreen: TJSScreen; external name 'screen';
     FScreenX: NativeInt; external name 'screenX';
