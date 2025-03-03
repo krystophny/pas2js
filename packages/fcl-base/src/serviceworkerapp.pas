@@ -29,9 +29,9 @@ interface
 
 uses
 {$IFDEF FPC_DOTTEDUNITS} 
-  System.Classes, System.SysUtils, System.Types, JSApi.JS, BrowserApi.WebOrWorker, BrowserApi.Worker, Fcl.CustApp;
+  System.Classes, System.SysUtils, System.Types, JSApi.JS, BrowserApi.WebOrWorker, BrowserApi.Worker, BrowserApi.ServiceWorker, Fcl.CustApp;
 {$ELSE}
-  Classes, SysUtils, Types, JS, weborworker, webworker, CustApp;
+  Classes, SysUtils, Types, JS, weborworker, webworker, serviceworker, CustApp;
 {$ENDIF}
 
 type
