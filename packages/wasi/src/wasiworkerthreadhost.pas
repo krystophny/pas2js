@@ -204,9 +204,6 @@ Type
 
 function GetJSClassName(aObj : TJSObject) : string;
 
-var
-  Self_ : TJSDedicatedWorkerGlobalScope; external name 'self';
-
 implementation
 
 uses 
