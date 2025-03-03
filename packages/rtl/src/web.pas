@@ -1065,7 +1065,7 @@ Type
   Private
     FlengthComputable : Boolean external name 'lengthComputable';
     Floaded : NativeUINT external name 'loaded';
-    FTotal : NativeUINT external name 'Total';
+    FTotal : NativeUINT external name 'total';
   Public
     property lengthComputable : Boolean Read FlengthComputable;
     property loaded : NativeUINT Read FLoaded;
