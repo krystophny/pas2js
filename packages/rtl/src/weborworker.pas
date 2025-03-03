@@ -1603,16 +1603,6 @@ type
     Property action : String Read Faction;
   end;
 
-  { --------------------------------------------------------------------
-    TJSServiceWorkerGlobalScope
-    --------------------------------------------------------------------}
-
-  TJSServiceWorkerGlobalScope = class external name 'ServiceWorkerGlobalScope'
-  Private
-  Public
-      onnotificationclick : TJSEventHandler;
-      onnotificationclose : TJSEventHandler;
-  end;
 
   TCanvasCoordType = double;
   { TJSImageData }
