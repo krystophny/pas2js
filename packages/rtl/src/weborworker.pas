@@ -1765,9 +1765,16 @@ type
   end;
 
 
+  { TJSImageBitmap }
+
   TJSImageBitmap = class external name 'ImageBitmap'  (TJSObject)
+  private
+    FHeight: cardinal; external name 'height';
+    FWidth: cardinal; external name 'width';
   public
     procedure close();
+    property width : cardinal read FWidth;
+    property height : cardinal read FHeight;
   end;
 
   TJSOffscreenCanvasRenderingContext2D = class;
