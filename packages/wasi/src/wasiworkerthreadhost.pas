@@ -31,13 +31,14 @@ Type
     FSendOutputToBrowserWindow: Boolean;
     FThreadEntryPoint: String;
     FThreadSupport: TWorkerThreadSupport;
-    procedure PrepareWebAssemblyThread(aDescr: TWebAssemblyStartDescriptor);
     procedure SetThreadSupport(AValue: TWorkerThreadSupport);
   Protected
     Procedure RunWebAssemblyThread(aProc : TRunWebassemblyProc); virtual;
     procedure DoStdWrite(Sender: TObject; const aOutput: String); override;
   Public
     constructor Create(aOwner: TComponent); override;
+    // Prepare webassembly thread
+    procedure PrepareWebAssemblyThread(aDescr: TWebAssemblyStartDescriptor);
     // Thread entry point name for the WASI Host.
     Property ThreadEntryPoint : String Read FThreadEntryPoint Write FThreadEntryPoint;
     // Send output to main window
