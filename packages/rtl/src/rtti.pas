@@ -24,7 +24,7 @@ uses
   JSApi.JS, System.RTLConsts, System.Types, System.SysUtils, System.TypInfo;
 {$ELSE}
   JS, RTLConsts, Types, SysUtils, TypInfo;
-{$ENDIF}  
+{$ENDIF}
 
 resourcestring
   SErrInvokeInvalidCodeAddr = 'CodeAddress is not a function';
@@ -232,12 +232,32 @@ type
 
   TRttiParameterArray = specialize TArray<TRttiParameter>;
 
+  TRttiProcedureSignature = class(TRttiObject)
+  private
+    FFlags: TProcedureFlags;
+    FParameters: TRttiParameterArray;
+    FReturnType: TRttiType;
+
+    function GetProcedureSignature: TProcedureSignature;
+
+    procedure LoadFlags;
+    procedure LoadParameters;
+  public
+    constructor Create(const Signature: TProcedureSignature);
+
+    class function Invoke(const Instance: TValue; const Args: array of TValue): TValue;
+
+    property Flags: TProcedureFlags read FFlags;
+    property Parameters: TRttiParameterArray read FParameters;
+    property ProcedureSignature: TProcedureSignature read GetProcedureSignature;
+    property ReturnType: TRttiType read FReturnType;
+  end;
+
   { TRttiMethod }
 
   TRttiMethod = class(TRttiMember)
   private
-    FParameters: TRttiParameterArray;
-    FParametersLoaded: Boolean;
+    FProcedureSignature: TRttiProcedureSignature;
 
     function GetIsAsyncCall: Boolean;
     function GetIsClassMethod: Boolean;
@@ -250,11 +270,12 @@ type
     function GetMethodKind: TMethodKind;
     function GetMethodTypeInfo: TTypeMemberMethod;
     function GetProcedureFlags: TProcedureFlags;
+    function GetProcedureSignature: TRttiProcedureSignature;
     function GetReturnType: TRttiType;
-
-    procedure LoadParameters;
   protected
     function GetName: String; override;
+
+    property ProcedureSignature: TRttiProcedureSignature read GetProcedureSignature;
   public
     function GetParameters: TRttiParameterArray;
     function Invoke(const Instance: TValue; const Args: array of TValue): TValue;
@@ -2173,7 +2194,7 @@ end;
 
 function TRttiMethod.GetIsAsyncCall: Boolean;
 begin
-  Result := (pfAsync in GetProcedureFlags) or Assigned(ReturnType) and ReturnType.IsInstanceExternal and (ReturnType.AsInstanceExternal.ExternalName = 'Promise');
+  Result := pfAsync in GetProcedureFlags;
 end;
 
 function TRttiMethod.GetIsSafeCall: Boolean;
@@ -2187,26 +2208,13 @@ begin
 end;
 
 function TRttiMethod.GetProcedureFlags: TProcedureFlags;
-const
-  PROCEDURE_FLAGS: array[TProcedureFlag] of NativeInt = (1, 2, 4, 8, 16);
-
-var
-  Flag: TProcedureFlag;
-
-  ProcedureFlags: NativeInt;
-
 begin
-  ProcedureFlags := MethodTypeInfo.ProcSig.Flags;
-  Result := [];
-
-  for Flag := Low(PROCEDURE_FLAGS) to High(PROCEDURE_FLAGS) do
-    if PROCEDURE_FLAGS[Flag] and ProcedureFlags > 0 then
-      Result := Result + [Flag];
+  Result := ProcedureSignature.Flags;
 end;
 
 function TRttiMethod.GetReturnType: TRttiType;
 begin
-  Result := Pool.GetType(MethodTypeInfo.ProcSig.ResultType);
+  Result := ProcedureSignature.ReturnType;
 end;
 
 function TRttiMethod.GetName: String;
@@ -2217,48 +2225,17 @@ begin
     Result := Result.SubString(0, Result.IndexOf('$'));
 end;
 
-procedure TRttiMethod.LoadParameters;
-const
-  FLAGS_CONVERSION: array[TParamFlag] of NativeInt = (1, 2, 4, 8, 16, 32);
-
-var
-  A: Integer;
-
-  Flag: TParamFlag;
-
-  Param: TProcedureParam;
-
-  RttiParam: TRttiParameter;
-
-  MethodParams: TProcedureParams;
-
+function TRttiMethod.GetProcedureSignature: TRttiProcedureSignature;
 begin
-  FParametersLoaded := True;
-  MethodParams := MethodTypeInfo.ProcSig.Params;
+  if not Assigned(FProcedureSignature) then
+    FProcedureSignature := TRttiProcedureSignature.Create;
 
-  SetLength(FParameters, Length(MethodParams));
-
-  for A := Low(FParameters) to High(FParameters) do
-  begin
-    Param := MethodParams[A];
-    RttiParam := TRttiParameter.Create(Self, Param);
-    RttiParam.FName := Param.Name;
-    RttiParam.FParamType := Pool.GetType(Param.TypeInfo);
-
-    for Flag := Low(FLAGS_CONVERSION) to High(FLAGS_CONVERSION) do
-      if FLAGS_CONVERSION[Flag] and Param.Flags > 0 then
-        RttiParam.FFlags := RttiParam.FFlags + [Flag];
-
-    FParameters[A] := RttiParam;
-  end;
+  Result := FProcedureSignature;
 end;
 
 function TRttiMethod.GetParameters: TRttiParameterArray;
 begin
-  if not FParametersLoaded then
-    LoadParameters;
-
-  Result := FParameters;
+  Result := ProcedureSignature.Parameters;
 end;
 
 function TRttiMethod.Invoke(const Instance: TValue; const Args: array of TValue): TValue;
@@ -2885,8 +2862,84 @@ begin
   Result := TValue.specialize From<specialize TArray<T>>(arr);
 end;
 
+{ TRttiProcedureSignature }
 
+constructor TRttiProcedureSignature.Create(const Signature: TProcedureSignature);
+begin
+  inherited Create(nil, Signature);
 
+  FReturnType := Pool.GetType(Signature.ResultType);
+
+  LoadFlags;
+
+  LoadParameters;
+end;
+
+procedure TRttiProcedureSignature.LoadFlags;
+const
+  PROCEDURE_FLAGS: array[TProcedureFlag] of NativeInt = (1, 2, 4, 8, 16);
+
+var
+  Flag: TProcedureFlag;
+
+  ProcedureFlags: NativeInt;
+
+begin
+  ProcedureFlags := ProcedureSignature.Flags;
+  FFlags := [];
+
+  for Flag := Low(PROCEDURE_FLAGS) to High(PROCEDURE_FLAGS) do
+    if PROCEDURE_FLAGS[Flag] and ProcedureFlags > 0 then
+      FFlags := FFlags + [Flag];
+
+  if Assigned(ReturnType) and ReturnType.IsInstanceExternal and (ReturnType.AsInstanceExternal.ExternalName = 'Promise') then
+    FFlags := FFlags + [pfAsync];
+end;
+
+procedure TRttiProcedureSignature.LoadParameters;
+const
+  FLAGS_CONVERSION: array[TParamFlag] of NativeInt = (1, 2, 4, 8, 16, 32);
+
+var
+  A: Integer;
+
+  Flag: TParamFlag;
+
+  Param: TProcedureParam;
+
+  RttiParam: TRttiParameter;
+
+  MethodParams: TProcedureParams;
+
+begin
+  MethodParams := ProcedureSignature.Params;
+
+  SetLength(FParameters, Length(MethodParams));
+
+  for A := Low(FParameters) to High(FParameters) do
+  begin
+    Param := MethodParams[A];
+    RttiParam := TRttiParameter.Create(Self, Param);
+    RttiParam.FName := Param.Name;
+    RttiParam.FParamType := Pool.GetType(Param.TypeInfo);
+
+    for Flag := Low(FLAGS_CONVERSION) to High(FLAGS_CONVERSION) do
+      if FLAGS_CONVERSION[Flag] and Param.Flags > 0 then
+        RttiParam.FFlags := RttiParam.FFlags + [Flag];
+
+    FParameters[A] := RttiParam;
+  end;
+end;
+
+function TRttiProcedureSignature.GetProcedureSignature: TProcedureSignature;
+begin
+  Result := TProcedureSignature(inherited Handle);
+end;
+
+class function TRttiProcedureSignature.Invoke(const Instance: TValue; const Args: array of TValue): TValue;
+begin
+
+end;
 
 end.
 
