@@ -1334,8 +1334,9 @@ end;
 
 function TValue.AsCurrency: Currency;
 begin
+  // The actual data is not multiplied by 10000. The
   if {$IFDEF FPC_DOTTEDUNITS}JSApi.{$ENDIF}JS.isNumber(GetData) then
-    Result:=Currency(GetData)
+    Result:=Currency(GetData)/10000
   else
     raise EInvalidCast.Create(SErrInvalidTypecast);
 end;
