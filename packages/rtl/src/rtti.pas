@@ -2228,7 +2228,7 @@ end;
 function TRttiMethod.GetProcedureSignature: TRttiProcedureSignature;
 begin
   if not Assigned(FProcedureSignature) then
-    FProcedureSignature := TRttiProcedureSignature.Create;
+    FProcedureSignature := TRttiProcedureSignature.Create(MethodTypeInfo.ProcSig);
 
   Result := FProcedureSignature;
 end;
@@ -2242,15 +2242,30 @@ function TRttiMethod.Invoke(const Instance: TValue; const Args: array of TValue)
 var
   A: Integer;
   AArgs: TJSValueDynArray;
+  Func: TJSFunction;
+  InstanceObject: TJSObject;
   ReturnValue: JSValue;
 
 begin
+  InstanceObject := TJSObject(Instance.AsJSValue);
+
   SetLength(AArgs, Length(Args));
 
   for A := Low(Args) to High(Args) do
     AArgs[A] := Args[A].AsJSValue;
 
-  ReturnValue := TJSFunction(TJSObject(Instance.AsJSValue)[MethodTypeInfo.Name]).apply(TJSObject(Instance.AsJSValue), AArgs);
+  if IsConstructor then
+  begin
+    Func := TJSFunction(InstanceObject['$create']);
+
+    ReturnValue := Func.apply(InstanceObject, [MethodTypeInfo.Name, AArgs]);
+  end
+  else
+  begin
+    Func := TJSFunction(InstanceObject[MethodTypeInfo.Name]);
+
+    ReturnValue := Func.apply(InstanceObject, AArgs);
+  end;
 
   if Assigned(ReturnType) then
     TValue.Make(ReturnValue, ReturnType.Handle, Result)
