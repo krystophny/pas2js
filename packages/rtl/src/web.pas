@@ -3073,6 +3073,21 @@ Type
     property shiftKey : Boolean read FShiftKey;
   end;
 
+  { TJSInputEvent }
+
+  TJSInputEvent = class external name 'InputEvent' (TJSUIEvent)
+  private
+    FData: string; external name 'data';
+    FDataTransfer: TJSDataTransfer; external name 'dataTransfer';
+    FInput: string; external name 'input';
+    FIsComposing: boolean; external name 'isComposing';
+  public
+    property Data : string read FData;
+    property DataTransfer : TJSDataTransfer read FDataTransfer;
+    property InputType : string read FInput;
+    property isComposing : boolean read FIsComposing;
+  end;
+
   { MutationObserver }
 
   TJSMutationObserver = Class;
