@@ -170,7 +170,7 @@ type
     function GetName: String; override;
     function GetParent: TRttiType;
     function GetStrictVisibility: Boolean; virtual;
-    function GetVisibility: TMemberVisibility; virtual;
+    function GetVisibility: TMemberVisibility;
     function LoadCustomAttributes: TCustomAttributeArray; override;
   public
     constructor Create(AParent: TRttiType; ATypeInfo: TTypeMember); reintroduce;
@@ -309,8 +309,6 @@ type
     function GetPropertyType: TRttiType;
     function GetIsWritable: boolean; override;
     function GetIsReadable: boolean; override;
-  protected
-    function GetVisibility: TMemberVisibility; override;
   public
     constructor Create(AParent: TRttiType; ATypeInfo: TTypeMember);
 
@@ -2360,12 +2358,6 @@ end;
 function TRttiProperty.GetIsReadable: boolean;
 begin
   Result := PropertyTypeInfo.Getter<>'';
-end;
-
-function TRttiProperty.GetVisibility: TMemberVisibility;
-begin
-  // At this moment only published rtti-property-info is supported by pas2js
-  Result := mvPublished;
 end;
 
 { TRttiType }
