@@ -1072,6 +1072,15 @@ begin
   SetJSValueProp(Instance,PropInfo,Value);
 end;
 
+Function TransFormRawValue(aValue : JSValue; const PropInfo :TTypeInfo) : JSValue;
+
+begin
+  if isNumber(aValue) and (PropInfo=System.TypeInfo(Currency)) then
+    Result:=Double(aValue)*10000
+  else
+    Result:=aValue;
+end;
+
 procedure SetJSValueProp(Instance: TJSObject;
   const PropInfo: TTypeMemberProperty; Value: JSValue);
 type
@@ -1079,18 +1088,20 @@ type
   TSetterWithIndex = procedure(Index, Value: JSValue) of object;
 var
   sk: TSetterKind;
+  lValue : JSValue;
 begin
+  lValue:=TransFormRawValue(Value,PropInfo.TypeInfo);
   sk:=GetPropSetterKind(PropInfo);
   case sk of
     skNone:
       raise EPropertyError.CreateFmt(SCantWritePropertyS, [PropInfo.Name]);
     skField:
-      Instance[PropInfo.Setter]:=Value;
+      Instance[PropInfo.Setter]:=lValue;
     skProcedure:
       if (pfHasIndex and PropInfo.Flags)>0 then
-        TSetterWithIndex(Instance[PropInfo.Setter])(PropInfo.Index,Value)
+        TSetterWithIndex(Instance[PropInfo.Setter])(PropInfo.Index,lValue)
       else
-        TSetter(Instance[PropInfo.Setter])(Value);
+        TSetter(Instance[PropInfo.Setter])(lValue);
     skProcedureWithParams:
       raise EPropertyError.CreateFmt(SIndexedPropertyNeedsParams, [PropInfo.Name]);
   end;
