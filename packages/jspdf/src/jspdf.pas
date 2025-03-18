@@ -22,11 +22,36 @@ unit jsPDF;
 interface
 
 uses
-{$IFNDEF FPC_DOTTEDUNITS}
+{$IFDEF FPC_DOTTEDUNITS}
   System.Types, JSApi.JS, System.SysUtils;
 {$ELSE}
   Types, JS, SysUtils;
 {$ENDIF}
+
+type
+  { Collection of settings signaling how the text must be encoded.}
+  TJSPDFTextOptions = Class external name 'Object' (TJSObject)
+    {The alignment of the text, possible values: left, center, right, justify. Default left}
+    align : string;
+    {Sets text baseline used when drawing the text, possible values: alphabetic, ideographic, bottom, top, middle, hanging. Default alphabetic}
+    baseline : string;
+    {Rotate the text clockwise or counterclockwise. Expects the angle in degree. Default 0}
+    angle : string;
+    {Direction of the rotation. 0 = clockwise, 1 = counterclockwise. Default 1}
+    rotationDirection : string;
+    {The space between each letter. Default 0}
+    charSpace : string;
+    {The lineheight of each line. Default 1.15}
+    lineHeightFactor : string;
+    {Flags for to8bitStream.}
+    flags : string;
+    {Split the text by given width, 0 = no split. Default 0}
+    maxWidth : string;
+    {Set how the text should be rendered, possible values:
+    fill, stroke, fillThenStroke, invisible, fillAndAddForClipping,
+    strokeAndAddPathForClipping, fillThenStrokeAndAddToPathForClipping, addToPathForClipping. Default fill}
+    renderingMode : string;
+  end; 
 
 type
   TjsPDF = class external name 'jsPDF'
@@ -80,6 +105,24 @@ type
       const fontStyle: string = '';
       { Encoding_name-to-Font_metrics_object mapping. }
       encoding: JSValue = nil);
+    { Adds an Image to the PDF.}
+    function addImage(
+      {imageData as base64 encoded DataUrl or Image-HTMLElement or Canvas-HTMLElement}
+      {format of file if filetype-recognition fails, e.g. 'JPEG'}
+      imageData, format: string;
+      {x Coordinate (in units declared at inception of PDF document) against left edge of the page}
+      {y Coordinate (in units declared at inception of PDF document) against upper edge of the page}
+      x, y: integer;
+      {width of the image (in units declared at inception of PDF document)}
+      width: integer = 0;
+      {height of the Image (in units declared at inception of PDF document)}
+      height: integer = 0;
+      {alias of the image (if used multiple times)}
+      alias:string='';
+      {compression of the generated JPEG, can have the values 'NONE', 'FAST', 'MEDIUM' and 'SLOW'}
+      compression:string='FAST';
+      {rotation of the image in degrees (0-359)}
+      rotation:integer=0): TjsPDF;
     { Adds (and transfers the focus to) new page to the PDF document. }
     function addPage(
       { The format of the new page. Can be:
@@ -409,7 +452,7 @@ type
         upper edge of the page. }
       y: JSValue = Undefined;
       { Collection of settings signaling how the text must be encoded. }
-      options: JSValue = Undefined): TjsPDF; overload; varargs;
+      options: TJSPDFTextOptions = nil): TjsPDF; overload; varargs;
     function text(const text: array of string;
       x: JSValue = Undefined; y: JSValue = Undefined;
       options: JSValue = nil): TjsPDF; overload; varargs;
