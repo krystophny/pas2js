@@ -43,6 +43,7 @@ Const
   cmdLoaded = 'loaded';
   cmdKill = 'kill';
   cmdSpawn = 'spawn';
+  cmdStarted = 'started';
   cmdLoad = 'load';
   cmdRun = 'run';
   cmdExecute = 'execute';
@@ -195,11 +196,23 @@ Type
     Module : TJSWebAssemblyModule;
   end;
 
+
   { TWorkerLoadCommandHelper }
 
   TWorkerLoadCommandHelper = class helper for TWorkerLoadCommand
     Class function CommandName : string; static;
     Class function Create(aModule : TJSWebAssemblyModule; aMemory : TJSWebAssemblyMemory): TWorkerLoadCommand; static;reintroduce;
+  end;
+
+  TWorkerStartedCommand = class external name 'Object' (TWorkerCommand)
+    StartFunction : string;
+  end;
+
+  { TWorkerStartedCommandHelper }
+
+  TWorkerStartedCommandHelper = class helper for TWorkerStartedCommand
+    Class function CommandName : string; static;
+    Class function Create(aFunction : string): TWorkerStartedCommand; static;reintroduce;
   end;
 
 
@@ -384,6 +397,19 @@ begin
   Result:=TWorkerLoadCommand(TWorkerCommand.NewWorker(CommandName));
   Result.Memory:=aMemory;
   Result.Module:=aModule;
+end;
+
+{ TWorkerStartedCommandHelper }
+
+class function TWorkerStartedCommandHelper.CommandName: string;
+begin
+  result:=cmdStarted;
+end;
+
+class function TWorkerStartedCommandHelper.Create(aFunction: string): TWorkerStartedCommand;
+begin
+  Result:=TWorkerStartedCommand(TWorkerCommand.NewWorker(CommandName));
+  Result.StartFunction:=aFunction;
 end;
 
 { TWorkerSpawnThreadCommandHelper }
