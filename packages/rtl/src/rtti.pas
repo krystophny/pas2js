@@ -243,7 +243,7 @@ type
     procedure LoadFlags;
     procedure LoadParameters;
   public
-    constructor Create(const Signature: TProcedureSignature);
+    constructor Create(const Parent: TRttiObject; const Signature: TProcedureSignature);
 
     class function Invoke(const Instance: TValue; const Args: array of TValue): TValue;
 
@@ -2217,7 +2217,7 @@ end;
 function TRttiMethod.GetProcedureSignature: TRttiProcedureSignature;
 begin
   if not Assigned(FProcedureSignature) then
-    FProcedureSignature := TRttiProcedureSignature.Create(MethodTypeInfo.ProcSig);
+    FProcedureSignature := TRttiProcedureSignature.Create(Self, MethodTypeInfo.ProcSig);
 
   Result := FProcedureSignature;
 end;
@@ -2862,9 +2862,9 @@ end;
 
 { TRttiProcedureSignature }
 
-constructor TRttiProcedureSignature.Create(const Signature: TProcedureSignature);
+constructor TRttiProcedureSignature.Create(const Parent: TRttiObject; const Signature: TProcedureSignature);
 begin
-  inherited Create(nil, Signature);
+  inherited Create(Parent, Signature);
 
   FReturnType := Pool.GetType(Signature.ResultType);
 
@@ -2917,7 +2917,7 @@ begin
   for A := Low(FParameters) to High(FParameters) do
   begin
     Param := MethodParams[A];
-    RttiParam := TRttiParameter.Create(Self, Param);
+    RttiParam := TRttiParameter.Create(Parent, Param);
     RttiParam.FName := Param.Name;
     RttiParam.FParamType := Pool.GetType(Param.TypeInfo);
 
