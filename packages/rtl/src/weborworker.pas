@@ -1677,6 +1677,7 @@ type
     FstrokeStylePattern: TJSCanvasPattern; external name 'strokeStyle';
   Public
     fillStyle : JSValue;
+    filter : string;
     font : string;
     globalAlpha : double;
     globalCompositeOperation : String;
