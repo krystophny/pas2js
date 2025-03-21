@@ -134,6 +134,7 @@ Type
   TJSImageBitmap = BrowserApi.WebOrWorker.TJSImageBitmap;
   TJSOffscreenCanvasRenderingContext2D = BrowserApi.WebOrWorker.TJSOffscreenCanvasRenderingContext2D;
   TJSHTMLOffscreenCanvasElement = BrowserApi.WebOrWorker.TJSHTMLOffscreenCanvas;
+  TJSHTMLOffscreenCanvas = BrowserApi.WebOrWorker..TJSHTMLOffscreenCanvas;
 {$ELSE}
   TJSServiceWorker = weborworker.TJSServiceWorker;
   TJSServiceWorkerRegistration = weborworker.TJSServiceWorkerRegistration;
@@ -214,6 +215,7 @@ Type
   TJSImageBitmap = weborworker.TJSImageBitmap;
   TJSOffscreenCanvasRenderingContext2D = weborworker.TJSOffscreenCanvasRenderingContext2D;
   TJSHTMLOffscreenCanvasElement = weborworker.TJSHTMLOffscreenCanvas;
+  TJSHTMLOffscreenCanvas = weborworker.TJSHTMLOffscreenCanvas;
 {$ENDIF}
   TJSMessagePortArray = TJSMessagePortDynArray;
   TEventListenerEvent = TJSEvent;
