@@ -846,7 +846,8 @@ end;
 
 procedure TWorkerThreadControllerApplication.HandleConsoleWrite(Sender: TObject; aOutput: string);
 begin
-  FConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput,0));
+  if SendOutputToBrowser then
+    FConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput,0));
 end;
 
 function TWorkerThreadControllerApplication.HandleCustomCommand(aData : TWorkerCommand) : Boolean;
