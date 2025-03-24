@@ -94,6 +94,7 @@ Type
     FHost : TWASIHost;
     FSendOutputToBrowser: Boolean;
     FConsoleChannel: TJSBroadcastChannel;
+    FSendOutputToConsole: Boolean;
     function GetAfterStart: TAfterStartEvent;
     function GetBeforeStart: TBeforeStartEvent;
     function GetcPredefinedConsoleInput: TStrings;
@@ -141,6 +142,8 @@ Type
     Property BeforeStart : TBeforeStartEvent Read GetBeforeStart Write SetBeforeStart;
     // Send output to browser window process?
     Property SendOutputToBrowser : Boolean Read FSendOutputToBrowser Write FSendOutputToBrowser;
+    // Send output to console ?
+    Property SendOutputToConsole : Boolean Read FSendOutputToConsole Write FSendOutputToConsole;
     // Default console input
     Property PredefinedConsoleInput : TStrings Read GetcPredefinedConsoleInput Write SetPredefinedConsoleInput;
     // Called when reading from console (stdin). If not set, PredefinedConsoleinput is used.
@@ -636,6 +639,7 @@ begin
   inherited Create(aOwner);
   FHost:=CreateHost;
   FConsoleChannel:=TJSBroadcastChannel.new(channelConsole);
+  FSendOutputToConsole:=true;
 end;
 
 destructor TWorkerWASIHostApplication.Destroy;
@@ -673,6 +677,8 @@ end;
 
 procedure TWorkerThreadRunnerApplication.HandleConsoleWrite(Sender: TObject; aOutput: string);
 begin
+  if SendOutputToConsole then
+    Writeln(aOutput);
   if SendOutputToBrowser then
     ConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput));
 end;
@@ -846,6 +852,8 @@ end;
 
 procedure TWorkerThreadControllerApplication.HandleConsoleWrite(Sender: TObject; aOutput: string);
 begin
+  if SendOutputToConsole then
+    Writeln(aOutput);
   if SendOutputToBrowser then
     FConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput,0));
 end;
