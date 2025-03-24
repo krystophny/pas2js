@@ -673,7 +673,8 @@ end;
 
 procedure TWorkerThreadRunnerApplication.HandleConsoleWrite(Sender: TObject; aOutput: string);
 begin
-  ConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput));
+  if SendOutputToBrowser then
+    ConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput));
 end;
 
 function TWorkerThreadRunnerApplication.CreateWorkerThreadSupport(aEnv : TPas2JSWasiEnvironment) : TWorkerThreadSupport;
