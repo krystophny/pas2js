@@ -190,6 +190,7 @@ Type
   TWorkerThreadControllerApplication = class(TWorkerWASIHostApplication)
   Private
     FThreadSupport : TThreadController;
+    function GetThreadHost: TWASIThreadControllerHost;
   Protected
     function CreateThreadSupport(aEnv: TPas2JSWASIEnvironment): TThreadController; virtual;
     procedure HandleConsoleWrite(Sender: TObject; aOutput: string); virtual;
@@ -201,6 +202,8 @@ Type
   Public
     procedure ShowException(aError: Exception); override;
     property ThreadSupport : TThreadController Read FThreadSupport;
+    property ThreadHost : TWASIThreadControllerHost read GetThreadHost;
+
   end;
 
 function GetJSClassName(aObj : TJSObject) : string;
@@ -873,6 +876,11 @@ begin
         FThreadSupport.HandleCommand(aData);
     end;
     end;
+end;
+
+function TWorkerThreadControllerApplication.GetThreadHost: TWASIThreadControllerHost;
+begin
+  Result:=(Host as  TWASIThreadControllerHost)
 end;
 
 function TWorkerThreadControllerApplication.CreateThreadSupport(aEnv : TPas2JSWASIEnvironment) : TThreadController;
