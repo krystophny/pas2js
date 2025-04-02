@@ -56,7 +56,6 @@ Type
   Private
     Type
       TWorkerState = (wsNeutral, wsLoading, wsLoaded, wsRunWaiting, wsRunning);
-    procedure DoRunThread(aExports: TWASIExports);
   Private
     FState: TWorkerState;
     FCurrentThreadInfo : TThreadinfo;
@@ -65,6 +64,7 @@ Type
     FWasiHost: TWASIThreadHost;
   Protected
     // Incoming messages
+    procedure DoRunThread(aExports: TWASIExports); virtual;
     procedure LoadWasmModule(aCommand: TWorkerLoadCommand); virtual;
     procedure RunWasmModule(aCommand: TWorkerRunCommand); virtual;
     procedure CancelWasmModule(aCommand: TWorkerCancelCommand); virtual;
@@ -408,6 +408,7 @@ Procedure TWorkerThreadSupport.DoRunThread(aExports : TWASIExports);
 Var
   aResult : Integer;
 
+
 begin
   try
     FState:=wsRunning;
@@ -416,6 +417,7 @@ begin
     FState:=wsLoaded;
     if aResult>0 then
       SendConsoleMessage('Thread run function result= %d ',[aResult]);
+    SendCommand(TWorkerCleanupCommand.Create(Self.FCurrentThreadInfo.ThreadID,aResult));
   except
     on E : Exception do
       SendException(E);
@@ -896,7 +898,7 @@ end;
 function TWorkerThreadControllerApplication.CreateThreadSupport(aEnv : TPas2JSWASIEnvironment) : TThreadController;
 
 begin
-  Result:=TThreadController.Create(aEnv,ThreadRunnerScript,20);
+  Result:=TThreadController.Create(aEnv,ThreadRunnerScript,ThreadCount);
 end;
 
 function TWorkerThreadControllerApplication.CreateHost: TWASIHost;

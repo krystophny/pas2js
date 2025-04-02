@@ -127,13 +127,14 @@ Type
 
   // Cleanup thread info: put this worker into unusued workers
   TWorkerCleanupCommand = class external name 'Object' (TWorkerCommand)
+    exitstatus : integer;
   end;
 
   { TWorkerCleanupCommandHelper }
 
   TWorkerCleanupCommandHelper = class helper for TWorkerCleanupCommand
     Class function CommandName : string; static;
-    Class function Create(aThreadID : Integer): TWorkerCleanupCommand; static;  reintroduce;
+    class function Create(aThreadID, aExitStatus: Integer): TWorkerCleanupCommand; static; reintroduce;
   end;
 
 
@@ -471,9 +472,10 @@ begin
   Result:=cmdCleanup
 end;
 
-class function TWorkerCleanupCommandHelper.Create(aThreadID: Integer): TWorkerCleanupCommand;
+class function TWorkerCleanupCommandHelper.Create(aThreadID, aExitStatus: Integer): TWorkerCleanupCommand;
 begin
   Result:=TWorkerCleanupCommand(TWorkerCommand.NewWorker(CommandName,aThreadID));
+  Result.ExitStatus:=aExitStatus;
 end;
 
 { TWorkerConsoleCommandHelper }
