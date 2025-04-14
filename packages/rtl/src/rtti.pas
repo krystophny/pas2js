@@ -273,8 +273,6 @@ type
     function GetProcedureSignature: TRttiProcedureSignature;
     function GetReturnType: TRttiType;
   protected
-    function GetName: String; override;
-
     property ProcedureSignature: TRttiProcedureSignature read GetProcedureSignature;
   public
     function GetParameters: TRttiParameterArray;
@@ -2214,14 +2212,6 @@ end;
 function TRttiMethod.GetReturnType: TRttiType;
 begin
   Result := ProcedureSignature.ReturnType;
-end;
-
-function TRttiMethod.GetName: String;
-begin
-  Result := inherited;
-
-  if IsConstructor then
-    Result := Result.SubString(0, Result.IndexOf('$'));
 end;
 
 function TRttiMethod.GetProcedureSignature: TRttiProcedureSignature;
