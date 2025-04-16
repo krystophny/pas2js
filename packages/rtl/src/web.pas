@@ -2615,6 +2615,7 @@ Type
     Function getContext(contextType : string; contextAttributes : TJSObject) : TJSObject;
     Function getContextAs2DContext(contextType : string; contextAttributes : TJSObject) : TJSCanvasRenderingContext2D; external name 'getContext';
     Function getContextAs2DContext(contextType : string) : TJSCanvasRenderingContext2D; external name 'getContext';
+    Function getContextAsImageBitmapContext(contextType : string) : TJSImageBitmapCanvasRenderingContext; external name 'getContext'; reintroduce;
     Procedure toBlob (aCallBack : THTMLCanvasToBlobCallback; aMimeType : String); overload;
     Procedure toBlob (aCallBack : THTMLCanvasToBlobCallback; aMimeType : String; aQuality : Double); overload;
     Function toDataURL : String; overload;

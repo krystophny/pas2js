@@ -58,6 +58,8 @@ type
   NotificationPermission = String;
   NotificationDirection = String;
   NotificationPermissionCallback = Procedure (permission : NotificationPermission);
+  TJSHTMLOffscreenCanvas = class;
+  TJSOffscreenCanvasRenderingContext2D = class;
 
 
   TJSFileSystemFileHandleArray = array of TJSFileSystemFileHandle;
@@ -1762,9 +1764,7 @@ type
     property strokeStyleAsPattern : TJSCanvasPattern Read FstrokeStylePattern Write FstrokeStylePattern;
   end;
 
-  TJSCanvasRenderingContext2D = class external name 'CanvasRenderingContext2D'(TJSBaseCanvasRenderingContext2D)
-  end;
-
+  TJSCanvasRenderingContext2D = class external name 'CanvasRenderingContext2D'(TJSBaseCanvasRenderingContext2D);
 
   { TJSImageBitmap }
 
@@ -1778,15 +1778,25 @@ type
     property height : cardinal read FHeight;
   end;
 
-  TJSOffscreenCanvasRenderingContext2D = class;
+
+  TJSImageBitmapCanvasRenderingContext = class external name 'ImageBitmapRenderingContext'  (TJSBaseCanvasRenderingContext2D)
+    procedure transferFromImageBitmap(aBitmap : TJSImageBitmap);
+  private
+    FCanvas: TJSHTMLOffscreenCanvas; external name 'canvas';
+  public
+    property canvas : TJSHTMLOffscreenCanvas Read FCanvas;
+  end;
+
+
 
   TJSHTMLOffscreenCanvas = Class external name 'OffscreenCanvas' (TJSObject)
   Public
     constructor New(x,y : Cardinal); overload;
     Function getContext(contextType : string; contextAttributes : TJSObject) : JSValue;
     Function getContext(contextType : string) : JSValue;
-    Function getContextAs2DContext(contextType : string; contextAttributes : TJSObject) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
     Function getContextAs2DContext(contextType : string) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
+    Function getContextAs2DContext(contextType : string; contextAttributes : TJSObject) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
+    Function getContextAsImageBitmapContext(contextType : string) : TJSImageBitmapCanvasRenderingContext; external name 'getContext'; reintroduce;
     function transferToImageBitmap: TJSImageBitmap;
     height : Integer;
     width : Integer;
@@ -1798,6 +1808,9 @@ type
   public
     property canvas : TJSHTMLOffscreenCanvas Read FCanvas;
   end;
+
+
+
 
 var
   Console : TJSConsole; external name 'console';
