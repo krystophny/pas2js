@@ -41,6 +41,9 @@ Const
   SizeQWord    = SizeUInt64;
 
 type
+  // An address in Webassembly memory
+  TWasmPointer = longint;
+
   TMemBufferArray = Array of TJSUint8Array;
 
   TPreLoadFile = record
