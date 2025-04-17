@@ -1810,6 +1810,16 @@ type
   end;
 
 
+  { TJSMessageChannel }
+
+  TJSMessageChannel = class external name 'MessageChannel' (TJSObject)
+  private
+    FPort1: TJSMessagePort; external name 'port1';
+    FPort2: TJSMessagePort; external name 'port2';
+  Public
+    property port1 : TJSMessagePort read FPort1;
+    property port2 : TJSMessagePort read FPort2;
+  end;
 
 
 var
