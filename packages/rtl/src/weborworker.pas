@@ -1821,6 +1821,12 @@ type
     property port2 : TJSMessagePort read FPort2;
   end;
 
+  TJSScriptContext = (jscUnknown,jscMainBrowserThread,jscWebWorker,jscServiceWorker);
+
+function isMainBrowserThread: boolean;
+function isWebWorker : boolean;
+function IsServiceWorker :boolean;
+function GetScriptContext : TJSScriptContext;
 
 var
   Console : TJSConsole; external name 'console';
@@ -1835,7 +1841,37 @@ var
   function fetch(resource: TJSObject; init: TJSObject): TJSPromise; overload; external name 'fetch';
   function fetch(resource: TJSObject): TJSPromise; overload; external name 'fetch';
 
+
 implementation
+
+function GetScriptContext : TJSScriptContext;
+begin
+  Result:=jscUnknown;
+  if isMainBrowserThread then
+    exit(jscMainBrowserThread);
+  if isWebWorker then
+    exit(jscWebWorker);
+  if IsServiceWorker then
+    exit(jscServiceWorker);
+end;
+
+function isMainBrowserThread: boolean; assembler;
+ asm
+   return (typeof window !== "undefined");
+ end;
+
+function isWebWorker : boolean; assembler;
+
+asm
+  return (typeof DedicatedWorkerGlobalScope !== 'undefined') &&
+         (self instanceof DedicatedWorkerGlobalScope);
+end;
+
+function IsServiceWorker :boolean; assembler;
+
+asm
+  Return (typeof ServiceWorkerGlobalScope !== 'undefined') && (self instanceof ServiceWorkerGlobalScope);
+end;
 
 end.
 
