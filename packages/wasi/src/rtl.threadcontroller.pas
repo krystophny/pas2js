@@ -56,6 +56,8 @@ Type
 
   { TThreadController }
   TWasmThreadEvent = procedure (Sender : TObject; aWorker : TWasmThread) of object;
+  TWasmThreadArray = array of TWasmThread;
+  TWasmThreadEnumProc = reference to procedure(aWorker : TWasmThread);
 
   TThreadController = class(TWasmThreadSupport)
   private
@@ -72,8 +74,8 @@ Type
     Function thread_detach(thread_id : longint) : Integer; override;
     Function thread_cancel(thread_id : longint) : Integer; override;
   Protected
-    FIdleWorkers : Array of TWasmThread;
-    FBusyWorkers : Array of TWasmThread;
+    FIdleWorkers : TWasmThreadArray;
+    FBusyWorkers : TWasmThreadArray;
     FThreads : TThreadHash; // ThreadID is key,
     // Handle worker messages. If it is a command, it is set to handlecommand.
     procedure DoWorkerMessage(aEvent: TJSEvent);
@@ -112,6 +114,10 @@ Type
     procedure SendCommandToAllWorkers(aCommand : TWorkerCommand);
     // Send a command to a specific thread. TWorkerCommand has the thread ID.
     procedure SendCommandToThread(aCommand : TWorkerCommand);
+    // Get a list of all thread workers
+    Function GetWebWorkers : TWasmThreadArray;
+    // Enumerate workers
+    Procedure EnumerateWebWorkers(aCallback : TWasmThreadEnumProc);
     // Name of worker script
     Property WorkerScript : String Read FWorkerScript;
     // Initial number of threads, set by constructor
@@ -370,6 +376,23 @@ begin
   W:=TJSWorker(FThreads[aCommand.ThreadID]);
   if Assigned(W) then
     W.postMessage(aCommand);
+end;
+
+function TThreadController.GetWebWorkers: TWasmThreadArray;
+begin
+  Result:=Concat(FBusyWorkers,FIdleWorkers);
+end;
+
+procedure TThreadController.EnumerateWebWorkers(aCallback: TWasmThreadEnumProc);
+
+var
+  aThread : TWasmThread;
+
+begin
+  if Not assigned(aCallback) then
+    exit;
+  For aThread in GetWebWorkers do
+    aCallBack(aThread);
 end;
 
 procedure TThreadController.RunTimeOut(aInfo: TThreadInfo; aInterval: Integer);
