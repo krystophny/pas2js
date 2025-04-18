@@ -2007,7 +2007,7 @@ type
     FencodeQueueSize: NativeInt; external name 'encodeQueueSize';
     FState: string; external name 'state';
   Public
-    class function isConfigSupported(aOptions : TJSNewVideoEncoderOptions) : boolean;
+    class function isConfigSupported(aOptions : TJSVideoEncoderConfiguration) : boolean;
     constructor new(aOptions : TJSNewVideoEncoderOptions);
     procedure close;
     procedure configure(aConfig :TJSVideoEncoderConfiguration);
@@ -2016,8 +2016,46 @@ type
     procedure reset;
     property encodeQueueSize : NativeInt Read FencodeQueueSize;
     property State : string read FState;
-
   end;
+
+  TJSVideoDecoderOutputCallBack = reference to procedure (aData : TJSVideoFrame);
+  TJSVideoDecoderErrorCallBack = reference to procedure (aError: TJSError);
+
+  TJSNewVideoDecoderOptions = class external name 'Object' (TJSObject)
+    output : TJSVideoDecoderOutputCallback;
+    error : TJSVideoDecoderErrorCallback;
+  end;
+
+  TJSVideoDecoderConfiguration = class external name 'Object' (TJSObject)
+    codec : string;
+    codedWidth : NativeInt;
+    codedHeight: NativeInt;
+    displayAspectWidth : NativeInt;
+    displayAspectHeight : NativeInt;
+    colorSpace : TJSVideoColorSpace;
+    hardwareAcceleration : string;
+    optimizeForLatency : Boolean;
+  end;
+
+  { TJSVideoDecoder }
+
+  TJSVideoDecoder = class external name 'VideoDecoder' (TJSEventTarget)
+  private
+    FdecodeQueueSize: NativeInt; external name 'decodeQueueSize';
+    FState: string; external name 'state';
+  public
+    constructor new(aOptions : TJSNewVideoDecoderOptions);
+    class function isConfigSupported(aOptions : TJSVideoDecoderConfiguration) : boolean;
+    procedure close;
+    procedure configure(aConfig :TJSVideoEncoderConfiguration);
+    procedure decode(Frame : TJSEncodedVideoChunk);
+    procedure flush;
+    procedure reset;
+    procedure configure(aConfig :TJSVideoDecoderConfiguration);
+    property decodeQueueSize : NativeInt Read FdecodeQueueSize;
+    property State : string read FState;
+  end;
+
 
   TJSScriptContext = (jscUnknown,jscMainBrowserThread,jscWebWorker,jscServiceWorker);
 
