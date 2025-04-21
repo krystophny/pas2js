@@ -43,6 +43,7 @@ Const
   cmdLoaded = 'loaded';
   cmdKill = 'kill';
   cmdSpawn = 'spawn';
+  cmdStarted = 'started';
   cmdLoad = 'load';
   cmdRun = 'run';
   cmdExecute = 'execute';
@@ -126,13 +127,14 @@ Type
 
   // Cleanup thread info: put this worker into unusued workers
   TWorkerCleanupCommand = class external name 'Object' (TWorkerCommand)
+    exitstatus : integer;
   end;
 
   { TWorkerCleanupCommandHelper }
 
   TWorkerCleanupCommandHelper = class helper for TWorkerCleanupCommand
     Class function CommandName : string; static;
-    Class function Create(aThreadID : Integer): TWorkerCleanupCommand; static;  reintroduce;
+    class function Create(aThreadID, aExitStatus: Integer): TWorkerCleanupCommand; static; reintroduce;
   end;
 
 
@@ -195,11 +197,23 @@ Type
     Module : TJSWebAssemblyModule;
   end;
 
+
   { TWorkerLoadCommandHelper }
 
   TWorkerLoadCommandHelper = class helper for TWorkerLoadCommand
     Class function CommandName : string; static;
     Class function Create(aModule : TJSWebAssemblyModule; aMemory : TJSWebAssemblyMemory): TWorkerLoadCommand; static;reintroduce;
+  end;
+
+  TWorkerStartedCommand = class external name 'Object' (TWorkerCommand)
+    StartFunction : string;
+  end;
+
+  { TWorkerStartedCommandHelper }
+
+  TWorkerStartedCommandHelper = class helper for TWorkerStartedCommand
+    Class function CommandName : string; static;
+    Class function Create(aFunction : string): TWorkerStartedCommand; static;reintroduce;
   end;
 
 
@@ -386,6 +400,19 @@ begin
   Result.Module:=aModule;
 end;
 
+{ TWorkerStartedCommandHelper }
+
+class function TWorkerStartedCommandHelper.CommandName: string;
+begin
+  result:=cmdStarted;
+end;
+
+class function TWorkerStartedCommandHelper.Create(aFunction: string): TWorkerStartedCommand;
+begin
+  Result:=TWorkerStartedCommand(TWorkerCommand.NewWorker(CommandName));
+  Result.StartFunction:=aFunction;
+end;
+
 { TWorkerSpawnThreadCommandHelper }
 
 class function TWorkerSpawnThreadCommandHelper.CommandName: string;
@@ -445,9 +472,10 @@ begin
   Result:=cmdCleanup
 end;
 
-class function TWorkerCleanupCommandHelper.Create(aThreadID: Integer): TWorkerCleanupCommand;
+class function TWorkerCleanupCommandHelper.Create(aThreadID, aExitStatus: Integer): TWorkerCleanupCommand;
 begin
   Result:=TWorkerCleanupCommand(TWorkerCommand.NewWorker(CommandName,aThreadID));
+  Result.ExitStatus:=aExitStatus;
 end;
 
 { TWorkerConsoleCommandHelper }

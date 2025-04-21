@@ -134,6 +134,7 @@ Type
   TJSImageBitmap = BrowserApi.WebOrWorker.TJSImageBitmap;
   TJSOffscreenCanvasRenderingContext2D = BrowserApi.WebOrWorker.TJSOffscreenCanvasRenderingContext2D;
   TJSHTMLOffscreenCanvasElement = BrowserApi.WebOrWorker.TJSHTMLOffscreenCanvas;
+  TJSHTMLOffscreenCanvas = BrowserApi.WebOrWorker..TJSHTMLOffscreenCanvas;
 {$ELSE}
   TJSServiceWorker = weborworker.TJSServiceWorker;
   TJSServiceWorkerRegistration = weborworker.TJSServiceWorkerRegistration;
@@ -214,6 +215,7 @@ Type
   TJSImageBitmap = weborworker.TJSImageBitmap;
   TJSOffscreenCanvasRenderingContext2D = weborworker.TJSOffscreenCanvasRenderingContext2D;
   TJSHTMLOffscreenCanvasElement = weborworker.TJSHTMLOffscreenCanvas;
+  TJSHTMLOffscreenCanvas = weborworker.TJSHTMLOffscreenCanvas;
 {$ENDIF}
   TJSMessagePortArray = TJSMessagePortDynArray;
   TEventListenerEvent = TJSEvent;
@@ -2613,6 +2615,7 @@ Type
     Function getContext(contextType : string; contextAttributes : TJSObject) : TJSObject;
     Function getContextAs2DContext(contextType : string; contextAttributes : TJSObject) : TJSCanvasRenderingContext2D; external name 'getContext';
     Function getContextAs2DContext(contextType : string) : TJSCanvasRenderingContext2D; external name 'getContext';
+    Function getContextAsImageBitmapContext(contextType : string) : TJSImageBitmapCanvasRenderingContext; external name 'getContext'; reintroduce;
     Procedure toBlob (aCallBack : THTMLCanvasToBlobCallback; aMimeType : String); overload;
     Procedure toBlob (aCallBack : THTMLCanvasToBlobCallback; aMimeType : String; aQuality : Double); overload;
     Function toDataURL : String; overload;
@@ -2871,7 +2874,39 @@ Type
     Property deltaMode : NativeInt Read FDeltaMode;
   end;
 
-  TJSPointerEvent = Class external name 'PointerEvent' (TJSMouseEvent);
+  { TJSPointerEvent }
+
+  TJSPointerEvent = Class external name 'PointerEvent' (TJSMouseEvent)
+  private
+    faltitudeAngle : double; external name 'altitudeAngle';
+    fazimuthAngle : double; external name 'azimuthAngle';
+    fheight : integer; external name 'height';
+    fisPrimary : boolean; external name 'isPrimary';
+    fpersistentDeviceId : NativeInt; external name 'persistentDeviceId';
+    fPointerID : NativeInt; external name 'pointerId';
+    fPointerType : string; external name 'pointerType';
+    fpressure : double; external name 'pressure';
+    ftangentialpressure : double; external name 'tangentialPressure';
+    fTiltX : double; external name 'tiltX';
+    fTiltY : double; external name 'tiltY';
+    fTwist : nativeint; external name 'twist';
+    fWidth : nativeint; external name 'width';
+  public
+    property altitudeAngle : double read FaltitudeAngle;
+    property azimuthAngle : double read FazimuthAngle;
+    property height: integer read fheight;
+    property isPrimary : boolean read FisPrimary;
+    property persistentDeviceId : NativeInt read FpersistentDeviceId;
+    property pointerId : NativeInt read FPointerID;
+    property pointerType : string read FPointerType;
+    property pressure : double read fpressure;
+    property tangentialPressure : double read ftangentialpressure;
+    property tiltX : double read FTiltX;
+    property tiltY : double read FTiltY;
+    property twist : nativeint read FTwist;
+    property width : nativeint read FWidth;
+
+  end;
 
   TJSTouchEvent = Class external name 'TouchEvent'(TJSUIEvent)
   private

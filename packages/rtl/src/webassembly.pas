@@ -41,11 +41,19 @@ Type
   TJSWebAssemblyMemory = class external name 'WebAssembly.Memory' (TJSObject)
   private
     FBuffer: TJSArrayBuffer; external name 'buffer';
+    FSharedBuffer: TJSSharedArrayBuffer; external name 'buffer';
   Public
     constructor new (memorydescriptor : TJSWebAssemblyMemoryDescriptor);
     constructor new (memorydescriptor : TJSObject);
     Function grow(number : NativeInt) : NativeInt; external name 'grow';
     Property buffer : TJSArrayBuffer Read FBuffer;
+    Property Sharedbuffer : TJSSharedArrayBuffer Read FSharedBuffer;
+  end;
+
+  { TJSWebAssemblyMemoryHelper }
+
+  TJSWebAssemblyMemoryHelper = class helper for TJSWebAssemblyMemory
+    function IsSharedBuffer : Boolean;
   end;
 
   { TJSModulesArray }
@@ -128,6 +136,16 @@ Type
 
 
 implementation
+
+{ TJSWebAssemblyMemoryHelper }
+
+function TJSWebAssemblyMemoryHelper.IsSharedBuffer: Boolean;
+begin
+  asm
+  return ((!(buffer === null)) && (typeof this.FBuffer === 'object'))
+          && (this.FBuffer instanceof SharedArrayBuffer);
+  end;
+end;
 
 end.
 

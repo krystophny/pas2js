@@ -56,7 +56,6 @@ Type
   Private
     Type
       TWorkerState = (wsNeutral, wsLoading, wsLoaded, wsRunWaiting, wsRunning);
-    procedure DoRunThread(aExports: TWASIExports);
   Private
     FState: TWorkerState;
     FCurrentThreadInfo : TThreadinfo;
@@ -65,6 +64,7 @@ Type
     FWasiHost: TWASIThreadHost;
   Protected
     // Incoming messages
+    procedure DoRunThread(aExports: TWASIExports); virtual;
     procedure LoadWasmModule(aCommand: TWorkerLoadCommand); virtual;
     procedure RunWasmModule(aCommand: TWorkerRunCommand); virtual;
     procedure CancelWasmModule(aCommand: TWorkerCancelCommand); virtual;
@@ -94,6 +94,7 @@ Type
     FHost : TWASIHost;
     FSendOutputToBrowser: Boolean;
     FConsoleChannel: TJSBroadcastChannel;
+    FSendOutputToConsole: Boolean;
     function GetAfterStart: TAfterStartEvent;
     function GetBeforeStart: TBeforeStartEvent;
     function GetcPredefinedConsoleInput: TStrings;
@@ -141,6 +142,8 @@ Type
     Property BeforeStart : TBeforeStartEvent Read GetBeforeStart Write SetBeforeStart;
     // Send output to browser window process?
     Property SendOutputToBrowser : Boolean Read FSendOutputToBrowser Write FSendOutputToBrowser;
+    // Send output to console ?
+    Property SendOutputToConsole : Boolean Read FSendOutputToConsole Write FSendOutputToConsole;
     // Default console input
     Property PredefinedConsoleInput : TStrings Read GetcPredefinedConsoleInput Write SetPredefinedConsoleInput;
     // Called when reading from console (stdin). If not set, PredefinedConsoleinput is used.
@@ -190,6 +193,7 @@ Type
   TWorkerThreadControllerApplication = class(TWorkerWASIHostApplication)
   Private
     FThreadSupport : TThreadController;
+    function GetThreadHost: TWASIThreadControllerHost;
   Protected
     function CreateThreadSupport(aEnv: TPas2JSWASIEnvironment): TThreadController; virtual;
     procedure HandleConsoleWrite(Sender: TObject; aOutput: string); virtual;
@@ -201,6 +205,8 @@ Type
   Public
     procedure ShowException(aError: Exception); override;
     property ThreadSupport : TThreadController Read FThreadSupport;
+    property ThreadHost : TWASIThreadControllerHost read GetThreadHost;
+
   end;
 
 function GetJSClassName(aObj : TJSObject) : string;
@@ -402,6 +408,7 @@ Procedure TWorkerThreadSupport.DoRunThread(aExports : TWASIExports);
 Var
   aResult : Integer;
 
+
 begin
   try
     FState:=wsRunning;
@@ -410,6 +417,7 @@ begin
     FState:=wsLoaded;
     if aResult>0 then
       SendConsoleMessage('Thread run function result= %d ',[aResult]);
+    SendCommand(TWorkerCleanupCommand.Create(Self.FCurrentThreadInfo.ThreadID,aResult));
   except
     on E : Exception do
       SendException(E);
@@ -633,6 +641,7 @@ begin
   inherited Create(aOwner);
   FHost:=CreateHost;
   FConsoleChannel:=TJSBroadcastChannel.new(channelConsole);
+  FSendOutputToConsole:=true;
 end;
 
 destructor TWorkerWASIHostApplication.Destroy;
@@ -670,7 +679,10 @@ end;
 
 procedure TWorkerThreadRunnerApplication.HandleConsoleWrite(Sender: TObject; aOutput: string);
 begin
-  ConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput));
+  if SendOutputToConsole then
+    Writeln(aOutput);
+  if SendOutputToBrowser then
+    ConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput));
 end;
 
 function TWorkerThreadRunnerApplication.CreateWorkerThreadSupport(aEnv : TPas2JSWasiEnvironment) : TWorkerThreadSupport;
@@ -842,7 +854,10 @@ end;
 
 procedure TWorkerThreadControllerApplication.HandleConsoleWrite(Sender: TObject; aOutput: string);
 begin
-  FConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput,0));
+  if SendOutputToConsole then
+    Writeln(aOutput);
+  if SendOutputToBrowser then
+    FConsoleChannel.postMessage(TWorkerConsoleCommand.Create(aOutput,0));
 end;
 
 function TWorkerThreadControllerApplication.HandleCustomCommand(aData : TWorkerCommand) : Boolean;
@@ -875,10 +890,15 @@ begin
     end;
 end;
 
+function TWorkerThreadControllerApplication.GetThreadHost: TWASIThreadControllerHost;
+begin
+  Result:=(Host as  TWASIThreadControllerHost)
+end;
+
 function TWorkerThreadControllerApplication.CreateThreadSupport(aEnv : TPas2JSWASIEnvironment) : TThreadController;
 
 begin
-  Result:=TThreadController.Create(aEnv,ThreadRunnerScript,20);
+  Result:=TThreadController.Create(aEnv,ThreadRunnerScript,ThreadCount);
 end;
 
 function TWorkerThreadControllerApplication.CreateHost: TWASIHost;

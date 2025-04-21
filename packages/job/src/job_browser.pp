@@ -955,11 +955,27 @@ var
   var
     Len, Ptr: TWasmNativeInt;
     aWords: TJSUint16Array;
+    aRawBytes,
+    aBytes: TJSUint8Array;
   begin
     Len:=ReadWasmNativeInt;
     Ptr:=ReadWasmNativeInt;
-    aWords:=TJSUint16Array.New(View.buffer, Ptr,Len);
-    Result:=DecodeUTF16Buffer(aWords);
+    if (Ptr mod 2)=0 then
+      begin
+      // Aligned, we can directly use the memory
+      aWords:=TJSUint16Array.New(View.buffer, Ptr,Len);
+      end
+    else
+      begin
+      // Unaligned, We cannot directly use the memory
+      // So create a uint8 buffer and copy using from.
+     aRawBytes:=TJSUint8Array.new(View.buffer, Ptr,Len*2);
+      // Hopefully aligned
+      aBytes:=TJSUint8Array.New(aRawBytes.Buffer);
+      // Reinterpret
+      aWords:=TJSUint16Array.New(aBytes.buffer);
+      end;
+     Result:=DecodeUTF16Buffer(aWords);
     {$IFDEF VERBOSEJOB}
     Writeln('ReadUnicodeString : ',Result);
     {$ENDIF}

@@ -58,6 +58,8 @@ type
   NotificationPermission = String;
   NotificationDirection = String;
   NotificationPermissionCallback = Procedure (permission : NotificationPermission);
+  TJSHTMLOffscreenCanvas = class;
+  TJSOffscreenCanvasRenderingContext2D = class;
 
 
   TJSFileSystemFileHandleArray = array of TJSFileSystemFileHandle;
@@ -1677,6 +1679,7 @@ type
     FstrokeStylePattern: TJSCanvasPattern; external name 'strokeStyle';
   Public
     fillStyle : JSValue;
+    filter : string;
     font : string;
     globalAlpha : double;
     globalCompositeOperation : String;
@@ -1761,9 +1764,7 @@ type
     property strokeStyleAsPattern : TJSCanvasPattern Read FstrokeStylePattern Write FstrokeStylePattern;
   end;
 
-  TJSCanvasRenderingContext2D = class external name 'CanvasRenderingContext2D'(TJSBaseCanvasRenderingContext2D)
-  end;
-
+  TJSCanvasRenderingContext2D = class external name 'CanvasRenderingContext2D'(TJSBaseCanvasRenderingContext2D);
 
   { TJSImageBitmap }
 
@@ -1777,15 +1778,25 @@ type
     property height : cardinal read FHeight;
   end;
 
-  TJSOffscreenCanvasRenderingContext2D = class;
+
+  TJSImageBitmapCanvasRenderingContext = class external name 'ImageBitmapRenderingContext'  (TJSBaseCanvasRenderingContext2D)
+    procedure transferFromImageBitmap(aBitmap : TJSImageBitmap);
+  private
+    FCanvas: TJSHTMLOffscreenCanvas; external name 'canvas';
+  public
+    property canvas : TJSHTMLOffscreenCanvas Read FCanvas;
+  end;
+
+
 
   TJSHTMLOffscreenCanvas = Class external name 'OffscreenCanvas' (TJSObject)
   Public
     constructor New(x,y : Cardinal); overload;
     Function getContext(contextType : string; contextAttributes : TJSObject) : JSValue;
     Function getContext(contextType : string) : JSValue;
-    Function getContextAs2DContext(contextType : string; contextAttributes : TJSObject) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
     Function getContextAs2DContext(contextType : string) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
+    Function getContextAs2DContext(contextType : string; contextAttributes : TJSObject) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
+    Function getContextAsImageBitmapContext(contextType : string) : TJSImageBitmapCanvasRenderingContext; external name 'getContext'; reintroduce;
     function transferToImageBitmap: TJSImageBitmap;
     height : Integer;
     width : Integer;
@@ -1797,6 +1808,262 @@ type
   public
     property canvas : TJSHTMLOffscreenCanvas Read FCanvas;
   end;
+
+
+  { TJSMessageChannel }
+
+  TJSMessageChannel = class external name 'MessageChannel' (TJSObject)
+  private
+    FPort1: TJSMessagePort; external name 'port1';
+    FPort2: TJSMessagePort; external name 'port2';
+  Public
+    property port1 : TJSMessagePort read FPort1;
+    property port2 : TJSMessagePort read FPort2;
+  end;
+
+  { TJSVideoChunkMetaData }
+
+  TJSVideoChunkDecoderConfig = class external name 'Object' (TJSObject)
+    codec : string;
+    description : TJSObject;
+    codedWidth : NativeInt;
+    codedHeight : NativeInt;
+    displayAspectWidth : NativeInt;
+    displayAspectHeight : NativeInt;
+    colorSpace : TJSObject;
+    hardwareAcceleration : string;
+    optimizeForLatency : boolean;
+  end;
+  TJSVideoChunkMetaDataSvc = class external name 'Object' (TJSObject)
+    temporalLayerId : NativeInt;
+  end;
+
+  TJSVideoChunkMetaData = class external name 'Object' (TJSObject)
+  private
+    FalphaSideData: TJSObject; external name 'alphaSideData';
+    Fdecoderconfig: TJSVideoChunkDecoderConfig; external name 'decoderConfig';
+    FSvc: TJSVideoChunkMetaDataSvc;  external name 'svc';
+  Public
+    property decoderConfig : TJSVideoChunkDecoderConfig read Fdecoderconfig;
+    property svc : TJSVideoChunkMetaDataSvc Read FSvc;
+    property alphaSideData : TJSObject Read FalphaSideData;
+  end;
+
+  { TDOMRectReadOnly }
+
+  TDOMRectReadOnly = class external name 'DOMRectReadOnly' (TJSObject)
+  private
+    Fbottom: integer; external name 'bottom';
+    Fheight: integer; external name 'height';
+    Fleft: integer; external name 'left';
+    Fright: integer; external name 'right';
+    Ftop: integer; external name 'top';
+    FWidth: integer; external name 'width';
+    Fx: integer; external name 'x';
+    Fy: integer; external name 'y';
+  public
+    property bottom : integer read Fbottom;
+    property height : integer read Fheight;
+    property left : integer read Fleft;
+    property right : integer read Fright;
+    property top : integer read Ftop;
+    property width : integer Read FWidth;
+    property x : integer read Fx;
+    property y : integer read Fy;
+  end;
+
+  TJSVideoColorSpaceOptions = class external name 'Object' (TJSObject)
+    primaries : string;
+    transfer : string;
+    matrix : string;
+    fullrange : boolean;
+  end;
+
+  { TJSVideoColorSpace }
+
+  TJSVideoColorSpace = class external name 'VideoColorSpace' (TJSObject)
+  private
+    FPrimaries: string; external name 'primaties';
+  Public
+    transfer : string;
+    matrix : string;
+    fullrander : boolean;
+    constructor new();
+    constructor new(aOptions : TJSVideoColorSpace);
+    property primaries : string read FPrimaries;
+  end;
+
+  { TJSVideoFrame }
+  TJSVideoFrameOptionsRect  = class external name 'Object' (TJSObject)
+    x,y,width,height : integer;
+  end;
+
+  TJSVideoFrameOptions = class external name 'Object' (TJSObject)
+    duration : integer;
+    timestamp : integer;
+    alpha : string;
+    visibleRect : TJSVideoFrameOptionsRect;
+    displayWidth : integer;
+    displayHeight : integer;
+  end;
+
+  TJSVideoFrame = class external name 'VideoFrame' (TJSObject)
+  private
+    FcodedHeight: NativeInt; external name 'codedHeight';
+    FcodedRect: TDOMRectReadOnly; external name 'codedRect';
+    FcodedWidth: NativeInt; external name 'codedWidth';
+    FcolorSpace: TJSVideoColorSpace; external name 'colorSpace';
+    FdisplayHeight: NativeInt; external name 'displayHeight';
+    FdisplayWidth: NativeInt; external name 'displayWidth';
+    Fduration: NativeInt; external name 'duration';
+    Fformat: string; external name 'format';
+    Ftimestamp: NativeInt; external name 'timestamp';
+    FvisibleRect: TDOMRectReadOnly; external name 'visibleRect';
+  Public
+    constructor new(aFormat : TJSImageBitmap);
+    constructor new(aFormat : TJSVideoFrame);
+    constructor new(aFormat : TJSHTMLOffscreenCanvas);
+    constructor new(aFormat : TJSObject);
+    constructor new(aFormat : TJSImageBitmap; aOptions : TJSVideoFrameOptions);
+    constructor new(aFormat : TJSVideoFrame; aOptions : TJSVideoFrameOptions);
+    constructor new(aFormat : TJSHTMLOffscreenCanvas; aOptions : TJSVideoFrameOptions);
+    constructor new(aFormat : TJSObject; aOptions : TJSVideoFrameOptions);
+
+    property format : string read FFormat;
+    property codedHeight : NativeInt Read FcodedHeight;
+    property codedWidth : NativeInt Read FcodedWidth;
+    property codedRect : TDOMRectReadOnly read FcodedRect;
+    property colorSpace : TJSVideoColorSpace read FcolorSpace;
+    property displayHeight : NativeInt read FdisplayHeight;
+    property displayWidth : NativeInt read FdisplayWidth;
+    property duration : NativeInt read Fduration;
+    property timestamp : NativeInt read Ftimestamp;
+    property visibleRect : TDOMRectReadOnly read FvisibleRect;
+  end;
+
+  TJSEncodedVideoChunkOptions = class external name 'Object' (TJSObject)
+    type_ : string; external name 'type';
+    timestamp : NativeInt;
+    duration : NativeInt;
+    data : TJSObject;
+    transfer : TJSObjectDynArray;
+  end;
+
+  { TJSEncodedVideoChunk }
+
+  TJSEncodedVideoChunk = class external name 'EncodedVideoChunk' (TJSObject)
+  private
+    FbyteLength: NativeInt;external name 'byteLength';
+    FDuration: NativeInt;external name 'duration';
+    Ftimestamp: NativeInt;external name 'timestamp';
+    Ftype: string; external name 'type';
+  Public
+    constructor new(aOptions : TJSEncodedVideoChunkOptions);
+    property byteLength : NativeInt Read FbyteLength;
+    property timestamp : NativeInt Read Ftimestamp;
+    property duration : NativeInt Read FDuration;
+    property type_ : string read Ftype;
+  end;
+
+  TVideoEncoderOutputCallBack = reference to procedure (aData : TJSEncodedVideoChunk; aMetaData : TJSVideoChunkMetaData);
+  TVideoEncoderErrorCallBack = reference to procedure (aError: TJSError);
+
+  TJSNewVideoEncoderOptions = class external name 'Object' (TJSObject)
+    output : TVideoEncoderOutputCallBack;
+    error : TVideoEncoderErrorCallBack;
+  end;
+
+  TJSVideoEncoderConfiguration = class external name 'Object' (TJSObject)
+    codec : string;
+    width : NativeInt;
+    height: NativeInt;
+    displayWidth : NativeInt;
+    displayHeight : NativeInt;
+    hardwareAcceleration : string;
+    bitrate : NativeInt;
+    framerate: NativeInt;
+    alpha : string;
+    scalabilityMode : string;
+    bitrateMode : string;
+    latencyMode : string;
+  end;
+
+  TJSVideoEncodeQuantizerOptions = class external name 'Object' (TJSObject)
+    quantizer : Nativeint;
+  end;
+
+  TJSVideoEncodeOptions = class external name 'Object' (TJSObject)
+    keyFrame : boolean;
+    vp9 : TJSVideoEncodeQuantizerOptions;
+    av1 : TJSVideoEncodeQuantizerOptions;
+    avc : TJSVideoEncodeQuantizerOptions;
+    hevc : TJSVideoEncodeQuantizerOptions;
+  end;
+
+  { TJSVideoEncoder }
+
+  TJSVideoEncoder = class external name 'VideoEncoder' (TJSEventTarget)
+  private
+    FencodeQueueSize: NativeInt; external name 'encodeQueueSize';
+    FState: string; external name 'state';
+  Public
+    class function isConfigSupported(aOptions : TJSVideoEncoderConfiguration) : boolean;
+    constructor new(aOptions : TJSNewVideoEncoderOptions);
+    procedure close;
+    procedure configure(aConfig :TJSVideoEncoderConfiguration);
+    procedure encode(Frame : TJSVideoFrame; aOptions : TJSVideoEncodeOptions);
+    procedure flush;
+    procedure reset;
+    property encodeQueueSize : NativeInt Read FencodeQueueSize;
+    property State : string read FState;
+  end;
+
+  TJSVideoDecoderOutputCallBack = reference to procedure (aData : TJSVideoFrame);
+  TJSVideoDecoderErrorCallBack = reference to procedure (aError: TJSError);
+
+  TJSNewVideoDecoderOptions = class external name 'Object' (TJSObject)
+    output : TJSVideoDecoderOutputCallback;
+    error : TJSVideoDecoderErrorCallback;
+  end;
+
+  TJSVideoDecoderConfiguration = class external name 'Object' (TJSObject)
+    codec : string;
+    codedWidth : NativeInt;
+    codedHeight: NativeInt;
+    displayAspectWidth : NativeInt;
+    displayAspectHeight : NativeInt;
+    colorSpace : TJSVideoColorSpace;
+    hardwareAcceleration : string;
+    optimizeForLatency : Boolean;
+  end;
+
+  { TJSVideoDecoder }
+
+  TJSVideoDecoder = class external name 'VideoDecoder' (TJSEventTarget)
+  private
+    FdecodeQueueSize: NativeInt; external name 'decodeQueueSize';
+    FState: string; external name 'state';
+  public
+    constructor new(aOptions : TJSNewVideoDecoderOptions);
+    class function isConfigSupported(aOptions : TJSVideoDecoderConfiguration) : boolean;
+    procedure close;
+    procedure configure(aConfig :TJSVideoEncoderConfiguration);
+    procedure decode(Frame : TJSEncodedVideoChunk);
+    procedure flush;
+    procedure reset;
+    procedure configure(aConfig :TJSVideoDecoderConfiguration);
+    property decodeQueueSize : NativeInt Read FdecodeQueueSize;
+    property State : string read FState;
+  end;
+
+
+  TJSScriptContext = (jscUnknown,jscMainBrowserThread,jscWebWorker,jscServiceWorker);
+
+
+function isMainBrowserThread: boolean;
+function isWebWorker : boolean;
+function IsServiceWorker :boolean;
+function GetScriptContext : TJSScriptContext;
 
 var
   Console : TJSConsole; external name 'console';
@@ -1811,7 +2078,37 @@ var
   function fetch(resource: TJSObject; init: TJSObject): TJSPromise; overload; external name 'fetch';
   function fetch(resource: TJSObject): TJSPromise; overload; external name 'fetch';
 
+
 implementation
+
+function GetScriptContext : TJSScriptContext;
+begin
+  Result:=jscUnknown;
+  if isMainBrowserThread then
+    exit(jscMainBrowserThread);
+  if isWebWorker then
+    exit(jscWebWorker);
+  if IsServiceWorker then
+    exit(jscServiceWorker);
+end;
+
+function isMainBrowserThread: boolean; assembler;
+ asm
+   return (typeof window !== "undefined");
+ end;
+
+function isWebWorker : boolean; assembler;
+
+asm
+  return (typeof DedicatedWorkerGlobalScope !== 'undefined') &&
+         (self instanceof DedicatedWorkerGlobalScope);
+end;
+
+function IsServiceWorker :boolean; assembler;
+
+asm
+  Return (typeof ServiceWorkerGlobalScope !== 'undefined') && (self instanceof ServiceWorkerGlobalScope);
+end;
 
 end.
 

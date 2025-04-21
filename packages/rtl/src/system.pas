@@ -102,6 +102,7 @@ type
 {*****************************************************************************
             TObject, TClass, IUnknown, IInterface, TInterfacedObject
 *****************************************************************************}
+
 type
   TGuid = record
     D1: DWord;
@@ -121,6 +122,13 @@ type
   TClass = class of TObject;
 
   { TObject }
+  {$IFDEF ENABLE_DELPHI_RTTI}
+    {$RTTI INHERIT
+        METHODS([vcPublic, vcPublished])
+        FIELDS([vcPrivate,vcProtected, vcPublic,vcPublished])
+        PROPERTIES([vcPublic, vcPublished])
+    }
+  {$ENDIF}
 
   {$DispatchField Msg} // enable checking message methods for record field name "Msg"
   {$DispatchStrField MsgStr}
