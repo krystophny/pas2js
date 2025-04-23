@@ -1959,6 +1959,9 @@ type
     Ftype: string; external name 'type';
   Public
     constructor new(aOptions : TJSEncodedVideoChunkOptions);
+    procedure copyTo(aDestination : TJSArrayBuffer);
+    procedure copyTo(aDestination : TJSTypedArray);
+    procedure copyTo(aDestination : TJSDataView);
     property byteLength : NativeInt Read FbyteLength;
     property timestamp : NativeInt Read Ftimestamp;
     property duration : NativeInt Read FDuration;
