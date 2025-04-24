@@ -5,7 +5,7 @@ unit workerapp;
 interface
 
 uses
-  Classes, SysUtils, CustApp, WebOrWorker, WebWorker, Rtl.WorkerCommands;
+  Classes, SysUtils, CustApp, WebWorker, Rtl.WorkerCommands;
 
 Type
 
@@ -13,8 +13,6 @@ Type
 
   TWorkerApplication = class(TCustomApplication)
   Private
-    FSendOutputToBrowser: Boolean;
-    FConsoleChannel: TJSBroadcastChannel;
     FSendOutputToConsole: Boolean;
   protected
     procedure DoLog(EventType: TEventType; const Msg: String); override;
@@ -23,17 +21,12 @@ Type
     procedure ShowException(aError: Exception); override;
     function GetConsoleApplication: boolean; override;
     function GetLocation: String; override;
-    // Send output to browser window process?
-    Property SendOutputToBrowser : Boolean Read FSendOutputToBrowser Write FSendOutputToBrowser;
-    // Send output to console ?
+    // Send output to console channel ?
     Property SendOutputToConsole : Boolean Read FSendOutputToConsole Write FSendOutputToConsole;
-    // Default console input
     // Send a command to the process that started the worker.
     procedure SendCommand(aCommand: TCustomWorkerCommand);
     // Get the list of environment variables.
     procedure GetEnvironmentList(List: TStrings; NamesOnly: Boolean); override;
-    // Console channel
-    property ConsoleChannel : TJSBroadCastChannel Read FConsoleChannel;
   end;
 
 implementation
@@ -95,7 +88,6 @@ end;
 constructor TWorkerApplication.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FConsoleChannel:=TJSBroadcastChannel.new(channelConsole);
   FSendOutputToConsole:=true;
 end;
 
@@ -142,8 +134,10 @@ procedure TWorkerApplication.DoLog(EventType: TEventType; const Msg: String);
 var
   S : String;
 begin
+  if not SendOutputToConsole then
+    Exit;
   S:=GetEnumName(TypeInfo(TEventType),Ord(EventType));
-  ConsoleChannel.PostMessage(TConsoleOutputCommand.Create(Format('[%s] %s',[S,Msg])));
+  TCommandDispatcher.Instance.SendConsoleCommand(TConsoleOutputCommand.Create(Format('[%s] %s',[S,Msg])));
 end;
 
 initialization
