@@ -329,6 +329,7 @@ type
     FReadLineCount : Integer;
     FRunEntryFunction: String;
     FTableDescriptor : TJSWebAssemblyTableDescriptor;
+    function GetEnv: TPas2JSWASIEnvironment;
     function GetIsLibrary: Boolean;
     function GetIsProgram: Boolean;
     function GetStartDescriptorReady: Boolean;
@@ -336,6 +337,7 @@ type
     procedure SetPredefinedConsoleInput(AValue: TStrings);
     procedure SetUseSharedMemory(AValue: Boolean);
   protected
+    class function NeedSharedMemory : Boolean; virtual;
     // Called after instantiation was OK.
     Procedure DoAfterInstantiate; virtual;
     // Called before instantiation starts.
@@ -344,8 +346,6 @@ type
     Procedure DoLoadFail(aError : JSValue); virtual;
     // Called when instantiating fails
     Procedure DoInstantiateFail(aError : JSValue); virtual;
-    // Prepare start descriptor
-    Procedure PrepareWebAssemblyInstance(aDescr: TWebAssemblyStartDescriptor); virtual;
     // Call the run function on an instantiated webassembly
     function RunWebAssemblyInstance(aBeforeStart: TBeforeStartCallback; aAfterStart: TAfterStartCallback; aRun : TRunWebassemblyProc): Boolean; virtual; overload;
     // Prepare and run web assembly instance.
@@ -366,6 +366,8 @@ type
     Destructor Destroy; override;
     // Will call OnConsoleWrite or write to console
     procedure WriteOutput(const aOutput: String); virtual;
+    // Prepare start descriptor
+    Procedure PrepareWebAssemblyInstance(aDescr: TWebAssemblyStartDescriptor); virtual;
     // Get prepared descriptor
     Property PreparedStartDescriptor : TWebAssemblyStartDescriptor Read FPreparedStartDescriptor;
     // Initialize a start descriptor.
@@ -381,7 +383,7 @@ type
     // Import/export table descriptor
     Property TableDescriptor : TJSWebAssemblyTableDescriptor Read FTableDescriptor Write FTableDescriptor;
     // Environment to be used
-    Property WasiEnvironment : TPas2JSWASIEnvironment Read FEnv;
+    Property WasiEnvironment : TPas2JSWASIEnvironment Read GetEnv;
     // Exported functions. Also available in start descriptor.
     Property Exported : TWASIExports Read FExported;
     // Is the descriptor prepared ?
@@ -412,8 +414,8 @@ type
     Property AfterInstantation : TNotifyEvent Read FAfterInstantation Write FAfterInstantation;
     // Executed before instantiation
     Property BeforeInstantation : TNotifyEvent Read FBeforeInstantation Write FBeforeInstantation;
-
   end;
+  TWASIHostClass = class of TWASIHost;
 
 implementation
 
@@ -469,6 +471,18 @@ begin
   Result:=Assigned(FExported.functions['_initialize']);
 end;
 
+function TWASIHost.GetEnv: TPas2JSWASIEnvironment;
+begin
+  if FEnv=Nil then
+    begin
+    FEnv:=CreateWasiEnvironment;
+    FEnv.OnStdErrorWrite:=@DoStdWrite;
+    FEnv.OnStdOutputWrite:=@DoStdWrite;
+    Fenv.OnGetConsoleInputString:=@DoStdRead;
+    end;
+  Result:=FEnv;
+end;
+
 function TWASIHost.GetIsProgram: Boolean;
 begin
   Result:=Assigned(FExported.functions['_start']);
@@ -477,6 +491,11 @@ end;
 procedure TWASIHost.SetUseSharedMemory(AValue: Boolean);
 begin
   FMemoryDescriptor.shared:=aValue;
+end;
+
+class function TWASIHost.NeedSharedMemory: Boolean;
+begin
+  Result:=False;
 end;
 
 procedure TWASIHost.DoAfterInstantiate;
@@ -503,8 +522,7 @@ begin
     FOnInstantiateFail(Self,aError);
 end;
 
-procedure TWASIHost.PrepareWebAssemblyInstance(
-  aDescr: TWebAssemblyStartDescriptor);
+procedure TWASIHost.PrepareWebAssemblyInstance(aDescr: TWebAssemblyStartDescriptor);
 begin
   FPreparedStartDescriptor:=aDescr;
   FExported:=aDescr.Exported;
@@ -641,13 +659,9 @@ end;
 constructor TWASIHost.Create(aOwner: TComponent);
 begin
   inherited Create(aOwner);
-  FEnv:=CreateWasiEnvironment;
-  FEnv.OnStdErrorWrite:=@DoStdWrite;
-  FEnv.OnStdOutputWrite:=@DoStdWrite;
-  Fenv.OnGetConsoleInputString:=@DoStdRead;
   FMemoryDescriptor.initial:=256;
   FMemoryDescriptor.maximum:=256;
-  FMemoryDescriptor.shared:=False;
+  FMemoryDescriptor.shared:=NeedSharedMemory;
   FTableDescriptor.initial:=0;
   FTableDescriptor.maximum:=0;
   FTableDescriptor.element:='anyfunc';
@@ -747,7 +761,7 @@ begin
     'memory', Result.Memory,
     'tbl', Result.Table
   ]);
-  FEnv.AddImports(aImportObj);
+  WasiEnvironment.AddImports(aImportObj);
   Result.Imports:=aImportObj;
 end;
 
