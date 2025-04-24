@@ -19,6 +19,8 @@ Type
 
   TBrowserWASIHostApplication = class(TBrowserApplication)
   private
+    class var _WasiHostClass: TWASIHostClass;
+  private
     FHost : TWASIHost;
     FPredefinedConsoleInput: TStrings;
     function GetAfterStart: TAfterStartEvent;
@@ -44,6 +46,7 @@ Type
   public
     Constructor Create(aOwner : TComponent); override;
     Destructor Destroy; override;
+    class procedure SetWasiHostClass(aClass: TWASIHostClass);
     function PreLoadFiles(aFiles : Array of string) : TPreLoadFilesResult; async;
     function PreLoadFiles(aFiles : TPreLoadFileDynArray) : TPreLoadFilesResult; async;
     function PreLoadFilesIntoDirectory(aDirectory: String; aFiles: array of string): TPreLoadFilesResult; async;
@@ -172,8 +175,13 @@ end;
 
 function TBrowserWASIHostApplication.CreateHost : TWASIHost;
 
+var
+  C : TWasiHostClass;
 begin
-  Result:=TWASIHost.Create(Self);
+  C:=_WasiHostClass;
+  if C=Nil then
+    C:=TWasiHost;
+  Result:=C.Create(Self);
 end;
 
 constructor TBrowserWASIHostApplication.Create(aOwner: TComponent);
@@ -186,6 +194,11 @@ destructor TBrowserWASIHostApplication.Destroy;
 begin
   FreeAndNil(FHost);
   inherited Destroy;
+end;
+
+class procedure TBrowserWASIHostApplication.SetWasiHostClass(aClass: TWASIHostClass);
+begin
+  _WasiHostClass:=aClass;
 end;
 
 function TBrowserWASIHostApplication.PreLoadFiles(aFiles: array of string): TPreLoadFilesResult;
