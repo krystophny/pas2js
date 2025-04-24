@@ -141,6 +141,7 @@ implementation
 
 function TJSWebAssemblyMemoryHelper.IsSharedBuffer: Boolean;
 begin
+  Result:=False;
   asm
   return ((!(buffer === null)) && (typeof this.FBuffer === 'object'))
           && (this.FBuffer instanceof SharedArrayBuffer);
