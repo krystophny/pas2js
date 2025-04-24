@@ -10,112 +10,113 @@ interface
 
 uses
 {$IFDEF FPC_DOTTEDUNITS}
-  JSApi.JS, System.Classes, System.SysUtils, System.WebThreads, Wasi.Env, Fcl.App.Wasi.Host, Rtl.ThreadController
+  JSApi.JS, System.Classes, System.SysUtils, System.WebThreads, Wasi.Env, Fcl.App.Wasi.Host, Rtl.WorkerCommands, Rtl.ThreadController
   BrowserApi.WebOrWorker;
 {$ELSE} 
-  JS, Classes, SysUtils, Rtl.WebThreads, wasienv, wasihostapp, weborworker, Rtl.ThreadController;
+  JS, Classes, SysUtils, Rtl.WebThreads, wasienv, wasihostapp, Rtl.WorkerCommands, Rtl.ThreadController;
 {$ENDIF}
 
 Type
-  TMainThreadSupport = class(TThreadController);
-
   { TBrowserWASIThreadedHostApplication }
 
-  TBrowserWASIThreadedHostApplication = class(TBrowserWASIHostApplication)
-  private
-    FThreadSupport: TMainThreadSupport;
-    FConsoleChannel : TJSBroadCastChannel;
-    procedure HandleConsoleMessage(aEvent: TJSEvent);
-  protected
-    Function CreateThreadSupport(aEnv : TPas2JSWASIEnvironment) : TMainThreadSupport; virtual;
-    Function CreateHost: TWASIHost; override;
-  Public
-    constructor Create(aOwner: TComponent); override;
-    Destructor Destroy; override;
-    Property ThreadSupport : TMainThreadSupport Read FThreadSupport;
-  end;
+  TBrowserWASIThreadedHostApplication = TBrowserWASIHostApplication;
 
   { ThreadAppWASIHost }
 
   ThreadAppWASIHost = class(TWASIHost)
   private
-    FThreadSupport: TMainThreadSupport;
-    procedure SetThreadSupport(AValue: TMainThreadSupport);
   Protected
+    class function NeedSharedMemory: Boolean; override;
+    function GetThreadSupport: TThreadController; virtual;
     Procedure DoAfterInstantiate; override;
+    Function CreateWasiEnvironment : TPas2JSWASIEnvironment; override;
   Public
-    Property ThreadSupport : TMainThreadSupport Read FThreadSupport Write SetThreadSupport;
+    Property ThreadSupport : TThreadController Read GetThreadSupport;
   end;
 
+  { TThreadConsoleOutput }
+
+  TThreadConsoleOutputEvent = reference to procedure(const Msg : string);
+  TThreadConsoleOutput = Class (TObject)
+  private
+    class var _Instance : TThreadConsoleOutput;
+  private
+    FEnabled: boolean;
+    FOnOutput: TThreadConsoleOutputEvent;
+    class function GetInstance: TThreadConsoleOutput; static;
+    procedure HandleConsoleMessage(aCommand: TCustomWorkerCommand); virtual;
+  Public
+    class constructor done;
+    constructor Create; virtual;
+    class property Instance : TThreadConsoleOutput Read _Instance;
+    property Enabled : boolean Read FEnabled Write FEnabled;
+    property OnOutput : TThreadConsoleOutputEvent Read FOnOutput Write FOnOutput;
+  end;
 
 implementation
 
-{ ThreadAppWASIHost }
-
-procedure ThreadAppWASIHost.SetThreadSupport(AValue: TMainThreadSupport);
+class function ThreadAppWASIHost.NeedSharedMemory: Boolean;
 begin
-  if FThreadSupport=AValue then Exit;
-  FThreadSupport:=AValue;
-  FThreadSupport.Host:=Self;
+  Result:=True;
+end;
+
+function ThreadAppWASIHost.GetThreadSupport: TThreadController;
+begin
+  Result:=TThreadController.Instance as TThreadController;
 end;
 
 procedure ThreadAppWASIHost.DoAfterInstantiate;
 begin
   inherited DoAfterInstantiate;
-  If Assigned(FThreadSupport) then
-    FThreadSupport.SendLoadCommands;
+  If Assigned(ThreadSupport) then
+    // Will send load commands
+    ThreadSupport.SetWasmModuleAndMemory(PreparedStartDescriptor.Module,PreparedStartDescriptor.Memory);
 end;
 
-{ TBrowserWASIThreadedHostApplication }
-
-function TBrowserWASIThreadedHostApplication.CreateThreadSupport(
-  aEnv: TPas2JSWASIEnvironment): TMainThreadSupport;
+function ThreadAppWASIHost.CreateWasiEnvironment: TPas2JSWASIEnvironment;
 begin
-  Result:=TMainThreadSupport.Create(aEnv);
+  Result:=inherited CreateWasiEnvironment;
+  TWasmThreadSupportApi.Create(Result);
 end;
 
-function TBrowserWASIThreadedHostApplication.CreateHost: TWASIHost;
+{ TThreadConsoleOutput }
 
-Var
-  Res : ThreadAppWASIHost;
-
+class function TThreadConsoleOutput.GetInstance: TThreadConsoleOutput; static;
 begin
-  Res:=ThreadAppWASIHost.Create(Self);
-  Res.UseSharedMemory:=True;
-  FThreadSupport:=CreateThreadSupport(Res.WasiEnvironment);
-  Res.ThreadSupport:=FThreadSupport;
-  Result:=Res;
+  if _instance=Nil then
+    _Instance:=TThreadConsoleOutput.Create;
+  Result:=_instance;
 end;
 
-procedure TBrowserWASIThreadedHostApplication.HandleConsoleMessage(aEvent : TJSEvent);
-
+procedure TThreadConsoleOutput.HandleConsoleMessage(aCommand : TCustomWorkerCommand);
 var
-  E : TJSMessageEvent absolute aEvent;
-  D : TWorkerCommand;
+  D : TWorkerConsoleCommand absolute aCommand;
+  Msg : String;
 
 begin
-  if not isObject(E.Data) then exit;
-  D:=TWorkerCommand(E.Data);
-  if D.Command=cmdConsole then
-    Writeln(TWorkerConsoleCommand(d).ConsoleMessage);
+  Msg:=D.ConsoleMessage;
+  if D.SenderID<>'' then
+    Msg:='['+D.SenderID+'] '+Msg;
+  if assigned(OnOutput) then
+    OnOutPut(Msg)
+  else
+    Writeln(Msg);
 end;
 
-constructor TBrowserWASIThreadedHostApplication.Create(aOwner: TComponent);
+class constructor TThreadConsoleOutput.done;
 begin
-  inherited Create(aOwner);
-  FConsoleChannel:=TJSBroadCastChannel.New(channelConsole);
-  FConsoleChannel.addEventListener('message',@HandleConsoleMessage);
+  FreeAndNil(_Instance);
 end;
 
-
-destructor TBrowserWASIThreadedHostApplication.Destroy;
+constructor TThreadConsoleOutput.Create;
 begin
-  FConsoleChannel.Close;
-  FConsoleChannel:=Nil;
-  FreeAndNil(FThreadSupport);
-  inherited Destroy;
+  TCommandDispatcher.Instance.RegisterCommandHandler(cmdConsole,@HandleConsoleMessage);
+  FEnabled:=True;
 end;
 
-
+initialization
+  TCommandDispatcher.Instance.DefaultSenderID:='HTML page thread';
+  TThreadConsoleOutput._Instance:=TThreadConsoleOutput.Create;
+  TWASIHostApplication.SetWasiHostClass(ThreadAppWASIHost);
 end.
 
