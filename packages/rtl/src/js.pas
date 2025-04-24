@@ -1136,6 +1136,7 @@ type
     class function isLockFree(size : integer) : integer;
     class function load(aTypedArray : TJSTypedArray; Index : integer) : integer;
     class function notify(aTypedArray : TJSTypedArray; Index : integer; count : integer) : integer;
+    class function notify(aTypedArray : TJSTypedArray; Index : integer) : integer;
     class function or_(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer; external name 'or';
     class function store(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer;
     class function sub(aTypedArray : TJSTypedArray; index: integer; value : Integer) : integer;
