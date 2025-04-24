@@ -25,16 +25,18 @@ Type
   private
     FCanceled : Boolean; external name 'canceled';
     FCommand : string; external name 'command';
+    FSenderID : string; external name 'senderId';
   Public
     property Command : string read FCommand;
     property Canceled : Boolean read FCanceled;
+    property SenderID : String read FSenderID;
   end;
 
   { TCustomWorkerCommandHelper }
 
   TCustomWorkerCommandHelper = class helper for TCustomWorkerCommand
     Procedure Cancel;
-    class function createCommand(aCommand : string) : TCustomWorkerCommand; static;
+    class function createCommand(aCommand : string; aSenderID : String = '') : TCustomWorkerCommand; static;
   end;
 
   TForwardCommand = class external name 'Object' (TCustomWorkerCommand)
@@ -92,14 +94,16 @@ Type
     class var _DispatcherClass : TCommandDispatcherClass;
     class function GetInstance: TCommandDispatcher; static;
   private
+    FDefaultSenderID: String;
     FMap : TJSMap; // Key is command. Value is TCommandHandlerArray.
     FWorkers : Array of TJSWorkerReg;
     FConsoleChannel : TJSBroadcastChannel;
   protected
     class function IsCommandEvent(aEvent: TJSEvent): Boolean;
+    procedure CheckSenderID(aCommand: TCustomWorkerCommand); virtual;
     function IndexOfWorker(aWorker: TJSWorker): Integer;
     function IndexOfWorker(const aName: String): Integer;
-    Procedure HandleIncomingMessage(aEvent : TJSEvent);
+    Procedure HandleIncomingMessage(aEvent : TJSEvent); virtual;
     procedure HandleCommand(aCommand: TCustomWorkerCommand); virtual;
   Public
     constructor create; virtual;
@@ -122,8 +126,9 @@ Type
     Procedure RegisterWorker(aWorker : TJSWorker; const aName : string);
     // Remove a worker from broadcast list
     Procedure UnRegisterWorker(aWorker : TJSWorker);
+    // Remove a worker from broadcast list by name
     Procedure UnRegisterWorker(const aName : string);
-
+    Property DefaultSenderID : String Read FDefaultSenderID Write FDefaultSenderID;
     Class function SetDispatcherClass(aClass : TCommandDispatcherClass) : TCommandDispatcherClass;
     Class property instance : TCommandDispatcher read GetInstance;
 
@@ -145,11 +150,12 @@ begin
   FCanceled:=True;
 end;
 
-class function TCustomWorkerCommandHelper.createCommand(aCommand: string): TCustomWorkerCommand;
+class function TCustomWorkerCommandHelper.createCommand(aCommand: string; aSenderID : String): TCustomWorkerCommand;
 begin
   Result:=TCustomWorkerCommand.New;
   Result.FCanceled:=False;
   Result.FCommand:=LowerCase(aCommand);
+  Result.FSenderID:=aSenderID;
 end;
 
 { TConsoleOutputCommandHelper }
@@ -174,7 +180,7 @@ end;
 
 class function TWorkerExceptionCommandHelper.Create(const aExceptionClass,aExceptionMessage: string; aThreadID : Integer = -1  ): TWorkerExceptionCommand;
 begin
-  Result:=TWorkerExceptionCommand(CreateCommand('exception'));
+  Result:=TWorkerExceptionCommand(CreateCommand('exception',IntToStr(aThreadID)));
   Result.ExceptionClass:=aExceptionClass;
   Result.ExceptionMessage:=aExceptionMessage;
 end;
@@ -268,10 +274,17 @@ begin
   inherited destroy;
 end;
 
+procedure TCommandDispatcher.CheckSenderID(aCommand: TCustomWorkerCommand);
+begin
+  if (aCommand.FSenderID='') then
+    aCommand.FSenderID:=DefaultSenderID;
+end;
+
 procedure TCommandDispatcher.SendCommand(aWorker: TJSWorker; aCommand: TCustomWorkerCommand);
 begin
+  CheckSenderID(aCommand);
   {$IFDEF DEBUGCOMMANDDISPATCHER}
-  Writeln('Sending message to worker ',lCount,' handlers ',TJSJSON.stringify(aCommand));
+  Writeln('Sending message to worker: ',TJSJSON.stringify(aCommand));
   {$ENDIF}
   aWorker.postMessage(aCommand);
 end;
@@ -280,6 +293,7 @@ procedure TCommandDispatcher.SendCommand(const aName: string; aCommand: TCustomW
 var
   Idx : integer;
 begin
+  CheckSenderID(aCommand);
   Idx:=IndexOfWorker(aName);
   if Idx<0 then
     begin
@@ -296,8 +310,9 @@ procedure TCommandDispatcher.SendCommand(aCommand: TCustomWorkerCommand);
 begin
   if not (isWebWorker or IsServiceWorker) then
     Raise EWorkerCommand.Create('Cannot send to starting thread from main page');
+  CheckSenderID(aCommand);
   {$IFDEF DEBUGCOMMANDDISPATCHER}
-  Writeln('Sending message to worker controller: 'TJSJSON.stringify(aCommand));
+  Writeln('Sending message to worker controller: ',TJSJSON.stringify(aCommand));
   {$ENDIF}
   asm
   self.postMessage(aCommand);
@@ -310,8 +325,9 @@ begin
   if not (isWebWorker or IsServiceWorker) then
     Raise EWorkerCommand.Create('Cannot send to starting thread from main page');
   {$IFDEF DEBUGCOMMANDDISPATCHER}
-  Writeln('Sending console message on console channel: 'TJSJSON.stringify(aCommand));
+  Writeln('Sending console message on console channel: ',TJSJSON.stringify(aCommand));
   {$ENDIF}
+  CheckSenderID(aCommand);
   FConsoleChannel.postMessage(aCommand);
 end;
 
@@ -319,6 +335,7 @@ procedure TCommandDispatcher.BroadcastCommand(aCommand: TCustomWorkerCommand);
 var
   lWorker : TJSWorkerReg;
 begin
+  CheckSenderID(aCommand);
   For lWorker in FWorkers do
     SendCommand(lWorker.Worker,aCommand);
 end;
