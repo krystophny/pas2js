@@ -3,13 +3,24 @@ unit Rtl.WorkerCommands;
 {$mode ObjFPC}
 {$modeswitch externalclass}
 
+// Define this if you want to see lots and lots of traces...
+{ $define DEBUGCOMMANDDISPATCHER}
+
 interface
 
 uses
   SysUtils, JS, WebOrWorker;
 
+const
+  cmdConsole = 'console';
+  cmdException = 'exception';
+  cmdForward = 'forward';
+  channelConsole = 'console_output';
+
+
 Type
   EWorkerCommand = Class(Exception);
+
   TCustomWorkerCommand = class external name 'Object' (TJSObject)
   private
     FCanceled : Boolean; external name 'canceled';
@@ -31,11 +42,35 @@ Type
     Payload : TCustomWorkerCommand;
   end;
 
-  { TWorwardCommandHelper }
+  { TForwardCommandHelper }
 
-  TWorwardCommandHelper = class helper (TCustomWorkerCommandHelper) for TForwardCommand
-    class function create(const aDestinationWorker : string; aCommand :TCustomWorkerCommand) : TForwardCommand; static;
+  TForwardCommandHelper = class helper (TCustomWorkerCommandHelper) for TForwardCommand
+    class function create(const aDestinationWorker : string; aCommand :TCustomWorkerCommand) : TForwardCommand; static; reintroduce;
   end;
+
+  TConsoleOutputCommand = class external name 'Object' (TCustomWorkerCommand)
+    ConsoleMessage : string;
+  end;
+
+  { TConsoleOutputCommandHelper }
+
+  TConsoleOutputCommandHelper = class helper (TCustomWorkerCommandHelper) for TConsoleOutputCommand
+    class function create(const aMessage: string): TConsoleOutputCommand; static;reintroduce;
+  end;
+
+  // When an unexpected error occurred.
+  TWorkerExceptionCommand = class external name 'Object' (TCustomWorkerCommand)
+  public
+    ExceptionClass: String;
+    ExceptionMessage: String;
+  end;
+
+  { TWorkerExceptionCommandHelper }
+
+  TWorkerExceptionCommandHelper = class helper(TCustomWorkerCommandHelper) for TWorkerExceptionCommand
+    Class function Create(const aExceptionClass,aExceptionMessage : string; aThreadID : Integer = -1) : TWorkerExceptionCommand; static;reintroduce;
+  end;
+
 
 
   TCommandDispatcher = class;
@@ -59,6 +94,7 @@ Type
   private
     FMap : TJSMap; // Key is command. Value is TCommandHandlerArray.
     FWorkers : Array of TJSWorkerReg;
+    FConsoleChannel : TJSBroadcastChannel;
   protected
     class function IsCommandEvent(aEvent: TJSEvent): Boolean;
     function IndexOfWorker(aWorker: TJSWorker): Integer;
@@ -67,6 +103,7 @@ Type
     procedure HandleCommand(aCommand: TCustomWorkerCommand); virtual;
   Public
     constructor create; virtual;
+    destructor destroy; override;
     // Send command to worker
     procedure SendCommand(aWorker : TJSWorker; aCommand : TCustomWorkerCommand); virtual;
     // Send command to worker
@@ -108,18 +145,36 @@ class function TCustomWorkerCommandHelper.createCommand(aCommand: string): TCust
 begin
   Result:=TCustomWorkerCommand.New;
   Result.FCanceled:=False;
-  Result.FCommand:=aCommand;
+  Result.FCommand:=LowerCase(aCommand);
+end;
+
+{ TConsoleOutputCommandHelper }
+
+class function TConsoleOutputCommandHelper.create(const aMessage : string): TConsoleOutputCommand;
+begin
+  Result:=TConsoleOutputCommand(CreateCommand('console'));
+  Result.ConsoleMessage:=aMessage;
 end;
 
 { TWorwardCommandHelper }
 
-class function TWorwardCommandHelper.create(const aDestinationWorker: string; aCommand: TCustomWorkerCommand
+class function TForwardCommandHelper.create(const aDestinationWorker: string; aCommand: TCustomWorkerCommand
   ): TForwardCommand;
 begin
-  Result:=TForwardCommand(CreateCommand('_forward'));
+  Result:=TForwardCommand(CreateCommand(cmdForward));
   Result.DestinationWorker:=aDestinationWorker;
   Result.Payload:=aCommand;
 end;
+
+{ TWorkerExceptionCommandHelper }
+
+class function TWorkerExceptionCommandHelper.Create(const aExceptionClass,aExceptionMessage: string; aThreadID : Integer = -1  ): TWorkerExceptionCommand;
+begin
+  Result:=TWorkerExceptionCommand(CreateCommand('exception'));
+  Result.ExceptionClass:=aExceptionClass;
+  Result.ExceptionMessage:=aExceptionMessage;
+end;
+
 
 { TCommandDispatcher }
 
@@ -157,23 +212,37 @@ var
   lValue : JSValue;
   lHandlers : TCommandHandlerArray absolute lValue;
   lHandler : TCommandHandler;
-
+  {$IFDEF DEBUGCOMMANDDISPATCHER}
+  lCount: Integer;
+  {$ENDIF}
 begin
+  {$IFDEF DEBUGCOMMANDDISPATCHER}
+  lCount:=0;
+  {$ENDIF}
   lCmd:=aCommand.Command;
   lValue:=FMap.get(lCmd);
   if assigned(lValue) then
     For lHandler in lHandlers do
       begin
+      {$IFDEF DEBUGCOMMANDDISPATCHER}
+      inc(lCount);
+      {$ENDIF}
       LHandler(aCommand);
       if aCommand.Canceled then
         break;
       end;
+  {$IFDEF DEBUGCOMMANDDISPATCHER}
+  Writeln('Incoming message sent to ',lCount,' handlers ',TJSJSON.stringify(aCommand));
+  {$ENDIF}
 end;
 
 procedure TCommandDispatcher.HandleIncomingMessage(aEvent: TJSEvent);
 var
   lMessageEvent : TJSMessageEvent absolute aEvent;
 begin
+  {$IFDEF DEBUGCOMMANDDISPATCHER}
+  Writeln('Incoming message: ',TJSJSON.stringify(lMessageEvent.data));
+  {$ENDIF}
   if IsCommandEvent(aEvent) then
     HandleCommand(TCustomWorkerCommand(lMessageEvent.data))
 end;
@@ -181,12 +250,23 @@ end;
 constructor TCommandDispatcher.create;
 begin
   FMap:=TJSMap.new();
+  FConsoleChannel:=TJSBroadcastChannel.new(channelConsole);
   if not isMainBrowserThread then
     Self_.addEventListener('message',@HandleIncomingMessage);
 end;
 
+destructor TCommandDispatcher.destroy;
+begin
+  FConsoleChannel.close;
+  FConsoleChannel:=nil;
+  inherited destroy;
+end;
+
 procedure TCommandDispatcher.SendCommand(aWorker: TJSWorker; aCommand: TCustomWorkerCommand);
 begin
+  {$IFDEF DEBUGCOMMANDDISPATCHER}
+  Writeln('Sending message to worker ',lCount,' handlers ',TJSJSON.stringify(aCommand));
+  {$ENDIF}
   aWorker.postMessage(aCommand);
 end;
 
@@ -210,6 +290,9 @@ procedure TCommandDispatcher.SendCommand(aCommand: TCustomWorkerCommand);
 begin
   if not (isWebWorker or IsServiceWorker) then
     Raise EWorkerCommand.Create('Cannot send to starting thread from main page');
+  {$IFDEF DEBUGCOMMANDDISPATCHER}
+  Writeln('Sending message to worker controller: 'TJSJSON.stringify(aCommand));
+  {$ENDIF}
   asm
   self.postMessage(aCommand);
   end;
