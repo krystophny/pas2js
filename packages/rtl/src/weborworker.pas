@@ -1907,6 +1907,20 @@ type
     displayHeight : integer;
   end;
 
+  TJSVideoFramePlaneLayout = class external name 'Object' (TJSObject)
+    offset : integer;
+    stride : integer;
+  end;
+
+  TJSVideoFramePlaneLayoutArray = array of TJSVideoFramePlaneLayout;
+
+  TJSVideoFrameAllocationSizeOptions = class external name 'Object' (TJSObject)
+    rect : TJSVideoFrameOptionsRect;
+    layout : TJSVideoFramePlaneLayoutArray;
+    format : string;
+    colorspace : string;
+  end;
+
   TJSVideoFrame = class external name 'VideoFrame' (TJSObject)
   private
     FcodedHeight: NativeInt; external name 'codedHeight';
@@ -1928,6 +1942,13 @@ type
     constructor new(aFormat : TJSVideoFrame; aOptions : TJSVideoFrameOptions);
     constructor new(aFormat : TJSHTMLOffscreenCanvas; aOptions : TJSVideoFrameOptions);
     constructor new(aFormat : TJSObject; aOptions : TJSVideoFrameOptions);
+    function allocationsize() : integer;
+    function allocationsize(aOptions : TJSVideoFrameAllocationSizeOptions) : integer;
+    function clone : TJSVideoFrame;
+    procedure close;
+    procedure copyTo(aDestination : TJSArrayBuffer);
+    procedure copyTo(aDestination : TJSTypedArray);
+    procedure copyTo(aDestination : TJSDataView);
 
     property format : string read FFormat;
     property codedHeight : NativeInt Read FcodedHeight;
