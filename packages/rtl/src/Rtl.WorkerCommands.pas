@@ -110,6 +110,8 @@ Type
     procedure SendCommand(const aName : string; aCommand : TCustomWorkerCommand);
     // Send command to thread that started this worker. Cannot be used in main thread
     procedure SendCommand(aCommand : TCustomWorkerCommand); virtual;
+    // Send command to thread that started this worker. Cannot be used in main thread
+    procedure SendConsoleCommand(aCommand : TConsoleOutputCommand); virtual;
     // Send command to all registered workers
     procedure BroadcastCommand(aCommand : TCustomWorkerCommand);
     // Register a command handler for command aCommand
@@ -121,8 +123,10 @@ Type
     // Remove a worker from broadcast list
     Procedure UnRegisterWorker(aWorker : TJSWorker);
     Procedure UnRegisterWorker(const aName : string);
+
     Class function SetDispatcherClass(aClass : TCommandDispatcherClass) : TCommandDispatcherClass;
     Class property instance : TCommandDispatcher read GetInstance;
+
   end;
 
 function CommandDispatcher : TCommandDispatcher;
@@ -251,8 +255,10 @@ constructor TCommandDispatcher.create;
 begin
   FMap:=TJSMap.new();
   FConsoleChannel:=TJSBroadcastChannel.new(channelConsole);
-  if not isMainBrowserThread then
-    Self_.addEventListener('message',@HandleIncomingMessage);
+  if isMainBrowserThread then
+    FConsoleChannel.addEventListener('message',@HandleIncomingMessage)
+  else
+    Self_.addEventListener('message',@HandleIncomingMessage)
 end;
 
 destructor TCommandDispatcher.destroy;
@@ -296,6 +302,17 @@ begin
   asm
   self.postMessage(aCommand);
   end;
+end;
+
+procedure TCommandDispatcher.SendConsoleCommand(aCommand: TConsoleOutputCommand);
+
+begin
+  if not (isWebWorker or IsServiceWorker) then
+    Raise EWorkerCommand.Create('Cannot send to starting thread from main page');
+  {$IFDEF DEBUGCOMMANDDISPATCHER}
+  Writeln('Sending console message on console channel: 'TJSJSON.stringify(aCommand));
+  {$ENDIF}
+  FConsoleChannel.postMessage(aCommand);
 end;
 
 procedure TCommandDispatcher.BroadcastCommand(aCommand: TCustomWorkerCommand);
