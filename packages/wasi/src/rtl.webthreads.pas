@@ -24,9 +24,9 @@ interface
 
 uses
 {$IFDEF FPC_DOTTEDUNITS}
-  JSApi.JS, System.SysUtils, Wasi.Env, BrowserApi.WebAssembly;
+  JSApi.JS, System.SysUtils, Wasi.Env, BrowserApi.WebAssembly, Rtl.WorkerCommands;
 {$ELSE}
-  JS, SysUtils, wasienv, webassembly;
+  JS, SysUtils, wasienv, webassembly, Rtl.WorkerCommands;
 {$ENDIF}  
 
 Const
@@ -49,8 +49,6 @@ Const
   cmdExecute = 'execute';
   cmdRPC = 'rpc';
   cmdRPCResult = 'rpcresult';
-
-  channelConsole = 'console_output';
 
   DefaultThreadWorker = 'pas2jsthreadworker.js';
   DefaultThreadCount = 2;
@@ -79,60 +77,46 @@ Type
 
   { we do not use Pascal classes for this, to avoid transferring unnecessary metadata present in the pascal class }
 
-  TWorkerCommand = Class external name 'Object' (TJSObject)
-    Command : String;
+  TThreadWorkerCommand = Class external name 'Object' (TCustomWorkerCommand)
     ThreadID : Integer; // Meaning depends on actual command.
     TargetID : Integer; // Forward to thread ID
   end;
-  TCommandNotifyEvent = Procedure (Sender : TObject; aCommand : TWorkerCommand) of object;
+  TCommandNotifyEvent = Procedure (Sender : TObject; aCommand : TThreadWorkerCommand) of object;
 
   { TWorkerCommandHelper }
 
-  TWorkerCommandHelper = class helper for TWorkerCommand
-    Class function NewWorker(const aCommand : string; aThreadID : Integer = -1) : TWorkerCommand; static;
+  TWorkerCommandHelper = class helper (TCustomWorkerCommandHelper) for TThreadWorkerCommand
+    Class function NewWorker(const aCommand : string; aThreadID : Integer = -1) : TThreadWorkerCommand; static;
   end;
 
   { TWorkerExceptionCommand }
 
-  // When an unexpected error occurred.
-  TWorkerExceptionCommand = class external name 'Object' (TWorkerCommand)
-  public
-    ExceptionClass: String;
-    ExceptionMessage: String;
-  end;
-
-  { TWorkerExceptionCommandHelper }
-
-  TWorkerExceptionCommandHelper = class helper for TWorkerExceptionCommand
-    Class function CommandName : string; static;
-    Class function CreateNew(const aExceptionClass,aExceptionMessage : string; aThreadID : Integer = -1) : TWorkerExceptionCommand; static;
-  end;
 
   { TWorkerConsoleCommand }
 
   // Sent by worker to main: write message to console
   // Thread ID : sending console ID
-  TWorkerConsoleCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerConsoleCommand = class external name 'Object' (TThreadWorkerCommand)
   public
     ConsoleMessage : String;
   end;
 
   { TWorkerConsoleCommandHelper }
 
-  TWorkerConsoleCommandHelper = class helper for TWorkerConsoleCommand
+  TWorkerConsoleCommandHelper = class helper(TWorkerCommandHelper) for TWorkerConsoleCommand
     Class function CommandName : string; static;
     Class function Create(const aMessage : string; aThreadID : Integer = -1) : TWorkerConsoleCommand; static; reintroduce;
     Class function Create(const aMessage : array of JSValue; aThreadID : Integer = -1) : TWorkerConsoleCommand; static; reintroduce;
   end;
 
   // Cleanup thread info: put this worker into unusued workers
-  TWorkerCleanupCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerCleanupCommand = class external name 'Object' (TThreadWorkerCommand)
     exitstatus : integer;
   end;
 
   { TWorkerCleanupCommandHelper }
 
-  TWorkerCleanupCommandHelper = class helper for TWorkerCleanupCommand
+  TWorkerCleanupCommandHelper = class helper (TWorkerCommandHelper) for TWorkerCleanupCommand
     Class function CommandName : string; static;
     class function Create(aThreadID, aExitStatus: Integer): TWorkerCleanupCommand; static; reintroduce;
   end;
@@ -140,34 +124,34 @@ Type
 
   { TWorkerKillCommand }
   // Kill thread (thread ID in ThreadID)
-  TWorkerKillCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerKillCommand = class external name 'Object' (TThreadWorkerCommand)
   end;
 
   { TWorkerCleanupCommandHelper }
 
-  TWorkerKillCommandHelper = class helper for TWorkerKillCommand
+  TWorkerKillCommandHelper = class helper (TWorkerCommandHelper) for TWorkerKillCommand
     Class function CommandName : string; static;
     Class function Create(aThreadID : Integer): TWorkerKillCommand; static;reintroduce;
   end;
 
   // Cancel thread (thread ID in ThreadID)
-  TWorkerCancelCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerCancelCommand = class external name 'Object' (TThreadWorkerCommand)
   end;
 
   { TWorkerCancelCommandHelper }
 
-  TWorkerCancelCommandHelper = class helper for TWorkerCancelCommand
+  TWorkerCancelCommandHelper = class helper (TWorkerCommandHelper) for TWorkerCancelCommand
     Class function CommandName : string; static;
     Class function Create(aThreadID : Integer): TWorkerCancelCommand; static; reintroduce;
   end;
 
   // sent to notify main thread that the wasm module is loaded.
-  TWorkerLoadedCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerLoadedCommand = class external name 'Object' (TThreadWorkerCommand)
   end;
 
   { TWorkerLoadedCommandHelper }
 
-  TWorkerLoadedCommandHelper = class helper for TWorkerLoadedCommand
+  TWorkerLoadedCommandHelper = class helper(TWorkerCommandHelper)  for TWorkerLoadedCommand
     Class function CommandName : string; static;
     Class function Create: TWorkerLoadedCommand; static; reintroduce;
   end;
@@ -177,56 +161,48 @@ Type
   // Sent to notify main thread that a new thread must be started.
   // Worker cannot start new thread. It allocates the ID (threadId)
   // It sends RunFunction, Attributes and Arguments received by thread_spawn call.
-  TWorkerSpawnThreadCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerSpawnThreadCommand = class external name 'Object' (TThreadWorkerCommand)
     Arguments : Integer;
   end;
 
   { TWorkerSpawnThreadCommandHelper }
 
-  TWorkerSpawnThreadCommandHelper = class helper for TWorkerSpawnThreadCommand
+  TWorkerSpawnThreadCommandHelper = class helper(TWorkerCommandHelper)  for TWorkerSpawnThreadCommand
     Class function CommandName : string; static;
     class function Create(aThreadID: integer; aArgs: Integer): TWorkerSpawnThreadCommand; static; reintroduce;
   end;
 
-
-
   // Sent by main to worker: load wasm module
-  TWorkerLoadCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerLoadCommand = class external name 'Object' (TThreadWorkerCommand)
   public
     Memory : TJSWebAssemblyMemory;
     Module : TJSWebAssemblyModule;
   end;
 
-
-  { TWorkerLoadCommandHelper }
-
-  TWorkerLoadCommandHelper = class helper for TWorkerLoadCommand
+  TWorkerLoadCommandHelper = class helper (TWorkerCommandHelper)  for TWorkerLoadCommand
     Class function CommandName : string; static;
     Class function Create(aModule : TJSWebAssemblyModule; aMemory : TJSWebAssemblyMemory): TWorkerLoadCommand; static;reintroduce;
   end;
 
-  TWorkerStartedCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerStartedCommand = class external name 'Object' (TThreadWorkerCommand)
     StartFunction : string;
   end;
 
-  { TWorkerStartedCommandHelper }
-
-  TWorkerStartedCommandHelper = class helper for TWorkerStartedCommand
+  TWorkerStartedCommandHelper = class helper (TWorkerCommandHelper)  for TWorkerStartedCommand
     Class function CommandName : string; static;
     Class function Create(aFunction : string): TWorkerStartedCommand; static;reintroduce;
   end;
 
-
   // Sent by main to worker: run thread procedure
-  TWorkerRunCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerRunCommand = class external name 'Object' (TThreadWorkerCommand)
   public
     ThreadInfo : Integer;
     Attrs : Integer;
     Args : Integer;
   end;
 
-  // Sent by main to thread controller worker: execute function
-  TWorkerExecuteCommand = class external name 'Object' (TWorkerCommand)
+  // Sent by main to thread controller worker: load webassembly at given URL and execute function
+  TWorkerExecuteCommand = class external name 'Object' (TThreadWorkerCommand)
   public
     Url : String;
     ExecuteFunc : string;
@@ -234,7 +210,7 @@ Type
   end;
 
   // Sent by main to thread controller worker: run function, return result
-  TWorkerRpcCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerRpcCommand = class external name 'Object' (TThreadWorkerCommand)
   public
     method : string;
     id : string;
@@ -248,7 +224,7 @@ Type
     data : JSValue;
   end;
 
-  TWorkerRpcResultCommand = class external name 'Object' (TWorkerCommand)
+  TWorkerRpcResultCommand = class external name 'Object' (TThreadWorkerCommand)
   public
     method : string;
     result : jsValue;
@@ -261,21 +237,21 @@ Type
   { TWorkerRunCommandHelper }
 
   // Sent by main to thread controller worker: load and start a webassembly
-  TWorkerRunCommandHelper = class helper for TWorkerRunCommand
+  TWorkerRunCommandHelper = class helper (TWorkerCommandHelper)  for TWorkerRunCommand
     Class function CommandName : string; static;
     Class function Create(aThreadID, aArgs : Longint): TWorkerRunCommand; static; reintroduce;
   end;
 
   { TWorkerRpcCommandHelper }
 
-  TWorkerRpcCommandHelper = class helper for TWorkerRpcCommand
+  TWorkerRpcCommandHelper = class helper (TWorkerCommandHelper)  for TWorkerRpcCommand
     Class function CommandName : string; static;
     Class function Create(aID : String; aMethod : String; aParams : TJSArray): TWorkerRpcCommand; static; reintroduce;
   end;
 
   { TWorkerRpcResultCommandHelper }
 
-  TWorkerRpcResultCommandHelper = class helper for TWorkerRpcResultCommand
+  TWorkerRpcResultCommandHelper = class helper (TWorkerCommandHelper)  for TWorkerRpcResultCommand
     Class function CommandName : string; static;
     Class function Create(aID : String; aResult : JSValue): TWorkerRpcResultCommand; static; reintroduce;
     Class function CreateError(aID : String; aCode : Integer; aMessage : string): TWorkerRpcResultCommand; static; reintroduce;
@@ -298,31 +274,61 @@ Type
   { TWasmThreadSupport }
 
   TWasmPointer = Longint;
-  TWasmThreadSupport = Class (TImportExtension)
-  private
-    FOnSendCommand: TCommandNotifyEvent;
-  Protected
 
+  TWasmThreadController = Class;
+  TWasmThreadControllerClass = class of TWasmThreadController;
+  TWasmThreadControllerLogEvent = reference to procedure (const msg : string);
+
+  { TWasmThreadController }
+
+  TWasmThreadController = class(TObject)
+  private
+    class var _instanceClass: TWasmThreadControllerClass;
+    class var _instance: TWasmThreadController;
+  private
+    FLogAPI: Boolean;
+    FModule : TJSWebAssemblyModule;
+    FMemory : TJSWebAssemblyMemory;
+    FOnLog: TWasmThreadControllerLogEvent;
+    class function GetInstance: TWasmThreadController; static;
+    procedure SetLogAPI(AValue: Boolean);
+  protected
+    Procedure DoLog(const msg : string);
+    Procedure DoLog(const Fmt : string; const args : array of const);
+    procedure HaveWebassembly; virtual;abstract;
+    property LogAPI : Boolean read FLogAPI write SetLogAPI;
+  Public
+    constructor create; virtual;
+    function SpawnThread(start_arg : longint) : longint; virtual; abstract;
+    Procedure SetWasmModuleAndMemory(aModule : TJSWebAssemblyModule; aMemory : TJSWebAssemblyMemory);
+    class procedure SetInstanceClass(aClass : TWasmThreadControllerClass);
+    class property Instance : TWasmThreadController read GetInstance;
+    Property WasmModule : TJSWebAssemblyModule read FModule;
+    Property WasmMemory : TJSWebAssemblyMemory read FMemory;
+    Property OnLog : TWasmThreadControllerLogEvent Read FOnLog Write FOnLog;
+  end;
+
+  TWasmThreadSupportApi = Class (TImportExtension)
+  Protected
     // Proposed WASI standard, modeled after POSIX pthreads.
-    function thread_spawn(start_arg : longint) : longint; virtual; abstract;
-    // These are extensions
-    Function thread_detach(thread_id : longint) : Integer; virtual; abstract;
-    Function thread_cancel(thread_id : longint) : Integer; virtual; abstract;
+    function thread_spawn(start_arg : longint) : longint;
     Function thread_self() : Integer; virtual;
     Function thread_main() : Integer; virtual;
+    function ThreadController : TWasmThreadController; virtual;
   Public
     Function ImportName : String; override;
     procedure FillImportObject(aObject: TJSObject); override;
-    Procedure HandleCommand(aCommand : TWorkerCommand); virtual;
-    Procedure SendCommand(aCommand : TWorkerCommand); virtual;
-    // Set this to actually send commands. Normally set by TWorkerWASIHostApplication
-    Property OnSendCommand : TCommandNotifyEvent Read FOnSendCommand Write FOnSendCommand;
-
-
   end;
 
+function ThreadController : TWasmThreadController;
 
 implementation
+
+function ThreadController : TWasmThreadController;
+
+begin
+  Result:=TWasmThreadController.Instance;
+end;
 
 { TWorkerRunCommandHelper }
 
@@ -333,7 +339,7 @@ end;
 
 class function TWorkerRunCommandHelper.Create(aThreadID, aArgs: integer): TWorkerRunCommand;
 begin
-  Result:=TWorkerRunCommand(TWorkerCommand.NewWorker(CommandName));
+  Result:=TWorkerRunCommand(NewWorker(CommandName));
   Result.ThreadID:=aThreadID;
   Result.Args:=aArgs;
 end;
@@ -347,7 +353,7 @@ end;
 
 class function TWorkerRpcCommandHelper.Create(aID: String; aMethod: String; aParams: TJSArray): TWorkerRpcCommand;
 begin
-  Result:=TWorkerRpcCommand(TWorkerCommand.NewWorker(CommandName));
+  Result:=TWorkerRpcCommand(NewWorker(CommandName));
   Result.id:=aID;
   Result.Method:=aMethod;
   Result.Params:=aParams;
@@ -362,7 +368,7 @@ end;
 
 class function TWorkerRpcResultCommandHelper.Create(aID: String; aResult: JSValue): TWorkerRpcResultCommand;
 begin
-  Result:=TWorkerRpcResultCommand(TWorkerCommand.NewWorker(CommandName));
+  Result:=TWorkerRpcResultCommand(NewWorker(CommandName));
   Result.id:=aID;
   Result.result:=aResult;
   Result.jsonrpc:='2.0';
@@ -370,7 +376,7 @@ end;
 
 class function TWorkerRpcResultCommandHelper.CreateError(aID: String; aCode: Integer; aMessage: string): TWorkerRpcResultCommand;
 begin
-  Result:=TWorkerRpcResultCommand(TWorkerCommand.NewWorker(CommandName));
+  Result:=TWorkerRpcResultCommand(NewWorker(CommandName));
   Result.Id:=aID;
   Result.Error:=TWorkerRPCError.New;
   Result.Error.Code:=aCode;
@@ -385,6 +391,59 @@ begin
   Result.Error.Data:=aData;
 end;
 
+{ TWasmThreadController }
+
+class function TWasmThreadController.GetInstance: TWasmThreadController; static;
+begin
+  if _instance=Nil then
+    begin
+    if _instanceClass=Nil then
+      Raise EWasmThreads.Create('No instance class, please include Rtl.ThreadController or Rtl.ThreadWorker unit');
+    _instance:=_instanceClass.Create;
+    end;
+  Result:=_Instance;
+end;
+
+procedure TWasmThreadController.SetLogAPI(AValue: Boolean);
+begin
+  if FLogAPI=AValue then Exit;
+  FLogAPI:=AValue;
+end;
+
+procedure TWasmThreadController.DoLog(const msg: string);
+begin
+  if FLogAPI then
+    if Assigned(FOnLog) then
+      FOnLog(Msg)
+    else
+      Writeln(msg);
+
+end;
+
+procedure TWasmThreadController.DoLog(const Fmt: string; const args: array of const);
+begin
+
+end;
+
+constructor TWasmThreadController.create;
+
+begin
+  // Do nothing for the moment
+end;
+
+procedure TWasmThreadController.SetWasmModuleAndMemory(aModule: TJSWebAssemblyModule; aMemory: TJSWebAssemblyMemory);
+begin
+  FModule:=aModule;
+  FMemory:=aMemory;
+  If Assigned(FModule) and Assigned(FMemory) then
+    HaveWebassembly;
+end;
+
+class procedure TWasmThreadController.SetInstanceClass(aClass: TWasmThreadControllerClass);
+begin
+  _instanceClass:=aClass;
+end;
+
 { TWorkerLoadCommandHelper }
 
 class function TWorkerLoadCommandHelper.CommandName: string;
@@ -395,7 +454,7 @@ end;
 class function TWorkerLoadCommandHelper.Create(aModule: TJSWebAssemblyModule; aMemory: TJSWebAssemblyMemory
   ): TWorkerLoadCommand;
 begin
-  Result:=TWorkerLoadCommand(TWorkerCommand.NewWorker(CommandName));
+  Result:=TWorkerLoadCommand(NewWorker(CommandName));
   Result.Memory:=aMemory;
   Result.Module:=aModule;
 end;
@@ -409,7 +468,7 @@ end;
 
 class function TWorkerStartedCommandHelper.Create(aFunction: string): TWorkerStartedCommand;
 begin
-  Result:=TWorkerStartedCommand(TWorkerCommand.NewWorker(CommandName));
+  Result:=TWorkerStartedCommand(NewWorker(CommandName));
   Result.StartFunction:=aFunction;
 end;
 
@@ -422,7 +481,7 @@ end;
 
 class function TWorkerSpawnThreadCommandHelper.Create(aThreadID: integer; aArgs : Integer): TWorkerSpawnThreadCommand;
 begin
-  Result:=TWorkerSpawnThreadCommand(TWorkerCommand.NewWorker(CommandName,aThreadID));
+  Result:=TWorkerSpawnThreadCommand(NewWorker(CommandName,aThreadID));
   Result.Arguments:=aArgs;
 end;
 
@@ -437,7 +496,7 @@ end;
 
 class function TWorkerLoadedCommandHelper.Create: TWorkerLoadedCommand;
 begin
-  Result:=TWorkerLoadedCommand(TWorkerCommand.NewWorker(CommandName));
+  Result:=TWorkerLoadedCommand(NewWorker(CommandName));
 end;
 
 { TWorkerCancelCommandHelper }
@@ -450,7 +509,7 @@ end;
 class function TWorkerCancelCommandHelper.Create(aThreadID: Integer
   ): TWorkerCancelCommand;
 begin
-  Result:=TWorkerCancelCommand(TWorkerCommand.NewWorker(CommandName,aThreadID));
+  Result:=TWorkerCancelCommand(NewWorker(CommandName,aThreadID));
 end;
 
 { TWorkerKillCommandHelper }
@@ -462,7 +521,7 @@ end;
 
 class function TWorkerKillCommandHelper.Create(aThreadID : Integer): TWorkerKillCommand;
 begin
-  Result:=TWorkerKillCommand(TWorkerCommand.NewWorker(CommandName,aThreadID));
+  Result:=TWorkerKillCommand(NewWorker(CommandName,aThreadID));
 end;
 
 { TWorkerCleanupCommandHelper }
@@ -474,7 +533,7 @@ end;
 
 class function TWorkerCleanupCommandHelper.Create(aThreadID, aExitStatus: Integer): TWorkerCleanupCommand;
 begin
-  Result:=TWorkerCleanupCommand(TWorkerCommand.NewWorker(CommandName,aThreadID));
+  Result:=TWorkerCleanupCommand(NewWorker(CommandName,aThreadID));
   Result.ExitStatus:=aExitStatus;
 end;
 
@@ -488,7 +547,7 @@ end;
 class function TWorkerConsoleCommandHelper.Create(
   const aMessage: string; aThreadID : Integer = -1): TWorkerConsoleCommand;
 begin
-  Result:=TWorkerConsoleCommand(TWorkerCommand.NewWorker(CommandName,aThreadID));
+  Result:=TWorkerConsoleCommand(NewWorker(CommandName,aThreadID));
   Result.ConsoleMessage:=aMessage;
 end;
 
@@ -498,34 +557,30 @@ begin
   Result:=Create(TJSArray(aMessage).join(' '),aThreadID);
 end;
 
-{ TWorkerExceptionCommandHelper }
-
-class function TWorkerExceptionCommandHelper.CommandName: string;
-begin
-  Result:=cmdException;
-end;
-
-class function TWorkerExceptionCommandHelper.CreateNew(const aExceptionClass,aExceptionMessage: string; aThreadID : Integer = -1  ): TWorkerExceptionCommand;
-begin
-  Result:=TWorkerExceptionCommand(TWorkerCommand.NewWorker(CommandName,aThreadID));
-  Result.ExceptionClass:=aExceptionClass;
-  Result.ExceptionMessage:=aExceptionMessage;
-end;
 
 { TWorkerCommandHelper }
 
-class function TWorkerCommandHelper.NewWorker(const aCommand : string; aThreadID : Integer = -1): TWorkerCommand;
+class function TWorkerCommandHelper.NewWorker(const aCommand : string; aThreadID : Integer = -1): TThreadWorkerCommand;
+
 begin
-  Result:=TWorkerCommand.New;
-  Result.Command:=LowerCase(aCommand);
-  if aThreadID<>-1 then
+  if aThreadID=-1 then
+    Result:=TThreadWorkerCommand(createCommand(aCommand))
+  else
+    begin
+    Result:=TThreadWorkerCommand(createCommand(aCommand,'Wasm thread '+IntToStr(aThreadID)));
     Result.ThreadID:=aThreadID;
+    end;
 end;
 
 
 { TWasmThreadSupport }
 
-function TWasmThreadSupport.thread_self(): Integer;
+function TWasmThreadSupportAPi.thread_spawn(start_arg: longint): longint;
+begin
+  Result:=ThreadController.SpawnThread(start_arg);
+end;
+
+function TWasmThreadSupportApi.thread_self(): Integer;
 
 Type
   TGetThreadIDFunction = Function : Longint;
@@ -539,7 +594,7 @@ begin
     Result:=0;
 end;
 
-function TWasmThreadSupport.thread_main: Integer;
+function TWasmThreadSupportApi.thread_main: Integer;
 
 Type
   TGetThreadIDFunction = Function : Longint;
@@ -553,38 +608,21 @@ begin
     Result:=0;
 end;
 
-function TWasmThreadSupport.ImportName: String;
+function TWasmThreadSupportApi.ThreadController: TWasmThreadController;
+begin
+  Result:=TWasmThreadController.Instance;
+end;
+
+function TWasmThreadSupportApi.ImportName: String;
 begin
   Result:='wasi';
 end;
 
-procedure TWasmThreadSupport.FillImportObject(aObject: TJSObject);
+procedure TWasmThreadSupportApi.FillImportObject(aObject: TJSObject);
 begin
   aObject[sThreadSpawn]:=@Thread_Spawn;
-  aObject[sThreadDetach]:=@Thread_Detach;
-  aObject[sThreadCancel]:=@Thread_Cancel;
   aObject[sThreadSelf]:=@Thread_Self;
 end;
-
-
-procedure TWasmThreadSupport.HandleCommand(aCommand: TWorkerCommand);
-
-Var
-  P : TWorkerExceptionCommand;
-
-begin
-  P:=TWorkerExceptionCommand.New;
-  P.ExceptionClass:='ENotSupportedException';
-  P.ExceptionMessage:='Unsupported command : '+TJSJSON.Stringify(aCommand);
-  SendCommand(P);
-end;
-
-procedure TWasmThreadSupport.SendCommand(aCommand: TWorkerCommand);
-begin
-  if Assigned(FOnSendCommand) then
-    FOnSendCommand(Self,aCommand);
-end;
-
 
 end.
 
