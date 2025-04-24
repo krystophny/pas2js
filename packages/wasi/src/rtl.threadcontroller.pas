@@ -10,11 +10,10 @@ interface
 
 uses
   {$IFDEF FPC_DOTTEDUNITS}
-    JSApi.JS, System.SysUtils, System.WebThreads, Wasi.Env, BrowserApi.WebOrWorker;
+    JSApi.JS, System.SysUtils, Rtl.WorkerCommands, System.WebThreads, BrowserApi.WebOrWorker;
   {$ELSE}
-    JS, SysUtils, Rtl.WebThreads, wasienv, weborworker;
+    JS, SysUtils, Rtl.WorkerCommands,  Rtl.WebThreads, weborworker;
   {$ENDIF}
-
 
 Type
   { TWasmThread }
@@ -34,7 +33,7 @@ Type
     procedure SetThreadInfo(AValue: TThreadinfo);
   Public
     Class function Create(aScript : String) : TWasmThread; reintroduce; static;
-    Procedure SendCommand(aCommand : TWorkerCommand);
+    Procedure SendCommand(aCommand : TThreadWorkerCommand);
     Property LoadSent : Boolean Read GetLoadSent Write SetLoadSent;
     Property Loaded : Boolean Read GetLoaded Write SetLoaded;
     Property ThreadInfo : TThreadinfo Read GetThreadInfo Write SetThreadInfo;
@@ -58,27 +57,36 @@ Type
   TWasmThreadEvent = procedure (Sender : TObject; aWorker : TWasmThread) of object;
   TWasmThreadArray = array of TWasmThread;
   TWasmThreadEnumProc = reference to procedure(aWorker : TWasmThread);
+  TConsoleWriteEvent = procedure (Sender : TObject; Const Msg : String) of object;
 
-  TThreadController = class(TWasmThreadSupport)
+  TThreadController = class(TWasmThreadController)
   private
+    FHandleConsoleMessages: Boolean;
+    FLogAPI: Boolean;
+    FOnConsoleWrite: TConsoleWriteEvent;
+    FWorkerCount : Integer;
     FInitialWorkerCount: Integer;
     FMaxWorkerCount: Integer;
     FOnAllocateWorker: TWasmThreadEvent;
     FOnUnknownMessage: TJSRawEventHandler;
-    FHost: TWASIHost;
     FWorkerScript: String;
-    procedure SetWasiHost(AValue: TWASIHost);
+    procedure HandleRawCleanupCommand(aCommand: TCustomWorkerCommand);
+    procedure HandleRawSpawnCommand(aCommand: TCustomWorkerCommand);
+    procedure HandleRawLoadedCommand(aCommand: TCustomWorkerCommand);
+    procedure HandleRawConsoleCommand(aCommand: TCustomWorkerCommand);
+    procedure HandleRawKillCommand(aCommand: TCustomWorkerCommand);
+    procedure HandleRawCancelCommand(aCommand: TCustomWorkerCommand);
   Protected
+    procedure HaveWebassembly; override;
+    Procedure DoError(const msg : string);
     procedure RunTimeOut(aInfo: TThreadInfo; aInterval: Integer); virtual;
-    function thread_spawn(start_arg : longint) : longint; override;
-    Function thread_detach(thread_id : longint) : Integer; override;
-    Function thread_cancel(thread_id : longint) : Integer; override;
+    property logAPI : Boolean Read FLogAPI;
   Protected
     FIdleWorkers : TWasmThreadArray;
     FBusyWorkers : TWasmThreadArray;
     FThreads : TThreadHash; // ThreadID is key,
-    // Handle worker messages. If it is a command, it is set to handlecommand.
-    procedure DoWorkerMessage(aEvent: TJSEvent);
+    // Find thread based on thread ID
+    function FindThreadWorker(aThreadID: integer): TWasmThread;
     // Create & set up new worker
     Function AllocateNewWorker(Const aWorkerScript : string) : TWasmThread; virtual;
     // Send a load command
@@ -86,7 +94,7 @@ Type
     // Get new worker from pool, create new if needed.
     Function GetNewWorker : TWasmThread;
     // Spawn & prepare to run a new thread.
-    Function SpawnThread(aInfo : TThreadInfo) : Integer;
+    Function SpawnThread(aInfo : TThreadInfo) : Integer; overload;
     // Actually send run command.
     Procedure SendRunCommand(aThreadWorker: TWasmThread);
     //
@@ -104,16 +112,19 @@ Type
     procedure HandleLoadedCommand(aWorker: TWasmThread; aCommand: TWorkerLoadedCommand); overload;
     // Console output from worker.
     procedure HandleConsoleCommand(aWorker: TWasmThread;  aCommand: TWorkerConsoleCommand);
+    // Register callbacks
+    procedure InitMessageCallBacks;
   Public
-    Constructor Create(aEnv : TPas2JSWASIEnvironment); override;
-    Constructor Create(aEnv : TPas2JSWASIEnvironment; aWorkerScript : String; aSpawnWorkerCount : integer); virtual; overload;
-    Procedure HandleCommand(aWorker : TWasmThread; aCommand : TWorkerCommand); overload; virtual;
+    Constructor Create; override;
+    Constructor Create(aWorkerScript : String; aSpawnWorkerCount : integer); virtual; overload;
+    // the interface needed by wasmP1
+    function SpawnThread(start_arg : longint) : longint; override;
     // Send load commands to all workers that still need it.
     procedure SendLoadCommands;
     // Send a command to all workers
-    procedure SendCommandToAllWorkers(aCommand : TWorkerCommand);
+    procedure SendCommandToAllWorkers(aCommand : TThreadWorkerCommand);
     // Send a command to a specific thread. TWorkerCommand has the thread ID.
-    procedure SendCommandToThread(aCommand : TWorkerCommand);
+    procedure SendCommandToThread(aCommand : TThreadWorkerCommand);
     // Get a list of all thread workers
     Function GetWebWorkers : TWasmThreadArray;
     // Enumerate workers
@@ -126,18 +137,24 @@ Type
     Property MaxWorkerCount : Integer Read FMaxWorkerCount Write FMaxWorkerCount;
     Property OnUnknownMessage : TJSRawEventHandler Read FOnUnknownMessage Write FOnUnknownMessage;
     Property OnAllocateWorker : TWasmThreadEvent Read FOnAllocateWorker Write FonAllocateWorker;
-    // The WASI host, used to run routines.
-    Property Host : TWASIHost Read FHost Write SetWasiHost;
+    Property HandleConsoleMessages : Boolean Read FHandleConsoleMessages Write FHandleConsoleMessages;
+    property OnConsoleWrite : TConsoleWriteEvent Read FOnConsoleWrite Write FOnConsoleWrite;
   end;
 
+Function globalThreadController : TThreadController;
 
 implementation
 
 Resourcestring
   SErrMaxWorkersReached = 'Cannot create thread worker, Maximum number of workers (%d) reached.';
 
-{ TWasmThread }
+Function globalThreadController : TThreadController;
 
+begin
+  Result:=TWasmThreadController.Instance as TThreadController;
+end;
+
+{ TWasmThread }
 
 class function TWasmThreadHelper.Create(aScript: String): TWasmThread;
 begin
@@ -212,46 +229,29 @@ begin
 end;
 
 
-procedure TWasmThreadHelper.SendCommand(aCommand: TWorkerCommand);
+procedure TWasmThreadHelper.SendCommand(aCommand: TThreadWorkerCommand);
 begin
-  PostMessage(aCommand);
-end;
-
-procedure TThreadController.DoWorkerMessage(aEvent: TJSEvent);
-
-Var
-  aMessageEvent : TJSMessageEvent absolute aEvent;
-  aData : TWorkerCommand;
-  aWorker : TWasmThread;
-
-begin
-  {$IFNDEF NOLOGAPICALLS}
-  if LogAPI then
-    DoLog('Received worker message '+TJSJSON.Stringify(aMessageEvent.Data));
-  {$ENDIF}
-  if IsObject(aMessageEvent.Data) and TJSObject(aMessageEvent.Data).hasOwnProperty('Command') then
-    begin
-    aData:=TWorkerCommand(aMessageEvent.Data);
-    aWorker:=TWasmThread(aMessageEvent.Target);
-    HandleCommand(aWorker,aData);
-    end
-  else if Assigned(FOnUnknownMessage) then
-    FOnUnknownMessage(aEvent)
-  {$IFNDEF NOLOGAPICALLS}
-  else if LogAPI then
-    DoLog('Unknown worker message : '+TJSJSON.stringify(aEvent));
-  {$ENDIF}
+  TCommandDispatcher.Instance.SendCommand(Self,aCommand);
 end;
 
 function TThreadController.AllocateNewWorker(const aWorkerScript: string): TWasmThread;
 
+var
+  lWorkerUrl : String;
 begin
   {$IFNDEF NOLOGAPICALLS}
   DoLog('Allocating new worker for: '+aWorkerScript);
   {$ENDIF}
-  Result:=TWasmThread.Create(aWorkerScript);
-  Result.addEventListener('message',@DoWorkerMessage);
-  if Assigned(Host) and Host.StartDescriptorReady then
+  Inc(FWorkerCount);
+  lWorkerUrl:=aWorkerScript;
+  if Pos('?',lWorkerUrl)>0 then
+    lWorkerUrl:=lWorkerUrl+'&'
+  else
+    lWorkerUrl:=lWorkerUrl+'?';
+  lWorkerUrl:=lWorkerUrl+'worker='+IntToStr(FWorkerCount);
+  Result:=TWasmThread.Create(lWorkerUrl);
+  TCommandDispatcher.Instance.RegisterWorker(Result,'threadworker'+inttostr(FWorkerCount));
+  if Assigned(WasmMemory) and Assigned(WasmModule) then
     SendLoadCommand(Result)
   else if LogAPI then
     {$IFNDEF NOLOGAPICALLS}
@@ -268,7 +268,7 @@ Var
   WLC: TWorkerLoadCommand;
 
 begin
-  WLC:=TWorkerLoadCommand.Create(Host.PreparedStartDescriptor.Module, Host.PreparedStartDescriptor.Memory);
+  WLC:=TWorkerLoadCommand.Create(WasmModule, WasmMemory);
   aThreadWorker.SendCommand(WLC);
   aThreadWorker.LoadSent:=True;
 end;
@@ -308,18 +308,14 @@ begin
   aThreadWorker.SendCommand(Wrc);
 end;
 
-procedure TThreadController.SetWasiHost(AValue: TWASIHost);
 
-
+procedure TThreadController.DoError(const msg: string);
 begin
-  if FHost=AValue then
-    Exit;
-  FHost:=AValue;
-  If Assigned(FHost) and Host.StartDescriptorReady then
-    SendLoadCommands;
+  DoLog('Error: '+Msg);
 end;
 
-function TThreadController.thread_spawn(start_arg : longint) : longint;
+
+function TThreadController.SpawnThread(start_arg : longint) : longint;
 
 var
   aInfo : TThreadInfo;
@@ -329,18 +325,6 @@ begin
   aInfo.Arguments:=start_arg;
   aInfo.OriginThreadID:=0;
   Result:=SpawnThread(aInfo);
-end;
-
-function TThreadController.thread_detach(thread_id: longint): Integer;
-begin
-  if thread_id=-1 then;
-  Result:=-1;
-end;
-
-function TThreadController.thread_cancel(thread_id: longint): Integer;
-begin
-  if thread_id=-1 then;
-  Result:=-1;
 end;
 
 procedure TThreadController.SendLoadCommands;
@@ -357,7 +341,7 @@ begin
       SendLoadCommand(WT);
 end;
 
-procedure TThreadController.SendCommandToAllWorkers(aCommand: TWorkerCommand);
+procedure TThreadController.SendCommandToAllWorkers(aCommand: TThreadWorkerCommand);
 
 Var
   WT : TWasmThread;
@@ -369,7 +353,7 @@ begin
     WT.postMessage(aCommand);
 end;
 
-procedure TThreadController.SendCommandToThread(aCommand: TWorkerCommand);
+procedure TThreadController.SendCommandToThread(aCommand: TThreadWorkerCommand);
 var
   W : TJSWorker;
 begin
@@ -394,6 +378,7 @@ begin
   For aThread in GetWebWorkers do
     aCallBack(aThread);
 end;
+
 
 procedure TThreadController.RunTimeOut(aInfo: TThreadInfo; aInterval: Integer);
 
@@ -431,19 +416,19 @@ begin
 end;
 
 
-constructor TThreadController.Create(aEnv: TPas2JSWASIEnvironment);
+constructor TThreadController.Create;
 begin
-  Create(aEnv,DefaultThreadWorker,DefaultThreadCount)
+  InitMessageCallBacks;
+  Create(DefaultThreadWorker,DefaultThreadCount)
 end;
 
-constructor TThreadController.Create(aEnv: TPas2JSWASIEnvironment;
-  aWorkerScript: String; aSpawnWorkerCount: integer);
+constructor TThreadController.Create(aWorkerScript: String; aSpawnWorkerCount: integer);
 
 Var
   I : Integer;
 
 begin
-  Inherited Create(aEnv);
+  Inherited Create;
   FThreads:=TThreadHash.new;
   FWorkerScript:=aWorkerScript;
   FInitialWorkerCount:=aSpawnWorkerCount;
@@ -451,6 +436,22 @@ begin
   For I:=1 to aSpawnWorkerCount do
     TJSArray(FIdleWorkers).Push(AllocateNewWorker(aWorkerScript));
 end;
+
+function TThreadController.FindThreadWorker(aThreadID : integer) : TWasmThread;
+
+begin
+  Result:=FThreads[aThreadID];
+end;
+
+procedure TThreadController.HandleRawSpawnCommand(aCommand: TCustomWorkerCommand);
+var
+  lCmd : TWorkerSpawnThreadCommand absolute aCommand;
+  lWorker : TWasmThread;
+begin
+  lWorker:=FindThreadWorker(lCmd.ThreadID);
+  HandleSpawnCommand(lWorker,lCmd);
+end;
+
 
 procedure TThreadController.HandleSpawnCommand(aWorker : TWasmThread; aCommand: TWorkerSpawnThreadCommand);
 
@@ -464,6 +465,15 @@ begin
   SpawnThread(aInfo);
 end;
 
+procedure TThreadController.HandleRawKillCommand(aCommand: TCustomWorkerCommand);
+var
+  lCmd : TWorkerKillCommand absolute aCommand;
+  lWorker : TWasmThread;
+begin
+  lWorker:=FindThreadWorker(lCmd.ThreadID);
+  HandleKillCommand(lWorker,lCmd);
+end;
+
 procedure TThreadController.HandleKillCommand(aWorker : TWasmThread; aCommand: TWorkerKillCommand);
 
 begin
@@ -471,11 +481,35 @@ begin
   // todo
 end;
 
+procedure TThreadController.HandleRawCancelCommand(aCommand: TCustomWorkerCommand);
+var
+  lCmd : TWorkerCancelCommand absolute aCommand;
+  lWorker : TWasmThread;
+begin
+  lWorker:=FindThreadWorker(lCmd.ThreadID);
+  HandleCancelCommand(lWorker,lCmd);
+end;
+
+procedure TThreadController.HaveWebassembly;
+begin
+  SendLoadCommands;
+end;
+
+
 procedure TThreadController.HandleCancelCommand(aWorker : TWasmThread; aCommand: TWorkerCancelCommand);
 
 begin
   if (aWorker<>Nil) and (aCommand<>Nil) then ;
   // todo
+end;
+
+procedure TThreadController.HandleRawLoadedCommand(aCommand: TCustomWorkerCommand);
+var
+  lCmd : TWorkerLoadedCommand absolute aCommand;
+  lWorker : TWasmThread;
+begin
+  lWorker:=FindThreadWorker(lCmd.ThreadID);
+  HandleLoadedCommand(lWorker,lCmd);
 end;
 
 procedure TThreadController.HandleLoadedCommand(aWorker : TWasmThread; aCommand: TWorkerLoadedCommand);
@@ -494,6 +528,15 @@ begin
   if (aCommand<>Nil) then ;
 end;
 
+procedure TThreadController.HandleRawCleanupCommand(aCommand: TCustomWorkerCommand);
+var
+  lCmd : TWorkerCleanupCommand absolute aCommand;
+  lWorker : TWasmThread;
+begin
+  lWorker:=FindThreadWorker(lCmd.ThreadID);
+  HandleCleanupCommand(lWorker,lCmd);
+end;
+
 procedure TThreadController.HandleCleanupCommand(aWorker : TWasmThread; aCommand: TWorkerCleanupCommand);
 
 Var
@@ -510,33 +553,49 @@ begin
   if (aCommand<>Nil) then ;
 end;
 
+procedure TThreadController.HandleRawConsoleCommand(aCommand: TCustomWorkerCommand);
+var
+  lCmd : TWorkerConsoleCommand absolute aCommand;
+  lWorker : TWasmThread;
+begin
+  lWorker:=FindThreadWorker(lCmd.ThreadID);
+  HandleConsoleCommand(lWorker,lCmd);
+end;
+
+
 procedure TThreadController.HandleConsoleCommand(aWorker : TWasmThread; aCommand: TWorkerConsoleCommand);
 
 Var
   Prefix : string;
 
 begin
-  Prefix:=Format('Wasm thread %d: ',[aWorker.ThreadID]);
-  if Assigned(Host.OnConsoleWrite) then
-    Host.OnConsoleWrite(Host,Prefix+aCommand.ConsoleMessage)
+  if Not HandleConsoleMessages then
+    exit;
+  Prefix:=aCommand.SenderID;
+  if Prefix='' then
+    Prefix:=Format('[Wasm thread %d]: ',[aWorker.ThreadID])
+  else
+    Prefix:='['+Prefix+']: ';
+  if Assigned(OnConsoleWrite) then
+    OnConsoleWrite(Self,Prefix+aCommand.ConsoleMessage)
   else
     Writeln(Prefix+aCommand.ConsoleMessage);
 end;
 
-procedure TThreadController.HandleCommand(aWorker : TWasmThread; aCommand: TWorkerCommand);
+procedure TThreadController.InitMessageCallBacks;
 begin
-  Case aCommand.Command of
-    cmdSpawn : HandleSpawnCommand(aWorker, TWorkerSpawnThreadCommand(aCommand));
-    cmdCleanup : HandleCleanupCommand(aWorker, TWorkerCleanupCommand(aCommand));
-    cmdKill : HandleKillCommand(aWorker, TWorkerKillCommand(aCommand));
-    cmdCancel : HandleCancelCommand(aWorker, TWorkerCancelCommand(aCommand));
-    cmdLoaded : HandleLoadedCommand(aWorker, TWorkerLoadedCommand(aCommand));
-    cmdConsole : HandleConsoleCommand(aWorker, TWorkerConsoleCommand(aCommand));
-  else
-    HandleCommand(aCommand);
-  end;
+  With TCommandDispatcher.Instance do
+    begin
+    RegisterCommandHandler(cmdSpawn,@HandleRawSpawnCommand);
+    RegisterCommandHandler(cmdCleanup,@HandleRawCleanupCommand);
+    RegisterCommandHandler(cmdKill,@HandleRawKillCommand);
+    RegisterCommandHandler(cmdCancel,@HandleRawCancelCommand);
+    RegisterCommandHandler(cmdLoaded,@HandleRawLoadedCommand);
+    RegisterCommandHandler(cmdConsole,@HandleRawConsoleCommand);
+    end;
 end;
 
-
+begin
+  TWasmThreadController.SetInstanceClass(TThreadController);
 end.
 
