@@ -24,7 +24,7 @@ Type
 procedure TMyApplication.DoWrite(Sender: TObject; aOutput: String);
 
 begin
-  Writeln('Wasm: '+aOutput);
+  Writeln('[Wasm main thread]: '+aOutput);
 end;
 
 function TMyApplication.DoStartClick(aEvent: TJSMouseEvent): boolean;

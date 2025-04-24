@@ -52,7 +52,7 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
-    <Target FileExt=".js">
+    <Target>
       <Filename Value="demothreads"/>
     </Target>
     <SearchPaths>
@@ -76,7 +76,8 @@
       </Debugging>
     </Linking>
     <Other>
-      <CustomOptions Value="-Jeutf-8 -Jirtl.js -Jc -Jminclude"/>
+      <CustomOptions Value="-Jeutf-8 -Jirtl.js -Jc -Jminclude
+-dDEBUGCOMMANDDISPATCHERx"/>
       <CompilerPath Value="$(pas2js)"/>
     </Other>
   </CompilerOptions>
