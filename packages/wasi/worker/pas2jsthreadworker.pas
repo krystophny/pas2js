@@ -3,7 +3,7 @@ program pas2jsthreadworker;
 {$mode objfpc}
 
 uses
-  Classes, WasiWorkerThreadHost;
+  Classes, rtl.threadrunner;
 
 type
   { TApplication }
