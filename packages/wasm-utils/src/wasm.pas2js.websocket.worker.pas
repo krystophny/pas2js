@@ -6,12 +6,12 @@ unit wasm.pas2js.websocket.worker;
 interface
 
 uses
-  JS, Rtl.WebThreads, weborworker, wasm.pas2js.websocketapi, wasm.websocket.shared;
+  JS, Rtl.WebThreads, Rtl.WorkerCommands, weborworker, wasm.pas2js.websocketapi, wasm.websocket.shared;
 
 
 type
   // When an unexpected error occurred.
-  TWebsocketSetMemCommand  = class external name 'Object' (TWorkerCommand)
+  TWebsocketSetMemCommand  = class external name 'Object' (TCustomWorkerCommand)
   public
     Buffer : TJSSharedArrayBuffer;
   end;
@@ -57,6 +57,8 @@ type
 
 implementation
 
+uses sysutils;
+
 { TWebsocketSetMemCommandHelper }
 
 class function TWebsocketSetMemCommandHelper.CommandName: string;
@@ -67,7 +69,7 @@ end;
 
 class function TWebsocketSetMemCommandHelper.CreateNew(aBuffer : TJSSharedArrayBuffer; aThreadID: Integer): TWebsocketSetMemCommand;
 begin
-  Result:= TWebsocketSetMemCommand(TWorkerCommand.NewWorker(CommandName,aThreadID));
+  Result:= TWebsocketSetMemCommand(createCommand(CommandName,IntToStr(aThreadID)));
   Result.Buffer:=aBuffer;
 end;
 
