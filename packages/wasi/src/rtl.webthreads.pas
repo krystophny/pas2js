@@ -259,6 +259,14 @@ Type
   end;
 
 
+  // Sent by main to thread controller worker: load and start a webassembly
+
+  { TWorkerExecuteCommandHelper }
+
+  TWorkerExecuteCommandHelper = class helper (TWorkerCommandHelper)  for TWorkerExecuteCommand
+    Class function CommandName : string; static;
+    Class function Create(aURl,aFunc : string; aEnv : TJSObject = nil): TWorkerExecuteCommand; static; reintroduce;
+  end;
 
 
 
@@ -300,6 +308,7 @@ Type
   Public
     constructor create; virtual;
     function SpawnThread(start_arg : longint) : longint; virtual; abstract;
+    function ThreadSelf : longint; virtual;
     Procedure SetWasmModuleAndMemory(aModule : TJSWebAssemblyModule; aMemory : TJSWebAssemblyMemory);
     class procedure SetInstanceClass(aClass : TWasmThreadControllerClass);
     class property Instance : TWasmThreadController read GetInstance;
@@ -391,6 +400,23 @@ begin
   Result.Error.Data:=aData;
 end;
 
+{ TWorkerExecuteCommandHelper }
+
+class function TWorkerExecuteCommandHelper.CommandName: string;
+begin
+  result:=cmdExecute
+end;
+
+class function TWorkerExecuteCommandHelper.Create(aURl, aFunc: string; aEnv: TJSObject): TWorkerExecuteCommand;
+begin
+  Result:=TWorkerExecuteCommand(NewWorker(CommandName));
+  Result.Url:=aURL;
+  if aFunc<>'' then
+    Result.ExecuteFunc:=aFunc;
+  if assigned(aEnv) then
+    Result.Env:=aEnv;
+end;
+
 { TWasmThreadController }
 
 class function TWasmThreadController.GetInstance: TWasmThreadController; static;
@@ -422,13 +448,18 @@ end;
 
 procedure TWasmThreadController.DoLog(const Fmt: string; const args: array of const);
 begin
-
+  DoLog(Format(Fmt,Args));
 end;
 
 constructor TWasmThreadController.create;
 
 begin
   // Do nothing for the moment
+end;
+
+function TWasmThreadController.ThreadSelf: longint;
+begin
+  Result:=-1;
 end;
 
 procedure TWasmThreadController.SetWasmModuleAndMemory(aModule: TJSWebAssemblyModule; aMemory: TJSWebAssemblyMemory);
