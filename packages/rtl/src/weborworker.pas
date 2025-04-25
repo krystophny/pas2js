@@ -2131,7 +2131,7 @@ end;
 function IsServiceWorker :boolean; assembler;
 
 asm
-  Return (typeof ServiceWorkerGlobalScope !== 'undefined') && (self instanceof ServiceWorkerGlobalScope);
+  return (typeof ServiceWorkerGlobalScope !== 'undefined') && (self instanceof ServiceWorkerGlobalScope);
 end;
 
 end.
