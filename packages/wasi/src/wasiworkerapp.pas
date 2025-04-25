@@ -5,7 +5,7 @@ unit wasiworkerapp;
 interface
 
 uses
-  Classes, SysUtils, workerapp, wasienv, Rtl.WorkerCommands;
+  Classes, SysUtils, workerapp, wasienv;
 
 Type
   { TWorkerWASIHostApplication }
