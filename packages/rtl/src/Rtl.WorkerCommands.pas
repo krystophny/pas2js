@@ -79,6 +79,7 @@ Type
   TCommandDispatcherClass = class of TCommandDispatcher;
 
   TCommandHandler = Reference to procedure(aCommand : TCustomWorkerCommand);
+  generic TTypedCommandHandler<T : TCustomWorkerCommand> = Reference to procedure(aCommand : T);
   TCommandHandlerArray = array of TCommandHandler;
 
   { TCommandDispatcher }
@@ -124,6 +125,8 @@ Type
     Procedure RegisterCommandHandler(const aCommand : string; aHandler : TCommandHandler);
     // Remove the given command handler for command aCommand
     Procedure UnRegisterCommandHandler(const aCommand : string; aHandler : TCommandHandler);
+    // Register a command handler for command aCommand
+    Generic Procedure AddCommandHandler<T : TCustomWorkerCommand>(const aCommand : string; aHandler : specialize TTypedCommandHandler<T>);
     // Register a worker for broadcast
     Procedure RegisterWorker(aWorker : TJSWorker; const aName : string);
     // Remove a worker from broadcast list
@@ -384,6 +387,14 @@ begin
     if Idx>=0 then
       Delete(LHandlers,Idx,1);
     end;
+end;
+
+generic procedure TCommandDispatcher.AddCommandHandler<T>(const aCommand: string; aHandler: specialize TTypedCommandHandler<T>);
+begin
+  RegisterCommandHandler(aCommand,procedure (aCmd : TCustomWorkerCommand)
+    begin
+      aHandler(T(aCmd));
+    end);
 end;
 
 procedure TCommandDispatcher.RegisterWorker(aWorker: TJSWorker; const aName: string);
