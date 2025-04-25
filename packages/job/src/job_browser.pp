@@ -129,19 +129,6 @@ Type
     property OnCallBackPasError : TCallbackErrorPasEventHandler read FOnCallBackPasError Write FOnCallBackPasError;
   end;
 
-  { TJSThreadAwareObjectBridge }
-  TShareObjectEvent = procedure (aObjectID: TJOBObjectID; aThreadID: Longint; aObj : TJSObject) of object;
-
-  TJSThreadAwareObjectBridge = class(TJSObjectBridge)
-  private
-    FOnShareObject: TShareObjectEvent;
-  Protected
-    function ShareObject(aObjectID: TJOBObjectID; aThreadID: Longint): TJOBResult; virtual;
-  public
-    procedure FillImportObject(aObject: TJSObject); override;
-    Property OnShareObject : TShareObjectEvent Read FOnShareObject Write FOnShareObject;
-  end;
-
 Implementation
 
 
@@ -179,6 +166,7 @@ asm
 end;
 
 { TJSObjectFactoryReg }
+
 
 constructor TJSObjectFactoryReg.Create(aFunc: TJSObjectFactory);
 begin
@@ -1323,30 +1311,5 @@ begin
   Console.debug(FGlobalObjects);
 end;
 
-{ TJSThreadAwareObjectBridge }
-
-function TJSThreadAwareObjectBridge.ShareObject(aObjectID : TJOBObjectID; aThreadID : Longint) : TJOBResult;
-
-var
-  Obj : TJSObject;
-
-begin
-  Result:=JOBResult_None;
-  Obj:=FindObject(aObjectID);
-  if not Assigned(Obj) then
-    exit(JOBResult_UnknownObjId);
-  if not Assigned(OnShareObject) then
-    exit(JOBResult_UnImplemented);
-  OnShareObject(aObjectID,aThreadId,Obj);
-  Result:=JOBResult_Success;
-end;
-
-
-
-procedure TJSThreadAwareObjectBridge.FillImportObject(aObject: TJSObject);
-begin
-  inherited FillImportObject(aObject);
-  aObject[JOBFn_ShareObject]:=@ShareObject;
-end;
 
 end.  
