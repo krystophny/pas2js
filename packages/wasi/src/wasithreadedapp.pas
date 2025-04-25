@@ -34,25 +34,6 @@ Type
     Property ThreadSupport : TThreadController Read GetThreadSupport;
   end;
 
-  { TThreadConsoleOutput }
-
-  TThreadConsoleOutputEvent = reference to procedure(const Msg : string);
-  TThreadConsoleOutput = Class (TObject)
-  private
-    class var _Instance : TThreadConsoleOutput;
-  private
-    FEnabled: boolean;
-    FOnOutput: TThreadConsoleOutputEvent;
-    class function GetInstance: TThreadConsoleOutput; static;
-    procedure HandleConsoleMessage(aCommand: TCustomWorkerCommand); virtual;
-  Public
-    class constructor done;
-    constructor Create; virtual;
-    class property Instance : TThreadConsoleOutput Read _Instance;
-    property Enabled : boolean Read FEnabled Write FEnabled;
-    property OnOutput : TThreadConsoleOutputEvent Read FOnOutput Write FOnOutput;
-  end;
-
 implementation
 
 class function ThreadAppWASIHost.NeedSharedMemory: Boolean;
@@ -79,44 +60,10 @@ begin
   TWasmThreadSupportApi.Create(Result);
 end;
 
-{ TThreadConsoleOutput }
-
-class function TThreadConsoleOutput.GetInstance: TThreadConsoleOutput; static;
-begin
-  if _instance=Nil then
-    _Instance:=TThreadConsoleOutput.Create;
-  Result:=_instance;
-end;
-
-procedure TThreadConsoleOutput.HandleConsoleMessage(aCommand : TCustomWorkerCommand);
-var
-  D : TWorkerConsoleCommand absolute aCommand;
-  Msg : String;
-
-begin
-  Msg:=D.ConsoleMessage;
-  if D.SenderID<>'' then
-    Msg:='['+D.SenderID+'] '+Msg;
-  if assigned(OnOutput) then
-    OnOutPut(Msg)
-  else
-    Writeln(Msg);
-end;
-
-class constructor TThreadConsoleOutput.done;
-begin
-  FreeAndNil(_Instance);
-end;
-
-constructor TThreadConsoleOutput.Create;
-begin
-  TCommandDispatcher.Instance.RegisterCommandHandler(cmdConsole,@HandleConsoleMessage);
-  FEnabled:=True;
-end;
 
 initialization
   TCommandDispatcher.Instance.DefaultSenderID:='HTML page thread';
-  TThreadConsoleOutput._Instance:=TThreadConsoleOutput.Create;
+  TThreadConsoleOutput.Init;
   TWASIHostApplication.SetWasiHostClass(ThreadAppWASIHost);
 end.
 
