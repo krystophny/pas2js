@@ -13,7 +13,7 @@ uses
   System.SysUtils, JSApi.JS,  System.WebThreads,
   Rtl.ThreadController;
 {$ELSE} 
-  SysUtils, JS, Rtl.WebThreads, Rtl.ThreadController, Rtl.WorkerCommands, WasiWorkerApp,
+  SysUtils, JS, Rtl.WebThreads, Rtl.ThreadController, WasiWorkerApp,
   rtl.workerthreadhost, rtl.threadrunner;
 {$ENDIF}
 
