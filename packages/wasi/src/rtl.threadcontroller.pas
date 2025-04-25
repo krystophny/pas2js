@@ -85,8 +85,6 @@ Type
     FIdleWorkers : TWasmThreadArray;
     FBusyWorkers : TWasmThreadArray;
     FThreads : TThreadHash; // ThreadID is key,
-    // Find thread based on thread ID
-    function FindThreadWorker(aThreadID: integer): TWasmThread;
     // Create & set up new worker
     Function AllocateNewWorker(Const aWorkerScript : string) : TWasmThread; virtual;
     // Send a load command
@@ -117,6 +115,8 @@ Type
   Public
     Constructor Create; override;
     Constructor Create(aWorkerScript : String; aSpawnWorkerCount : integer); virtual; overload;
+    // Find thread based on thread ID
+    function FindThreadWorker(aThreadID: integer): TWasmThread;
     // the interface needed by wasmP1
     function SpawnThread(start_arg : longint) : longint; override;
     // Send load commands to all workers that still need it.
