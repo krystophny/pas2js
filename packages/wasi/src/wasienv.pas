@@ -206,10 +206,12 @@ type
     function GetUTF8ByteLength(const AString: String): Integer;
     Function GetUTF8StringFromMem(aLoc, aLen : Longint) : String;
     function GetUTF8StringFromArray(aSourceArray: TJSUint8Array): String;
+    function GetUTF16StringFromMem(p : TWasmPointer; LenInChars : Integer) : String;
     // Write string as UTF8 string in memory at aLoc, with max aLen bytes.
     // Return number of bytes written, or -NeededLen if not enough room.
     function SetUTF8StringInMem(aLoc: TWasmMemoryLocation; aLen: Longint; AString: String): Integer;
     function SetUTF8StringInMem(aLoc: TWasmMemoryLocation; aLen: Longint; AStringBuf: TJSUint8Array): Integer;
+    Function SetUTF16StringInMem(p : TWasmPointer; const aString : String) : integer;
     function SetMemInfoInt8(aLoc : TWasmMemoryLocation; aValue : ShortInt) : TWasmMemoryLocation;
     function SetMemInfoInt16(aLoc : TWasmMemoryLocation; aValue : SmallInt) : TWasmMemoryLocation;
     function SetMemInfoInt32(aLoc : TWasmMemoryLocation; aValue : Longint) : TWasmMemoryLocation;
@@ -2344,6 +2346,21 @@ begin
   Result:=UTF8TextDecoder.Decode(tmpBytes);
 end;
 
+function TPas2JSWASIEnvironment.GetUTF16StringFromMem(p: TWasmPointer; LenInChars: Integer): String;
+
+  function String_fromCharCode_apply(aThis : TJSObject; aBuffer : TJSUint16Array) : String; external name 'String.fromCharCode.apply';
+
+var
+  bytes : TJSUint16Array;
+
+begin
+  Result:='';
+  if LenInChars <=0 then
+    exit;
+  bytes := TJSUint16Array.new(Memory.buffer, p, LenInChars);
+  Result := String_fromCharCode_apply(nil, bytes);
+end;
+
 function TPas2JSWASIEnvironment.GetUTF8StringFromMem(aLoc, aLen: Longint): String;
 
 var
@@ -2390,6 +2407,20 @@ begin
   Arr:=TJSUint8Array.New(getModuleMemoryDataView.buffer,aLoc,aLen);
   Arr._set(aStringBuf);
   Result:=aStringBuf.byteLength;
+end;
+
+function TPas2JSWASIEnvironment.SetUTF16StringInMem(p: TWasmPointer; const aString: String) : Integer;
+var
+  i : Integer;
+  view : TJSDataView;
+begin
+  view := GetModuleMemoryDataView;
+  for i := 0 to Length(aString)-1 do
+    begin
+    view.setUint16(p, TJSString(aString).charCodeAt(i), IsLittleEndian);
+    inc(p,SizeUInt16);
+    end;
+  Result:=Length(aString)*SizeUInt16;
 end;
 
 
