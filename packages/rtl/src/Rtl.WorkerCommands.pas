@@ -115,6 +115,8 @@ Type
     // Send command to thread that started this worker. Cannot be used in main thread
     procedure SendCommand(aCommand : TCustomWorkerCommand); virtual;
     // Send command to thread that started this worker. Cannot be used in main thread
+    procedure SendCommand(aCommand : TCustomWorkerCommand; aTransfer : Array of JSValue); virtual;
+    // Send command to thread that started this worker. Cannot be used in main thread
     procedure SendConsoleCommand(aCommand : TConsoleOutputCommand); virtual;
     // Send command to all registered workers
     procedure BroadcastCommand(aCommand : TCustomWorkerCommand);
@@ -316,6 +318,20 @@ begin
   {$ENDIF}
   asm
   self.postMessage(aCommand);
+  end;
+end;
+
+procedure TCommandDispatcher.SendCommand(aCommand: TCustomWorkerCommand; aTransfer: array of JSValue);
+
+begin
+  if not (isWebWorker or IsServiceWorker) then
+    Raise EWorkerCommand.Create('Cannot send to starting thread from main page');
+  CheckSenderID(aCommand);
+  {$IFDEF DEBUGCOMMANDDISPATCHER}
+  Writeln('Sending message to worker controller: ',TJSJSON.stringify(aCommand));
+  {$ENDIF}
+  asm
+  self.postMessage(aCommand,aTransfer);
   end;
 end;
 
