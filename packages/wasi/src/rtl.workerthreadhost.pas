@@ -35,7 +35,7 @@ Type
     procedure HandleRawRpcCommand(aCommand: TCustomWorkerCommand);
   Protected
     procedure DoHostCreated; override;
-    procedure RegisterMessageHandlers; virtual;
+    procedure RegisterMessageHandlers; override;
     procedure HandleExecuteCommand(aCmd: TWorkerExecuteCommand); virtual;
     procedure HandleRpcCommand(aCmd: TWorkerRpcCommand); virtual;
   Public
@@ -148,6 +148,7 @@ end;
 procedure TWorkerThreadControllerApplication.RegisterMessageHandlers;
 
 begin
+  Inherited;
   TCommandDispatcher.Instance.RegisterCommandHandler(cmdExecute,@HandleRawExecuteCommand);
   TCommandDispatcher.Instance.RegisterCommandHandler(cmdRpc,@HandleRawRPCCommand);
 end;
