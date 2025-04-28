@@ -84,6 +84,7 @@ Type
     constructor Create(aEnv: TPas2JSWASIEnvironment); override;
     procedure FillImportObject(aObject: TJSObject); override;
     function ImportName: String; override;
+    class function RegisterName : string; override;
     Property LogAPICalls : Boolean Read GetLogAPICalls Write SetLogAPICalls;
   end;
 
@@ -655,8 +656,14 @@ end;
 function TWasmRegExpAPI.ImportName: String;
 begin
   Result:=regexpExportName;
-
 end;
 
+class function TWasmRegExpAPI.RegisterName: string;
+begin
+  Result:='RegExp';
+end;
+
+initialization
+  TWasmRegExpAPI.Register;
 end.
 

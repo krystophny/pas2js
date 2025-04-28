@@ -19,6 +19,7 @@ type
   Public
     procedure FillImportObject(aObject: TJSObject); override;
     function ImportName: String; override;
+    class function RegisterName : string; override;
     property OnMemoryGrow : TMemoryGrowHandler Read FOnMemoryGrow Write FOnMemoryGrow;
   end;
 
@@ -42,5 +43,12 @@ begin
   Result:='wasmmem';
 end;
 
+class function TWasiMemUtils.RegisterName: string;
+begin
+  Result:='MemUtils';
+end;
+
+initialization
+  TWasiMemUtils.Register;
 end.
 
