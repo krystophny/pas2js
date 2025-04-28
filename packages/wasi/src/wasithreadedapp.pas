@@ -10,10 +10,10 @@ interface
 
 uses
 {$IFDEF FPC_DOTTEDUNITS}
-  JSApi.JS, System.Classes, System.SysUtils, System.WebThreads, Wasi.Env, Fcl.App.Wasi.Host, Rtl.WorkerCommands, Rtl.ThreadController
+  System.SysUtils, System.WebThreads, Wasi.Env, Fcl.App.Wasi.Host, Rtl.WorkerCommands, Rtl.ThreadController
   BrowserApi.WebOrWorker;
 {$ELSE} 
-  JS, Classes, SysUtils, Rtl.WebThreads, wasienv, wasihostapp, Rtl.WorkerCommands, Rtl.ThreadController;
+  SysUtils, Rtl.WebThreads, wasienv, wasihostapp, Rtl.WorkerCommands, Rtl.ThreadController;
 {$ENDIF}
 
 Type
