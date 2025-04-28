@@ -8936,8 +8936,19 @@ begin
     Result:=GetLocalTimeOffset();
 end;
 
+type
+  TExceptionClass = class of exception;
+
+procedure DoClassRef(C : TExceptionClass);
+begin
+  if C=Nil then;
+end;
 
 initialization
+  // Artificially create a reference to classes referenced in rtl.js so they do not get wrongly removed by the optimizer
+  DoClassRef(EInvalidCast);
+  DoClassRef(EAbstractError);
+  DoClassRef(ERangeError);
   ShortMonthNames:=DefaultShortMonthNames;
   LongMonthNames:=DefaultLongMonthNames;
   ShortDayNames:=DefaultShortDayNames;
