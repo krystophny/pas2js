@@ -17,19 +17,29 @@ const
   cmdForward = 'forward';
   channelConsole = 'console_output';
 
+  cFldCanceled = 'canceled';
+  cFldCommand = 'command';
+  cFldSender = '_sender';
+  cFldSenderId = 'senderId';
+
 
 Type
   EWorkerCommand = Class(Exception);
+
+  { TCustomWorkerCommand }
 
   TCustomWorkerCommand = class external name 'Object' (TJSObject)
   private
     FCanceled : Boolean; external name 'canceled';
     FCommand : string; external name 'command';
+    FSender: TJSObject; external name '_sender';
     FSenderID : string; external name 'senderId';
   Public
     property Command : string read FCommand;
     property Canceled : Boolean read FCanceled;
     property SenderID : String read FSenderID;
+    // May be empty
+    property Sender : TJSObject Read FSender;
   end;
 
   { TCustomWorkerCommandHelper }
@@ -254,12 +264,17 @@ end;
 procedure TCommandDispatcher.HandleIncomingMessage(aEvent: TJSEvent);
 var
   lMessageEvent : TJSMessageEvent absolute aEvent;
+  lCommand : TCustomWorkerCommand;
 begin
   {$IFDEF DEBUGCOMMANDDISPATCHER}
   Writeln('Incoming message: ',TJSJSON.stringify(lMessageEvent.data));
   {$ENDIF}
   if IsCommandEvent(aEvent) then
-    HandleCommand(TCustomWorkerCommand(lMessageEvent.data))
+    begin
+    lCommand:=TCustomWorkerCommand(lMessageEvent.data);
+    lCommand.FSender:=aEvent.target;
+    HandleCommand(lCommand);
+    end;
 end;
 
 constructor TCommandDispatcher.create;
