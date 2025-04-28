@@ -272,10 +272,38 @@ type
   Public
     Constructor Create(aEnv : TPas2JSWASIEnvironment); virtual;
     Destructor Destroy; override;
+    class procedure register;
+    class function RegisterName : string; virtual;
     Procedure FillImportObject(aObject : TJSObject); virtual; abstract;
     Function ImportName : String; virtual; abstract;
     Property Env : TPas2JSWASIEnvironment Read FEnv;
     Property InstanceExports : TWASIExports Read FInstanceExports Write SetInstanceExports;
+  end;
+  TImportExtensionArray = Array of TImportExtension;
+
+  TImportExtensionClass = class of TImportExtension;
+  TImportExtensionClassArray = Array of TImportExtensionClass;
+
+  { TImportExtensionRegistry }
+
+  TImportExtensionRegistry = class(TObject)
+  Private
+    class var _Instance : TImportExtensionRegistry;
+  Private
+    FExtensions : TImportExtensionClassArray;
+    FExtensionCount : Integer;
+    procedure Grow;
+  Public
+    class constructor init;
+    class destructor done;
+    constructor create; virtual;
+    destructor destroy; override;
+    function Find(const aExtension: String): TImportExtensionClass;
+    function IndexOf(const aExtension: String): Integer;
+    Function GetExtensions : TImportExtensionClassArray;
+    Procedure RegisterExtension(aExtension : TImportExtensionClass);
+    Procedure UnRegisterExtension(aExtension : TImportExtensionClass);
+    class property instance : TImportExtensionRegistry Read _Instance;
   end;
 
   TRunWebassemblyProc = reference to Procedure(aExports : TWASIExports);
@@ -310,6 +338,7 @@ type
 
   TConsoleReadEvent = Procedure(Sender : TObject; Var AInput : String) of object;
   TConsoleWriteEvent = Procedure (Sender : TObject; aOutput : string) of object;
+  TCreateExtensionEvent = procedure (sender : TObject; aExtension : TImportExtension) of object;
 
   { TWASIHost }
 
@@ -317,10 +346,14 @@ type
   Private
     FAfterInstantation: TNotifyEvent;
     FAfterStart: TAfterStartEvent;
+    FAutoCreateExtensions: Boolean;
     FBeforeInstantation: TNotifyEvent;
     FBeforeStart: TBeforeStartEvent;
     FEnv: TPas2JSWASIEnvironment;
+    FExcludeExtensions: TStrings;
     FExported: TWASIExports;
+    FOnAllExtensionsCreated: TNotifyEvent;
+    FOnExtensionCreated: TCreateExtensionEvent;
     FOnInstantiateFail: TFailEvent;
     FOnLoadFail: TFailEvent;
     FPreparedStartDescriptor: TWebAssemblyStartDescriptor;
@@ -331,15 +364,23 @@ type
     FReadLineCount : Integer;
     FRunEntryFunction: String;
     FTableDescriptor : TJSWebAssemblyTableDescriptor;
+    FExtensions : TImportExtensionArray;
     function GetEnv: TPas2JSWASIEnvironment;
     function GetIsLibrary: Boolean;
     function GetIsProgram: Boolean;
     function GetStartDescriptorReady: Boolean;
     function GetUseSharedMemory: Boolean;
+    procedure SetExcludeExtensions(AValue: TStrings);
     procedure SetPredefinedConsoleInput(AValue: TStrings);
     procedure SetUseSharedMemory(AValue: Boolean);
   protected
     class function NeedSharedMemory : Boolean; virtual;
+    // Delete all created extensions
+    procedure DeleteExtensions;
+    // Create registered extensions
+    procedure DoCreateStandardExtensions; virtual;
+    // Create a standard extension, call OnExtensionCreated callback
+    function CreateStandardExtension(aClass: TImportExtensionClass): TImportExtension;
     // Called after instantiation was OK.
     Procedure DoAfterInstantiate; virtual;
     // Called before instantiation starts.
@@ -366,6 +407,12 @@ type
   public
     Constructor Create(aOwner : TComponent); override;
     Destructor Destroy; override;
+    // Create all registered extensions. Called automatically when the environment is created and AutoCreateExtensions is true.
+    procedure CreateStandardExtensions;
+    // Find an extension by registered or class name.
+    Function FindExtension(const aExtension : string) : TImportExtension;
+    // Get an extension by registered or class name. Raises exception if it does not exist or has wrong class
+    Generic Function GetExtension<T : TImportExtension>(const aExtension : string) : T;
     // Will call OnConsoleWrite or write to console
     procedure WriteOutput(const aOutput: String); virtual;
     // Prepare start descriptor
@@ -416,6 +463,15 @@ type
     Property AfterInstantation : TNotifyEvent Read FAfterInstantation Write FAfterInstantation;
     // Executed before instantiation
     Property BeforeInstantation : TNotifyEvent Read FBeforeInstantation Write FBeforeInstantation;
+    // Create all registered extensions
+    property AutoCreateExtensions : Boolean Read FAutoCreateExtensions Write FAutoCreateExtensions;
+    // Extensions not to create
+    // Create all registered extensions
+    property ExcludeExtensions : TStrings Read FExcludeExtensions Write SetExcludeExtensions;
+    // Called for each auto-created extension
+    Property OnExtensionCreated : TCreateExtensionEvent Read FOnExtensionCreated Write FOnExtensionCreated;
+    // Called for each auto-created extension
+    Property OnAllExtensionsCreated : TNotifyEvent Read FOnAllExtensionsCreated Write FOnAllExtensionsCreated;
   end;
   TWASIHostClass = class of TWASIHost;
 
@@ -462,6 +518,12 @@ begin
     Result:=False;
 end;
 
+procedure TWASIHost.SetExcludeExtensions(AValue: TStrings);
+begin
+  if FExcludeExtensions=AValue then Exit;
+  FExcludeExtensions.Assign(AValue);
+end;
+
 function TWASIHost.GetStartDescriptorReady: Boolean;
 begin
   With FPreparedStartDescriptor do
@@ -481,6 +543,8 @@ begin
     FEnv.OnStdErrorWrite:=@DoStdWrite;
     FEnv.OnStdOutputWrite:=@DoStdWrite;
     Fenv.OnGetConsoleInputString:=@DoStdRead;
+    if AutoCreateExtensions then
+      CreateStandardExtensions;
     end;
   Result:=FEnv;
 end;
@@ -668,13 +732,83 @@ begin
   FTableDescriptor.maximum:=0;
   FTableDescriptor.element:='anyfunc';
   FPredefinedConsoleInput:=TStringList.Create;
+  FExcludeExtensions:=TStringList.Create;
 end;
 
 destructor TWASIHost.Destroy;
 begin
+  FreeAndNil(FExcludeExtensions);
   FreeAndNil(FPredefinedConsoleInput);
   FreeAndNil(FEnv);
   inherited Destroy;
+end;
+
+function TWASIHost.CreateStandardExtension(aClass : TImportExtensionClass) : TImportExtension;
+
+begin
+  Result:=aClass.Create;
+  if Assigned(FOnExtensionCreated) then
+    FOnExtensionCreated(Self,Result);
+end;
+
+procedure TWASIHost.DeleteExtensions;
+var
+  I : Integer;
+begin
+  For I:=0 to Length(FExtensions)-1 do
+    FreeAndNil(FExtensions[i]);
+  SetLength(FExtensions,0);
+end;
+
+procedure TWASIHost.DoCreateStandardExtensions;
+var
+  lCount : Integer;
+  lClass : TImportExtensionClass;
+  lClasses : TImportExtensionClassArray;
+begin
+  DeleteExtensions;
+  lClasses:=TImportExtensionRegistry.Instance.GetExtensions;
+  SetLength(FExtensions,Length(lClasses));
+  lCount:=0;
+  for lClass in lClasses do
+    if (FExcludeExtensions.IndexOf(lClass.RegisterName)=-1) and
+       (FExcludeExtensions.IndexOf(lClass.ClassName)=-1) then
+      begin
+      FExtensions[lCount]:=CreateStandardExtension(lClass);
+      inc(lCount);
+      end;
+end;
+
+procedure TWASIHost.CreateStandardExtensions;
+begin
+  DoCreateStandardExtensions;
+  if Assigned(FOnAllExtensionsCreated) then
+    FOnAllExtensionsCreated(Self);
+end;
+
+function TWASIHost.FindExtension(const aExtension: string): TImportExtension;
+var
+  I : Integer;
+begin
+  I:=Length(FExtensions)-1;
+  While (I>=0) and not (SameText(aExtension,FExtensions[i].ClassName) or SameText(aExtension,FExtensions[i].RegisterName)) do
+    Dec(I);
+  if I<0 then
+    Result:=Nil
+  else
+    Result:=FExtensions[i];
+end;
+
+generic function TWASIHost.GetExtension<T>(const aExtension: string): T;
+var
+  Ext : TImportExtension;
+begin
+  Ext:=FindExtension(aExtension);
+  if Not Assigned(Ext) then
+    Raise EWasiError.CreateFmt('No extension "%s" found',[aExtension]);
+  if not (Ext is T) then
+    Raise EWasiError.CreateFmt('Class of extension "%s" (%s) is not a %',[aExtension,Ext.ClassName,T.ClassName]);
+  Result:=T(Ext);
 end;
 
 procedure TWASIHost.WriteOutput(const aOutput: String);
@@ -829,6 +963,91 @@ begin
   if Assigned(Fenv) then
     Fenv.RemoveExtension(Self);
   inherited Destroy;
+end;
+
+class procedure TImportExtension.register;
+begin
+  TImportExtensionRegistry.Instance.RegisterExtension(Self);
+end;
+
+class function TImportExtension.RegisterName: string;
+begin
+  Result:=ClassName;
+end;
+
+{ TImportExtensionRegistry }
+
+procedure TImportExtensionRegistry.Grow;
+begin
+  SetLength(FExtensions,Length(FExtensions)+1);
+end;
+
+class constructor TImportExtensionRegistry.init;
+begin
+  Writeln('TImportExtensionRegistry.Instance init');
+  _instance:=TImportExtensionRegistry.Create;
+end;
+
+class destructor TImportExtensionRegistry.done;
+begin
+  Writeln('TImportExtensionRegistry.Instance done');
+//  FreeAndNil(_instance);
+end;
+
+constructor TImportExtensionRegistry.create;
+begin
+  FExtensionCount:=0;
+  Grow;
+end;
+
+destructor TImportExtensionRegistry.destroy;
+begin
+  inherited destroy;
+end;
+
+function TImportExtensionRegistry.IndexOf(const aExtension : String) : Integer;
+begin
+  Result:=FExtensionCount-1;
+  While (Result>=0) and not SameText(FExtensions[Result].RegisterName,aExtension) do
+    Dec(Result);
+end;
+
+function TImportExtensionRegistry.GetExtensions: TImportExtensionClassArray;
+begin
+  Result:=Copy(FExtensions,0,FExtensionCount);
+end;
+
+function TImportExtensionRegistry.Find(const aExtension: String): TImportExtensionClass;
+
+var
+  Idx: Integer;
+
+begin
+  Result:=Nil;
+  Idx:=IndexOf(aExtension);
+  if (Idx<>-1) then
+    Result:=FExtensions[Idx];
+end;
+
+procedure TImportExtensionRegistry.RegisterExtension(aExtension: TImportExtensionClass);
+var
+  Idx : Integer;
+begin
+  Idx:=IndexOf(aExtension.RegisterName);
+  if Idx<>-1 then
+    FExtensions[Idx]:=aExtension
+  else
+    begin
+    if FExtensionCount=Length(FExtensions) then
+      grow;
+    FExtensions[FExtensionCount]:=aExtension;
+    Inc(FExtensionCount);
+    end;
+end;
+
+procedure TImportExtensionRegistry.UnRegisterExtension(aExtension: TImportExtensionClass);
+begin
+
 end;
 
 procedure TPas2JSWASIEnvironment.AddImports(aObject: TJSObject);
