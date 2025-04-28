@@ -338,7 +338,6 @@ Type
   private
     FEnabled: boolean;
     FOnOutput: TThreadConsoleOutputEvent;
-    class function GetInstance: TThreadConsoleOutput; static;
     procedure HandleConsoleMessage(aCommand: TCustomWorkerCommand); virtual;
   Public
     class constructor done;
@@ -678,12 +677,6 @@ end;
 
 { TThreadConsoleOutput }
 
-class function TThreadConsoleOutput.GetInstance: TThreadConsoleOutput; static;
-begin
-  if _instance=Nil then
-    _Instance:=TThreadConsoleOutput.Create;
-  Result:=_instance;
-end;
 
 procedure TThreadConsoleOutput.HandleConsoleMessage(aCommand : TCustomWorkerCommand);
 var
