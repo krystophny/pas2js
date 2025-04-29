@@ -31,6 +31,7 @@ Type
 
   TWorkerThreadControllerApplication = class(TWorkerWASIHostApplication)
   Private
+    FThreadSupport: TWasmThreadSupportApi;
     procedure HandleRawExecuteCommand(aCommand: TCustomWorkerCommand);
     procedure HandleRawRpcCommand(aCommand: TCustomWorkerCommand);
   Protected
@@ -138,6 +139,7 @@ var
   lWorker : string;
 begin
   inherited create(aOwner);
+  FThreadSupport:=TWasmThreadSupportApi.Create(WasiEnvironment);
   RegisterMessageHandlers;
   lWorker:=GetEnvironmentVar('worker');
   if lWorker='' then
