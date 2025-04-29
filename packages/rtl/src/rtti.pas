@@ -243,7 +243,7 @@ type
     procedure LoadFlags;
     procedure LoadParameters;
   public
-    constructor Create(const Parent: TRttiObject; const Signature: TProcedureSignature);
+    constructor Create(const Parent: TRttiObject; const Signature: TProcedureSignature); reintroduce;
 
     class function Invoke(const Instance: TValue; const Args: array of TValue): TValue;
 
