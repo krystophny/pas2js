@@ -10,7 +10,7 @@ interface
 uses
   JS
   , SysUtils
-  , WasiWorkerThreadHost
+  , Rtl.WorkerCommands
   , Rtl.WebThreads
   , wasm.websocket.shared
   , wasm.pas2js.websocketapi
@@ -53,7 +53,7 @@ type
     Property SharedMem : TJSSharedArrayBuffer Read FSharedMem Write SetSharedMem;
   end;
 
-  TSetSharedMemWorkerCommand = class external name 'Object' (TWorkerCommand)
+  TSetSharedMemWorkerCommand = class external name 'Object' (TCustomWorkerCommand)
     Buffer : TJSSharedArrayBuffer;
   end;
 
