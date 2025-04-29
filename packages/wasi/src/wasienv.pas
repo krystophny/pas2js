@@ -295,7 +295,6 @@ type
     procedure Grow;
   Public
     class constructor init;
-    class destructor done;
     constructor create; virtual;
     destructor destroy; override;
     function Find(const aExtension: String): TImportExtensionClass;
@@ -984,15 +983,9 @@ end;
 
 class constructor TImportExtensionRegistry.init;
 begin
-  Writeln('TImportExtensionRegistry.Instance init');
   _instance:=TImportExtensionRegistry.Create;
 end;
 
-class destructor TImportExtensionRegistry.done;
-begin
-  Writeln('TImportExtensionRegistry.Instance done');
-//  FreeAndNil(_instance);
-end;
 
 constructor TImportExtensionRegistry.create;
 begin
