@@ -41,6 +41,7 @@ Type
     procedure HandleRpcCommand(aCmd: TWorkerRpcCommand); virtual;
   Public
     constructor create(aOwner : TComponent); override;
+    destructor destroy; override;
   end;
 
 
@@ -145,6 +146,12 @@ begin
   if lWorker='' then
     lWorker:='worker';
   TCommandDispatcher.Instance.DefaultSenderID:=lWorker;
+end;
+
+destructor TWorkerThreadControllerApplication.destroy;
+begin
+  FreeAndNil(FThreadSupport);
+  inherited destroy;
 end;
 
 procedure TWorkerThreadControllerApplication.RegisterMessageHandlers;
