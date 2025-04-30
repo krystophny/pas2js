@@ -112,6 +112,8 @@ Type
     procedure HandleConsoleCommand(aWorker: TWasmThread;  aCommand: TWorkerConsoleCommand);
     // Register callbacks
     procedure InitMessageCallBacks;
+    // Spawn initial workers;
+    procedure AllocateInitialworkers;
   Public
     Constructor Create; override;
     Constructor Create(aWorkerScript : String; aSpawnWorkerCount : integer); virtual; overload;
@@ -130,9 +132,9 @@ Type
     // Enumerate workers
     Procedure EnumerateWebWorkers(aCallback : TWasmThreadEnumProc);
     // Name of worker script
-    Property WorkerScript : String Read FWorkerScript;
-    // Initial number of threads, set by constructor
-    Property InitialWorkerCount : Integer Read FInitialWorkerCount;
+    Property WorkerScript : String Read FWorkerScript Write FWorkerScript;
+    // Initial number of threads, can be set by constructor
+    Property InitialWorkerCount : Integer Read FInitialWorkerCount Write FInitialWorkerCount;
     // Maximum number of workers. If more workers are requested, the GetNewWorker will return Nil.
     Property MaxWorkerCount : Integer Read FMaxWorkerCount Write FMaxWorkerCount;
     Property OnUnknownMessage : TJSRawEventHandler Read FOnUnknownMessage Write FOnUnknownMessage;
@@ -397,6 +399,8 @@ Var
 
 
 begin
+  if FWorkerCount=0 then
+    ;
   {$IFNDEF NOLOGAPICALLS}
   DoLog('Enter SpawnThread for ID %d',[aInfo.ThreadID]);
   {$ENDIF}
@@ -418,7 +422,6 @@ end;
 
 constructor TThreadController.Create;
 begin
-  InitMessageCallBacks;
   Create(DefaultThreadWorker,DefaultThreadCount)
 end;
 
@@ -429,12 +432,11 @@ Var
 
 begin
   Inherited Create;
+  InitMessageCallBacks;
   FThreads:=TThreadHash.new;
   FWorkerScript:=aWorkerScript;
   FInitialWorkerCount:=aSpawnWorkerCount;
   FMaxWorkerCount:=DefaultMaxWorkerCount;
-  For I:=1 to aSpawnWorkerCount do
-    TJSArray(FIdleWorkers).Push(AllocateNewWorker(aWorkerScript));
 end;
 
 function TThreadController.FindThreadWorker(aThreadID : integer) : TWasmThread;
@@ -593,6 +595,14 @@ begin
     RegisterCommandHandler(cmdLoaded,@HandleRawLoadedCommand);
     RegisterCommandHandler(cmdConsole,@HandleRawConsoleCommand);
     end;
+end;
+
+procedure TThreadController.AllocateInitialworkers;
+var
+  I : Integer;
+begin
+  For I:=1 to InitialWorkerCount do
+    TJSArray(FIdleWorkers).Push(AllocateNewWorker(FWorkerScript));
 end;
 
 begin
