@@ -16,6 +16,7 @@ Type
   private
     //FRoot : TZenFSDir;
     FDirMap : TJSMap;
+    FPositionMap : TJSMap;
   protected
     function AllocateDirFD(aDir: TZenFSDirentArray): Integer;
     function IsDirEnt(FD : Integer) : TZenFSDirentArray;
@@ -154,6 +155,7 @@ end;
 constructor TWASIZenFS.create;
 begin
   FDirMap:=TJSMap.new;
+  FPositionMap:=TJSMap.New;
 end;
 
 function TWASIZenFS.StatAt(FD: Integer; const aPath: String;
@@ -272,7 +274,6 @@ end;
 
 function TWASIZenFS.Close(FD : Integer): NativeInt;
 
-
 begin
   try
     if IsDirEnt(FD)<>Nil then
@@ -281,7 +282,10 @@ begin
       Result:=WASI_ESUCCESS;
       end
     else
+      begin
       ZenFS.closeSync(fd);
+      FPositionMap.delete(FD);
+      end;
     Result:=resOK;
   except
     on E : TJSObject do
@@ -293,12 +297,21 @@ function TWASIZenFS.Write(FD: Integer; Data: TJSUint8Array; AtPos : Integer; out
 
 var
   DS : TJSDataView;
-
+  lPos : Integer;
+  lMapPos : JSValue;
 begin
   try
     DS:=TJSDataView.New(Data.buffer);
-    if atPos<>-1 then
-      Written:=ZenFS.writeSync(fd,DS,0,Data.byteLength,atPos)
+    lPos:=atPos;
+    if lPos=-1 then
+      begin
+      lMapPos:=FPositionMap.get(FD);
+      if not IsNumber(lMapPos) then
+        Raise TZenFSErrnoError.new(TZenFSErrNo.EBADF);
+      lPos:=Integer(lMapPos);
+      end;
+    if lPos<>-1 then
+      Written:=ZenFS.writeSync(fd,DS,0,Data.byteLength,lPos)
     else
       Written:=ZenFS.writeSync(fd,DS,0,Data.byteLength);
     Result:=resOK;
@@ -334,35 +347,40 @@ function TWASIZenFS.Seek(FD: integer; Offset: Integer; Whence: TSeekWhence; out
   NewPos: Integer): NativeInt;
 
 var
-  aPos : Integer;
+  lPos : JSValue;
+  lIntPos : Integer absolute lPos;
   F : TZenFSFile;
   Stat : TZenFSStats;
+
 
 begin
   try
     case whence of
       swBeginning :
-        aPos:=AsIntNumber(OffSet);
+        begin
+        lIntPos:=AsIntNumber(OffSet);
+        FPositionMap.&set(FD,lIntPos);
+        end;
       swCurrent :
         begin
-        // This is officially not supported...
-        F:=fd2file(fd);
-        if Assigned(F) then
-          aPos:=AsintNumber(F.Position)+AsIntNumber(Offset)
-        else
+        lPos:=FPositionMap.get(FD);
+        if isUndefined(lPos) then
           Raise TZenFSErrnoError.new(TZenFSErrNo.EBADF);
+        lIntPos:=lIntPos+AsIntNumber(Offset);
         end;
       swEnd :
         begin
         Stat:=ZenFS.fstatSync(fd);
-        aPos:=AsIntNumber(Stat.size)+AsIntNumber(Offset);
+        if Assigned(stat) then
+          begin
+          lIntPos:=AsIntNumber(Stat.size)+AsIntNumber(Offset);
+          FPositionMap.&set(FD,lIntPos);
+          end
+        else
+          Raise TZenFSErrnoError.new(TZenFSErrNo.EBADF);
         end;
     end;
-//    Buf:=TJSDataView.New(TJSUint8Array.New(0));
-    ZenFS.readSync(fd,Nil,0,0,aPos);
-    NewPos:=aPos;
-    Result:=resOK;
-
+    newPos:=lIntPos;
   except
     on E : TJSObject do
       Result:=ExceptToError(E);
@@ -374,6 +392,8 @@ function TWASIZenFS.Read(FD: Integer; Data: TJSUint8Array; AtPos: Integer; out
 
 Var
   V : TJSDataView;
+  lPos : jsValue;
+  lIntPos : Integer absolute lPos;
   opts : TZenFSReadSyncOptions;
 
 begin
@@ -383,8 +403,18 @@ begin
     opts.offset:=0;
     opts.length:=Data.byteLength;
     if AtPos<>-1 then
-      opts.position:=AtPos;
+      lIntPos:=AtPos
+    else
+      begin
+      lPos:=FPositionMap.get(FD);
+      if isUndefined(lPos) then
+        Raise TZenFSErrnoError.new(TZenFSErrNo.EBADF);
+      end;
+    opts.position:=lIntPos;
     BytesRead:=ZenFS.readSync(FD,V,Opts);
+    if atPos=-1 then
+      // update position
+      FPositionMap.&set(FD,lIntPos+BytesRead);
     Result:=resOK;
   except
     on E : TJSObject do
@@ -514,7 +544,11 @@ begin
       OpenFD:=AllocateDirFD(Dir);
       end
     else
+      begin
       OpenFD:=ZenFS.openSync(lPath,lFlags);
+      if OpenFD<>-1 then
+        FPositionMap.&set(OpenFD,0);
+      end;
     Result:=resOK;
   except
     on E : TJSObject do
