@@ -63,6 +63,18 @@ type
     loadcount : integer;
   end;
 
+  { EWasmNativeException }
+
+  EWasmNativeException = Class(Exception)
+  private
+    FNativeClass: String;
+    FNativeMessage: String;
+  Public
+    constructor create(const aNativeClass,aNativeMessage : string); reintroduce;
+    Property NativeClass : String read FNativeClass;
+    Property NativeMessage : String read FNativeMessage;
+  end;
+
   EWasiError = Class(Exception);
 
   EWasiFSError = class(Exception)
@@ -77,6 +89,13 @@ type
   IWASI = WasiTypes.IWASI;
 
   TWASIWriteEvent = Reference to Procedure(Sender : TObject; Const aOutput : String);
+
+  TLastExceptionInfo = record
+    ClassName : string;
+    Message : string;
+    more : boolean;
+    doraise : boolean;
+  end;
 
   // Standard FPC exports.
   TWASIExports = Class External name 'Object' (TJSModulesExports)
@@ -338,7 +357,7 @@ type
   TConsoleReadEvent = Procedure(Sender : TObject; Var AInput : String) of object;
   TConsoleWriteEvent = Procedure (Sender : TObject; aOutput : string) of object;
   TCreateExtensionEvent = procedure (sender : TObject; aExtension : TImportExtension) of object;
-
+  TWasmExceptionEvent = procedure (Sender : TObject; var aInfo : TLastExceptionInfo) of object;
   { TWASIHost }
 
   TWASIHost = Class(TComponent)
@@ -348,6 +367,7 @@ type
     FAutoCreateExtensions: Boolean;
     FBeforeInstantation: TNotifyEvent;
     FBeforeStart: TBeforeStartEvent;
+    FConvertNativeExceptions: Boolean;
     FEnv: TPas2JSWASIEnvironment;
     FExcludeExtensions: TStrings;
     FExported: TWASIExports;
@@ -355,6 +375,7 @@ type
     FOnExtensionCreated: TCreateExtensionEvent;
     FOnInstantiateFail: TFailEvent;
     FOnLoadFail: TFailEvent;
+    FOnWasmException: TWasmExceptionEvent;
     FPreparedStartDescriptor: TWebAssemblyStartDescriptor;
     FMemoryDescriptor : TJSWebAssemblyMemoryDescriptor;
     FOnConsoleRead: TConsoleReadEvent;
@@ -374,6 +395,10 @@ type
     procedure SetUseSharedMemory(AValue: Boolean);
   protected
     class function NeedSharedMemory : Boolean; virtual;
+    // Calls GetExceptionInfo to get exception info and calls OnWasmException if assigned. Return true if exception must be reraised.
+    function ConvertWasmException: boolean;
+    // Wrap exported functions in a wrapper that converts native exceptions to actual exceptions.
+    function WrapExports(aExported: TWASIExports): TWASIExports;
     // Delete all created extensions
     procedure DeleteExtensions;
     // Create registered extensions
@@ -412,6 +437,8 @@ type
     Function FindExtension(const aExtension : string) : TImportExtension;
     // Get an extension by registered or class name. Raises exception if it does not exist or has wrong class
     Generic Function GetExtension<T : TImportExtension>(const aExtension : string) : T;
+    // Retrieves webassembly exception info. Pops exception object from the stack.
+    function GetExceptionInfo(var aInfo: TLastExceptionInfo): boolean;
     // Will call OnConsoleWrite or write to console
     procedure WriteOutput(const aOutput: String); virtual;
     // Prepare start descriptor
@@ -444,6 +471,8 @@ type
     Property IsProgram : Boolean Read GetIsProgram;
     // Name of function to run. If empty, the FPC default _start is used.
     Property RunEntryFunction : String Read FRunEntryFunction Write FRunEntryFunction;
+    // When calling a function and an exception is raised, attempt to get information on native FPC exceptions
+    Property ConvertNativeExceptions : Boolean Read FConvertNativeExceptions Write FConvertNativeExceptions;
     // Called after webassembly start was run. Not called if webassembly was not run.
     Property AfterStart : TAfterStartEvent Read FAfterStart Write FAfterStart;
     // Called before running webassembly. If aAllowRun is false, running is disabled
@@ -471,6 +500,8 @@ type
     Property OnExtensionCreated : TCreateExtensionEvent Read FOnExtensionCreated Write FOnExtensionCreated;
     // Called for each auto-created extension
     Property OnAllExtensionsCreated : TNotifyEvent Read FOnAllExtensionsCreated Write FOnAllExtensionsCreated;
+    // When a webassembly exception was found, this is called. Return true if it must be treated (i.e. raised) and false if it can be ignored
+    Property OnWasmException: TWasmExceptionEvent Read FOnWasmException Write FOnWasmException;
   end;
   TWASIHostClass = class of TWASIHost;
 
@@ -587,13 +618,109 @@ begin
     FOnInstantiateFail(Self,aError);
 end;
 
+function TWASIHost.GetExceptionInfo(var aInfo : TLastExceptionInfo) : boolean;
+
+type
+  TGetExceptionInfoProc = function : TWasmPointer;
+  TReleaseExceptionInfoProc = procedure(aInfo : TWasmPointer);
+var
+  lPtr,lPointer,lString : TWasmPointer;
+  lLen : integer;
+  lVal,lVal2 : JSValue;
+  lProc : TGetExceptionInfoProc absolute lVal;
+  lProc2 : TReleaseExceptionInfoProc absolute lVal2;
+begin
+  Result:=False;
+  lVal:=Exported['GetLastExceptionInfo'];
+  lVal2:=Exported['FreeLastExceptionInfo'];
+  if not (IsDefined(lVal) and IsDefined(lVal2)) then
+    exit;
+  lPointer:=lProc();
+  if lPointer=0 then
+    exit;
+  lPtr:=lPointer;
+  lString:=WasiEnvironment.GetMemInfoInt32(lPtr);
+  inc(lPtr,SizeInt32);
+  lLen:=WasiEnvironment.GetMemInfoInt32(lPtr);
+  inc(lPtr,SizeInt32);
+  aInfo.ClassName:=WasiEnvironment.GetUTF8StringFromMem(lString,lLen);
+  lString:=WasiEnvironment.GetMemInfoInt32(lPtr);
+  inc(lPtr,SizeInt32);
+  lLen:=WasiEnvironment.GetMemInfoInt32(lPtr);
+  inc(lPtr,SizeInt32);
+  aInfo.Message:=WasiEnvironment.GetUTF8StringFromMem(lString,lLen);
+  aInfo.More:=WasiEnvironment.GetMemInfoInt8(lPtr)<>0;
+  lProc2(lPointer);
+  Result:=True;
+end;
+
+function TWASIHost.ConvertWasmException : boolean;
+
+var
+  lInfo : TLastExceptionInfo;
+
+begin
+  // if there is no info, we must raise
+  lInfo:=Default(TLastExceptionInfo);
+  Result:=not GetExceptionInfo(lInfo);
+  if Result then
+    exit;
+  lInfo.doraise:=true;
+  if Assigned(OnWasmException) then
+    FOnWasmException(Self,lInfo);
+  if lInfo.DoRaise then
+    Raise EWasmNativeException.Create(lInfo.ClassName,lInfo.Message);
+end;
+
+function TWASIHost.WrapExports(aExported : TWASIExports) : TWASIExports;
+
+  function createwrapper(aFunc : jsValue) : jsvalue;
+  begin
+    Result:=function() : jsvalue
+        begin
+          Result:=undefined;
+          try
+            asm
+              Result=aFunc(arguments);
+            end;
+          except
+            on E : TJSWebAssemblyException do
+              begin
+              if ConvertWasmException then // will raise
+                Raise;
+              end;
+          end;
+        end;
+  end;
+
+var
+  S : String;
+  lFunc : JSValue;
+  LNew : TWASIExports;
+
+begin
+  LNew:=TWASIExports.new;
+  For S in TJSObject.getOwnPropertyNames(aExported) do
+    begin
+    lFunc:=aExported[s];
+    if (not isFunction(lFunc)) or (S='GetLastExceptionInfo') or (S='FreeLastExceptionInfo') then
+      lNew.Properties[s]:=lFunc
+    else
+      lNew.Properties[s]:=CreateWrapper(lFunc);
+  end;
+  Result:=LNew;
+end;
+
 procedure TWASIHost.PrepareWebAssemblyInstance(aDescr: TWebAssemblyStartDescriptor);
 begin
+  if ConvertNativeExceptions then
+    aDescr.Exported:=WrapExports(aDescr.Exported);
   FPreparedStartDescriptor:=aDescr;
-  FExported:=aDescr.Exported;
+  FExported:=FPreparedStartDescriptor.Exported;
   WasiEnvironment.Instance:=aDescr.Instance;
   WasiEnvironment.SetMemory(aDescr.Memory);
   WasiEnvironment.SetExports(FExported);
+  //if ConvertExceptions then
   // We do this here, so in the event, the FPreparedStartDescriptor Is ready.
   DoAfterInstantiate;
 end;
@@ -732,6 +859,7 @@ begin
   FTableDescriptor.element:='anyfunc';
   FPredefinedConsoleInput:=TStringList.Create;
   FExcludeExtensions:=TStringList.Create;
+  FConvertNativeExceptions:=True;
 end;
 
 destructor TWASIHost.Destroy;
@@ -898,6 +1026,15 @@ begin
   ]);
   WasiEnvironment.AddImports(aImportObj);
   Result.Imports:=aImportObj;
+end;
+
+{ EWasmNativeException }
+
+constructor EWasmNativeException.create(const aNativeClass, aNativeMessage: string);
+begin
+  Inherited createFmt('Webassembly code raised an exception %s : %s',[aNativeClass,aNativeMessage]);
+  FNativeClass:=aNativeClass;
+  FNativeMessage:=aNativeMessage;
 end;
 
 { EWasiFSError }
