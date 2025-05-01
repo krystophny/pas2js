@@ -90,23 +90,27 @@ Type
 
   TCommandHandler = Reference to procedure(aCommand : TCustomWorkerCommand);
   generic TTypedCommandHandler<T : TCustomWorkerCommand> = Reference to procedure(aCommand : T);
-  TCommandHandlerArray = array of TCommandHandler;
 
   { TCommandDispatcher }
 
   TCommandDispatcher = class(TObject)
   private
     Type
-       TJSWorkerReg = record
-         Worker : TJSWorker;
-         Name : string;
-       end;
+      TCommandHandlerArray = array of TCommandHandler;
+      TCommandHandlerReg = record
+        Handlers : TCommandHandlerArray;
+        SingleHandler : Boolean;
+      end;
+      TJSWorkerReg = record
+        Worker : TJSWorker;
+        Name : string;
+      end;
     class var _Instance : TCommandDispatcher;
     class var _DispatcherClass : TCommandDispatcherClass;
     class function GetInstance: TCommandDispatcher; static;
   private
     FDefaultSenderID: String;
-    FMap : TJSMap; // Key is command. Value is TCommandHandlerArray.
+    FMap : TJSMap; // Key is command. Value is TCommandHandlerReg.
     FWorkers : Array of TJSWorkerReg;
     FConsoleChannel : TJSBroadcastChannel;
   protected
@@ -132,11 +136,11 @@ Type
     // Send command to all registered workers
     procedure BroadcastCommand(aCommand : TCustomWorkerCommand);
     // Register a command handler for command aCommand
-    Procedure RegisterCommandHandler(const aCommand : string; aHandler : TCommandHandler);
+    Procedure RegisterCommandHandler(const aCommand : string; aHandler : TCommandHandler; IsSingle : Boolean = false);
     // Remove the given command handler for command aCommand
     Procedure UnRegisterCommandHandler(const aCommand : string; aHandler : TCommandHandler);
     // Register a command handler for command aCommand
-    Generic Procedure AddCommandHandler<T : TCustomWorkerCommand>(const aCommand : string; aHandler : specialize TTypedCommandHandler<T>);
+    Generic Procedure AddCommandHandler<T : TCustomWorkerCommand>(const aCommand : string; aHandler : specialize TTypedCommandHandler<T>; IsSingle : boolean = false);
     // Register a worker for broadcast
     Procedure RegisterWorker(aWorker : TJSWorker; const aName : string);
     // Remove a worker from broadcast list
@@ -169,7 +173,7 @@ class function TCustomWorkerCommandHelper.createCommand(aCommand: string; aSende
 begin
   Result:=TCustomWorkerCommand.New;
   Result.FCanceled:=False;
-  Result.FCommand:=LowerCase(aCommand);
+  Result.FCommand:=aCommand;
   Result.FSenderID:=aSenderID;
 end;
 
@@ -177,7 +181,7 @@ end;
 
 class function TConsoleOutputCommandHelper.create(const aMessage : string): TConsoleOutputCommand;
 begin
-  Result:=TConsoleOutputCommand(CreateCommand('console'));
+  Result:=TConsoleOutputCommand(CreateCommand(cmdConsole));
   Result.ConsoleMessage:=aMessage;
 end;
 
@@ -195,7 +199,7 @@ end;
 
 class function TWorkerExceptionCommandHelper.Create(const aExceptionClass,aExceptionMessage: string; aThreadID : Integer = -1  ): TWorkerExceptionCommand;
 begin
-  Result:=TWorkerExceptionCommand(CreateCommand('exception',IntToStr(aThreadID)));
+  Result:=TWorkerExceptionCommand(CreateCommand(cmdException,IntToStr(aThreadID)));
   Result.ExceptionClass:=aExceptionClass;
   Result.ExceptionMessage:=aExceptionMessage;
 end;
@@ -227,7 +231,7 @@ begin
   if Result then
     begin
     Obj:=TJSObject(lMessageEvent.Data);
-    Result:=Obj.hasOwnProperty('command') and isString(Obj['command']);
+    Result:=Obj.hasOwnProperty(cFldcommand) and isString(Obj[cFldcommand]);
     end;
 end;
 
@@ -235,7 +239,7 @@ procedure TCommandDispatcher.HandleCommand(aCommand : TCustomWorkerCommand);
 var
   lCmd : String;
   lValue : JSValue;
-  lHandlers : TCommandHandlerArray absolute lValue;
+  lReg : TCommandHandlerReg absolute lValue;
   lHandler : TCommandHandler;
   {$IFDEF DEBUGCOMMANDDISPATCHER}
   lCount: Integer;
@@ -247,7 +251,7 @@ begin
   lCmd:=aCommand.Command;
   lValue:=FMap.get(lCmd);
   if assigned(lValue) then
-    For lHandler in lHandlers do
+    For lHandler in lReg.Handlers do
       begin
       {$IFDEF DEBUGCOMMANDDISPATCHER}
       inc(lCount);
@@ -374,42 +378,55 @@ begin
     SendCommand(lWorker.Worker,aCommand);
 end;
 
-procedure TCommandDispatcher.RegisterCommandHandler(const aCommand: string; aHandler: TCommandHandler);
+procedure TCommandDispatcher.RegisterCommandHandler(const aCommand: string; aHandler: TCommandHandler; IsSingle : Boolean = false);
 var
   lValue : JSValue;
-  lHandlers : TCommandHandlerArray absolute lValue;
+  lReg : TCommandHandlerReg absolute lValue;
+  lNewReg : TCommandHandlerReg;
 begin
   lValue:=FMap.get(aCommand);
   if Assigned(lValue) then
-    TJSArray(LHandlers).push(aHandler)
+    begin
+    if not (lReg.SingleHandler or isSingle) then
+      TJSArray(lReg.Handlers).Push(aHandler)
+    else
+      begin
+      if (Length(lReg.Handlers)>0) then
+        Raise EWorkerCommand.CreateFmt('There is already a handler for command %s',[aCommand]);
+      lReg.Handlers:=[aHandler];
+      lReg.SingleHandler:=isSingle;
+      end
+    end
   else
     begin
-    LHandlers:=[aHandler];
-    FMap.&set(aCommand,LHandlers);
+    lNewReg:=Default(TCommandHandlerReg);
+    LNewReg.Handlers:=[aHandler];
+    LNewReg.SingleHandler:=IsSingle;
+    FMap.&set(aCommand,lNewReg);
     end;
 end;
 
 procedure TCommandDispatcher.UnRegisterCommandHandler(const aCommand: string; aHandler: TCommandHandler);
 var
   lValue : JSValue;
-  lHandlers : TCommandHandlerArray absolute lValue;
+  lReg : TCommandHandlerReg absolute lValue;
   Idx : integer;
 begin
   lValue:=FMap.get(aCommand);
   if Assigned(lValue) then
     begin
-    Idx:=TJSArray(LHandlers).IndexOf(aHandler);
+    Idx:=TJSArray(LReg.Handlers).IndexOf(aHandler);
     if Idx>=0 then
-      Delete(LHandlers,Idx,1);
+      Delete(LReg.Handlers,Idx,1);
     end;
 end;
 
-generic procedure TCommandDispatcher.AddCommandHandler<T>(const aCommand: string; aHandler: specialize TTypedCommandHandler<T>);
+generic procedure TCommandDispatcher.AddCommandHandler<T>(const aCommand: string; aHandler: specialize TTypedCommandHandler<T>; IsSingle : Boolean = false);
 begin
   RegisterCommandHandler(aCommand,procedure (aCmd : TCustomWorkerCommand)
     begin
       aHandler(T(aCmd));
-    end);
+    end,IsSingle);
 end;
 
 procedure TCommandDispatcher.RegisterWorker(aWorker: TJSWorker; const aName: string);
