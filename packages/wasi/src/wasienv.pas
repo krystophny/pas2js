@@ -674,14 +674,14 @@ end;
 
 function TWASIHost.WrapExports(aExported : TWASIExports) : TWASIExports;
 
-  function createwrapper(aFunc : jsValue) : jsvalue;
+  function createwrapper(aScope, aFunc : jsValue) : jsvalue;
   begin
     Result:=function() : jsvalue
         begin
           Result:=undefined;
           try
             asm
-              Result=aFunc(arguments);
+              Result=aFunc.apply(aScope,arguments);
             end;
           except
             on E : TJSWebAssemblyException do
@@ -706,7 +706,7 @@ begin
     if (not isFunction(lFunc)) or (S='GetLastExceptionInfo') or (S='FreeLastExceptionInfo') then
       lNew.Properties[s]:=lFunc
     else
-      lNew.Properties[s]:=CreateWrapper(lFunc);
+      lNew.Properties[s]:=CreateWrapper(jsthis,lFunc);
   end;
   Result:=LNew;
 end;
