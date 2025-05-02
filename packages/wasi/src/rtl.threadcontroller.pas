@@ -400,7 +400,7 @@ Var
 
 begin
   if FWorkerCount=0 then
-    ;
+    AllocateInitialworkers;
   {$IFNDEF NOLOGAPICALLS}
   DoLog('Enter SpawnThread for ID %d',[aInfo.ThreadID]);
   {$ENDIF}
