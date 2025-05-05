@@ -943,9 +943,6 @@ end;
 
 function TColorRec.ToString: RTLString;
 
-var
-  S : string;
-
 begin
   if (Self.Color and $FF000000)=$FF then
     Result:='SYS '+HexStr(Self.Color and $00FFFFFF,6)
