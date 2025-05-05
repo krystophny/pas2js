@@ -3,7 +3,7 @@ program wasmthreadcontroller;
 {$mode objfpc}
 
 uses
-  Classes, WasiWorkerThreadHost;
+  Classes, Rtl.threadcontroller, Rtl.workerthreadhost;
 
 type
   { TApplication }
@@ -17,6 +17,7 @@ var
   App: TApplication;
 
 begin
+  globalThreadController.HandleConsoleMessages:=true;
   App:=TApplication.Create(nil);
   App.Run;
 end.
