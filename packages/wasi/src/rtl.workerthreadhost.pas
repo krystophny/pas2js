@@ -19,12 +19,18 @@ const
   ThreadCount = 4;
 
 Type
-
+  // Need to unify this host class with the WasiThreadedApp one...
+  
   { TWASIThreadControllerHost }
 
   TWASIThreadControllerHost = class(TWASIHost)
   Protected
     class function NeedSharedMemory: Boolean; override;
+    function GetThreadSupport: TThreadController; virtual;
+    Procedure DoAfterInstantiate; override;
+    Function CreateWasiEnvironment : TPas2JSWASIEnvironment; override;
+  Public
+    Property ThreadSupport : TThreadController Read GetThreadSupport;
   end;
 
   { TWorkerThreadControllerApplication }
@@ -52,6 +58,24 @@ implementation
 class function TWASIThreadControllerHost.NeedSharedMemory: Boolean;
 begin
   Result:=True;
+end;
+
+function TWASIThreadControllerHost.GetThreadSupport: TThreadController;
+begin
+  Result:=TThreadController.Instance as TThreadController;
+end;
+
+procedure TWASIThreadControllerHost.DoAfterInstantiate;
+begin
+  inherited DoAfterInstantiate;
+  If Assigned(ThreadSupport) then
+    // Will send load commands
+    ThreadSupport.SetWasmModuleAndMemory(PreparedStartDescriptor.Module,PreparedStartDescriptor.Memory);
+end;
+
+function TWASIThreadControllerHost.CreateWasiEnvironment: TPas2JSWASIEnvironment;
+begin
+  Result:=inherited CreateWasiEnvironment;
 end;
 
 { TWorkerThreadControllerApplication }
@@ -141,11 +165,11 @@ var
 begin
   inherited create(aOwner);
   FThreadSupport:=TWasmThreadSupportApi.Create(WasiEnvironment);
-  RegisterMessageHandlers;
   lWorker:=GetEnvironmentVar('worker');
   if lWorker='' then
     lWorker:='worker';
   TCommandDispatcher.Instance.DefaultSenderID:=lWorker;
+  globalThreadController.AllocateInitialworkers;
 end;
 
 destructor TWorkerThreadControllerApplication.destroy;
