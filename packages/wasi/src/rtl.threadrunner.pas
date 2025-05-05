@@ -188,6 +188,7 @@ constructor TWorkerThreadRunnerApplication.Create(aOwner: TComponent);
 begin
   inherited Create(aOwner);
   TCommandDispatcher.Instance.RegisterCommandHandler(cmdLoad,@RawLoadWasmModule);
+  TCommandDispatcher.Instance.SendCommand(TWorkerReadyCommand.Create());
 end;
 
 { TWASIThreadRunnerHost }
@@ -212,6 +213,7 @@ begin
   Inherited;
   ThreadSupport.OnRunThread:=@RunWebAssemblyThread;
   ThreadSupport.SetWasmModuleAndMemory(PreparedStartDescriptor.Module,PreparedStartDescriptor.Memory);
+  ThreadSupport.SendLoaded;
 end;
 
 function TWASIThreadRunnerHost.CreateWasiEnvironment: TPas2JSWASIEnvironment;
@@ -269,11 +271,11 @@ end;
 procedure TWorkerThreadRunner.SendConsoleMessage(aMessage: String);
 
 Var
-  L : TWorkerConsoleCommand;
+  L : TConsoleOutputCommand;
 
 begin
-  L:=TWorkerConsoleCommand.Create(aMessage,FCurrentThreadInfo.ThreadId);
-  TCommandDispatcher.Instance.SendCommand(L);
+  L:=TConsoleOutputCommand.Create(aMessage);
+  TCommandDispatcher.Instance.SendConsoleCommand(L);
 end;
 
 procedure TWorkerThreadRunner.SendConsoleMessage(aFmt: String;
