@@ -49,6 +49,7 @@ Const
   cmdExecute = 'execute';
   cmdRPC = 'rpc';
   cmdRPCResult = 'rpcresult';
+  cmdReady = 'ready';
 
   DefaultThreadWorker = 'pas2jsthreadworker.js';
   DefaultThreadCount = 2;
@@ -96,14 +97,11 @@ Type
 
   // Sent by worker to main: write message to console
   // Thread ID : sending console ID
-  TWorkerConsoleCommand = class external name 'Object' (TThreadWorkerCommand)
-  public
-    ConsoleMessage : String;
-  end;
+  TWorkerConsoleCommand = class external name 'Object' (TConsoleOutputCommand);
 
   { TWorkerConsoleCommandHelper }
 
-  TWorkerConsoleCommandHelper = class helper(TWorkerCommandHelper) for TWorkerConsoleCommand
+  TWorkerConsoleCommandHelper = class helper(TCustomWorkerCommandHelper) for TWorkerConsoleCommand
     Class function CommandName : string; static;
     Class function Create(const aMessage : string; aThreadID : Integer = -1) : TWorkerConsoleCommand; static; reintroduce;
     Class function Create(const aMessage : array of JSValue; aThreadID : Integer = -1) : TWorkerConsoleCommand; static; reintroduce;
@@ -132,6 +130,15 @@ Type
   TWorkerKillCommandHelper = class helper (TWorkerCommandHelper) for TWorkerKillCommand
     Class function CommandName : string; static;
     Class function Create(aThreadID : Integer): TWorkerKillCommand; static;reintroduce;
+  end;
+
+  TWorkerReadyCommand = class external name 'Object' (TThreadWorkerCommand);
+
+  { TWorkerReadyCommandHelper }
+
+  TWorkerReadyCommandHelper = class helper (TWorkerCommandHelper) for TWorkerReadyCommand
+    Class function CommandName : string; static;
+    Class function Create(): TWorkerReadyCommand; static; reintroduce;
   end;
 
   // Cancel thread (thread ID in ThreadID)
@@ -575,6 +582,18 @@ begin
   Result:=TWorkerKillCommand(NewWorker(CommandName,aThreadID));
 end;
 
+{ TWorkerReadyCommandHelper }
+
+class function TWorkerReadyCommandHelper.CommandName: string;
+begin
+  Result:=cmdReady
+end;
+
+class function TWorkerReadyCommandHelper.Create(): TWorkerReadyCommand;
+begin
+  Result:=TWorkerReadyCommand(NewWorker(CommandName));
+end;
+
 { TWorkerCleanupCommandHelper }
 
 class function TWorkerCleanupCommandHelper.CommandName: string;
@@ -598,7 +617,7 @@ end;
 class function TWorkerConsoleCommandHelper.Create(
   const aMessage: string; aThreadID : Integer = -1): TWorkerConsoleCommand;
 begin
-  Result:=TWorkerConsoleCommand(NewWorker(CommandName,aThreadID));
+  Result:=TWorkerConsoleCommand(createCommand(CommandName,IntToStr(aThreadID)));
   Result.ConsoleMessage:=aMessage;
 end;
 
