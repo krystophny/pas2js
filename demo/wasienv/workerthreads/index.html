@@ -46,7 +46,7 @@
     var display = document.getElementById("display");
     function handleControllerMessage (event) {
       if (!event.data) return;
-      if (event.data.Command=="console")	{
+      if (event.data.command=="console")	{
       	console.log(event.data.ConsoleMessage);
       	var el = document.createElement('div');
       	el.innerText = event.data.ConsoleMessage;
@@ -61,7 +61,7 @@
     consolechannel.addEventListener('message',handleControllerMessage);
     
     function handleStart() {
-      controller.postMessage({"Command" : "execute", "Url" : "threadapp.wasm"});
+      controller.postMessage({"command" : "execute", "Url" : "threadapp.wasm"});
     }
     document.getElementById("btnStart").addEventListener("click",handleStart);
   </script>

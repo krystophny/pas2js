@@ -2,7 +2,7 @@
 
 var rtl = {
 
-  version: 20301,
+  version: 30101,
 
   quiet: false,
   debug_load_units: false,
@@ -155,9 +155,19 @@ var rtl = {
   },
   
   showException : function (re) {
+    var errStack="";
+    if (rtl.isObject(re) && re.hasOwnProperty('FJSError') && rtl.isObject(re.FJSError) && !(re.FJSError.stack==undefined)) // rtl Exception
+      errStack=re.FJSError.stack
+    else if (rtl.isObject(re) && re.hasOwnProperty('stack') && !(re.stack==undefined)) // native JS Error
+      errStack=re.stack
+    else
+      errStack=re; // unknown object
     var errMsg = rtl.hasString(re.$classname) ? re.$classname : '';
-    errMsg +=  ((errMsg) ? ': ' : '') + (re.hasOwnProperty('fMessage') ? re.fMessage : re);
-    alert('Uncaught Exception : '+errMsg);
+    errMsg += ((errMsg) ? ': ' : '') + (re.hasOwnProperty('fMessage') ? re.fMessage : '');
+    errMsg += ((errMsg) ? "\n" : '') + errStack;
+    errMsg = "Uncaught Exception:\n" + errMsg;
+    console.log(errMsg);
+    alert(errMsg);
   },
 
   handleUncaughtException: function (e) {
@@ -248,6 +258,7 @@ var rtl = {
   createSafeCallback: function(scope, fn){
     var cb;
     if (typeof(fn)==='string'){
+      if (!scope[fn]) return null;
       if (!scope.hasOwnProperty('$events')) scope.$events = {};
       cb = scope.$events[fn];
       if (cb) return cb;
@@ -258,6 +269,8 @@ var rtl = {
           if (!rtl.handleUncaughtException(err)) throw err;
         }
       };
+    } else if(!fn) {
+      return null;
     } else {
       cb = function(){
         try{
@@ -524,23 +537,30 @@ var rtl = {
     if (t==null){
       var mod = pas.SysUtils;
       if (!mod) mod = pas.sysutils;
+      if (!mod) mod = pas["System.SysUtils"];
       if (mod){
         t = mod[typename];
         if (!t) t = mod[typename.toLowerCase()];
         if (!t) t = mod['Exception'];
         if (!t) t = mod['exception'];
       }
+      if (t) rtl[typename]=t;
     }
-    if (t){
+    if (t) {
+      
       if (t.Create){
-        throw t.$create("Create");
-      } else if (t.create){
-        throw t.$create("create");
+        var e = t.$create("Create");
+      } else if (t.create) {
+        var e = t.$create("create");
+      }
+      if (e) {
+        e.FJSError = new Error;
+        throw e ;
       }
     }
-    if (typename === "EInvalidCast") throw "invalid type cast";
-    if (typename === "EAbstractError") throw "Abstract method called";
-    if (typename === "ERangeError") throw "range error";
+    if (typename === "EInvalidCast") throw new Error("invalid type cast");
+    if (typename === "EAbstractError") throw new Error("Abstract method called");
+    if (typename === "ERangeError") throw new Error("range error");
     throw typename;
   },
 
@@ -1336,7 +1356,7 @@ var rtl = {
     newBaseInt("longword",0,0xffffffff,5);
     newBaseInt("nativeint",-0x10000000000000,0xfffffffffffff,6);
     newBaseInt("nativeuint",0,0xfffffffffffff,7);
-    newBaseTI("char",2 /* tkChar */);
+    newBaseInt("char",0,65535,3 /* word */).kind=2 /* tkChar */;
     newBaseTI("string",3 /* tkString */);
     newBaseTI("tTypeInfoEnum",4 /* tkEnumeration */,rtl.tTypeInfoInteger);
     newBaseTI("tTypeInfoSet",5 /* tkSet */);
@@ -1369,7 +1389,7 @@ var rtl = {
 
     // tTypeInfoStruct - base object for tTypeInfoClass, tTypeInfoRecord, tTypeInfoInterface
     var tis = newBaseTI("tTypeInfoStruct",0);
-    tis.$addMember = function(name,ancestor,options){
+    tis.$addMember = function(name,ancestor,vis,options){
       if (rtl.debug_rtti){
         if (!rtl.hasString(name) || (name.charAt()==='$')) throw 'invalid member "'+name+'", this="'+this.name+'"';
         if (!rtl.is(ancestor,rtl.tTypeMember)) throw 'invalid ancestor "'+ancestor+':'+ancestor.name+'", "'+this.name+'.'+name+'"';
@@ -1379,13 +1399,14 @@ var rtl = {
       t.name = name;
       this.members[name] = t;
       this.names.push(name);
+      t.visibility = vis;
       if (rtl.isObject(options)){
         for (var key in options) if (options.hasOwnProperty(key)) t[key] = options[key];
       };
       return t;
     };
-    tis.addField = function(name,type,options){
-      var t = this.$addMember(name,rtl.tTypeMemberField,options);
+    tis.addField = function(name,type,vis,options){
+      var t = this.$addMember(name,rtl.tTypeMemberField,vis?vis:2,options);
       if (rtl.debug_rtti){
         if (!rtl.is(type,rtl.tTypeInfo)) throw 'invalid type "'+type+'", "'+this.name+'.'+name+'"';
       };
@@ -1405,15 +1426,15 @@ var rtl = {
         };
       };
     };
-    tis.addMethod = function(name,methodkind,params,result,flags,options){
-      var t = this.$addMember(name,rtl.tTypeMemberMethod,options);
+    tis.addMethod = function(name,methodkind,params,vis,result,flags,options){
+      var t = this.$addMember(name,rtl.tTypeMemberMethod,vis?vis:2,options);
       t.methodkind = methodkind;
       t.procsig = rtl.newTIProcSig(params,result,flags);
       this.methods.push(name);
       return t;
     };
-    tis.addProperty = function(name,flags,result,getter,setter,options){
-      var t = this.$addMember(name,rtl.tTypeMemberProperty,options);
+    tis.addProperty = function(name,flags,result,getter,setter,vis,options){
+      var t = this.$addMember(name,rtl.tTypeMemberProperty,vis?vis:4,options);
       t.flags = flags;
       t.typeinfo = result;
       t.getter = getter;
@@ -1749,13 +1770,13 @@ rtl.module("System",[],function () {
 rtl.module("RTLConsts",["System"],function () {
   "use strict";
   var $mod = this;
-  $mod.$resourcestrings = {SArgumentMissing: {org: 'Missing argument in format "%s"'}, SInvalidFormat: {org: 'Invalid format specifier : "%s"'}, SInvalidArgIndex: {org: 'Invalid argument index in format: "%s"'}, SListCapacityError: {org: "List capacity (%s) exceeded."}, SListCountError: {org: "List count (%s) out of bounds."}, SListIndexError: {org: "List index (%s) out of bounds"}, SSortedListError: {org: "Operation not allowed on sorted list"}, SDuplicateString: {org: "String list does not allow duplicates"}, SErrFindNeedsSortedList: {org: "Cannot use find on unsorted list"}, SInvalidName: {org: 'Invalid component name: "%s"'}, SDuplicateName: {org: 'Duplicate component name: "%s"'}};
+  $mod.$resourcestrings = {SArgumentMissing: {org: 'Missing argument in format "%s"'}, SInvalidFormat: {org: 'Invalid format specifier : "%s"'}, SInvalidArgIndex: {org: 'Invalid argument index in format: "%s"'}, SListCapacityError: {org: "List capacity (%s) exceeded."}, SListCountError: {org: "List count (%s) out of bounds."}, SListIndexError: {org: "List index (%s) out of bounds"}, SSortedListError: {org: "Operation not allowed on sorted list"}, SDuplicateString: {org: "String list does not allow duplicates"}, SErrFindNeedsSortedList: {org: "Cannot use find on unsorted list"}, SInvalidName: {org: 'Invalid component name: "%s"'}, SDuplicateName: {org: 'Duplicate component name: "%s"'}, SErrInvalidInteger: {org: 'Invalid integer value: "%s"'}};
 });
 rtl.module("Types",["System"],function () {
   "use strict";
   var $mod = this;
   this.TDuplicates = {"0": "dupIgnore", dupIgnore: 0, "1": "dupAccept", dupAccept: 1, "2": "dupError", dupError: 2};
-});
+},[]);
 rtl.module("JS",["System","Types"],function () {
   "use strict";
   var $mod = this;
@@ -1796,8 +1817,41 @@ rtl.module("JS",["System","Types"],function () {
     };
     return Result;
   };
-  this.isBoolean = function (v) {
-    return typeof(v) == 'boolean';
+  this.isDefined = function (v) {
+    return !(v == undefined);
+  };
+  this.JSClassName = function (aObj) {
+    var Result = "";
+    Result = "";
+    if (aObj === null) return Result;
+    return aObj.constructor.name;
+    return Result;
+  };
+  this.HaveSharedArrayBuffer = function () {
+    return (typeof SharedArrayBuffer !== 'undefined');
+  };
+  this.SharedToNonShared = function (aBuffer) {
+    var Result = null;
+    var Src = null;
+    var Dest = null;
+    if ($mod.HaveSharedArrayBuffer() && rtl.isExt(aBuffer,SharedArrayBuffer)) {
+      Result = new ArrayBuffer(aBuffer.byteLength);
+      Src = new Uint8Array(aBuffer);
+      Dest = new Uint8Array(Result);
+      Dest.set(Src);
+    } else Result = aBuffer;
+    return Result;
+  };
+  this.SharedToNonShared$1 = function (aArray, aWordSized) {
+    var Result = null;
+    var Buf = null;
+    if ($mod.HaveSharedArrayBuffer() && rtl.isExt(aArray.buffer,SharedArrayBuffer)) {
+      Buf = aArray.buffer.slice(aArray.byteOffset,aArray.byteOffset + aArray.byteLength);
+      if (aWordSized) {
+        Result = new Uint16Array($mod.SharedToNonShared(Buf))}
+       else Result = new Uint8Array($mod.SharedToNonShared(Buf));
+    } else Result = aArray;
+    return Result;
   };
 });
 rtl.module("SysUtils",["System","RTLConsts","JS"],function () {
@@ -1903,15 +1957,15 @@ rtl.module("SysUtils",["System","RTLConsts","JS"],function () {
     this.$init = function () {
       pas.System.TObject.$init.call(this);
       this.fMessage = "";
-      this.FNodeJSError = null;
+      this.FJSError = null;
     };
     this.$final = function () {
-      this.FNodeJSError = undefined;
+      this.FJSError = undefined;
       pas.System.TObject.$final.call(this);
     };
     this.Create$1 = function (Msg) {
       this.fMessage = Msg;
-      this.FNodeJSError = new Error();
+      this.FJSError = new Error();
       if (this.LogMessageOnCreate) pas.System.Writeln("Created exception ",this.$classname," with message: ",Msg);
       return this;
     };
@@ -1922,9 +1976,17 @@ rtl.module("SysUtils",["System","RTLConsts","JS"],function () {
   });
   rtl.createClass(this,"EExternal",this.Exception,function () {
   });
+  rtl.createClass(this,"EInvalidCast",this.Exception,function () {
+  });
   rtl.createClass(this,"EConvertError",this.Exception,function () {
   });
+  rtl.createClass(this,"EIntError",this.EExternal,function () {
+  });
+  rtl.createClass(this,"ERangeError",this.EIntError,function () {
+  });
   rtl.createClass(this,"EExternalException",this.EExternal,function () {
+  });
+  rtl.createClass(this,"EAbstractError",this.Exception,function () {
   });
   this.TrimLeft = function (S) {
     return S.replace(/^[\s\uFEFF\xA0\x00-\x1f]+/,'');
@@ -2204,6 +2266,22 @@ rtl.module("SysUtils",["System","RTLConsts","JS"],function () {
     Result = "" + Value;
     return Result;
   };
+  this.TryStrToInt$2 = function (S, res) {
+    var Result = false;
+    Result = $impl.IntTryStrToInt(S,res,$mod.FormatSettings.DecimalSeparator);
+    return Result;
+  };
+  this.StrToInt = function (S) {
+    var Result = 0;
+    var R = 0;
+    if (!$mod.TryStrToInt$2(S,{get: function () {
+        return R;
+      }, set: function (v) {
+        R = v;
+      }})) throw $mod.EConvertError.$create("CreateFmt",[rtl.getResStr(pas.RTLConsts,"SErrInvalidInteger"),pas.System.VarRecs(18,S)]);
+    Result = R;
+    return Result;
+  };
   this.IntToHex = function (Value, Digits) {
     var Result = "";
     Result = "";
@@ -2240,6 +2318,13 @@ rtl.module("SysUtils",["System","RTLConsts","JS"],function () {
   this.OnGetEnvironmentVariable = null;
   this.OnGetEnvironmentString = null;
   this.OnGetEnvironmentVariableCount = null;
+  this.GetEnvironmentVariable = function (EnvVar) {
+    var Result = "";
+    if ($mod.OnGetEnvironmentVariable != null) {
+      Result = $mod.OnGetEnvironmentVariable(EnvVar)}
+     else Result = "";
+    return Result;
+  };
   this.GetEnvironmentVariableCount = function () {
     var Result = 0;
     if ($mod.OnGetEnvironmentVariableCount != null) {
@@ -2572,6 +2657,30 @@ rtl.module("SysUtils",["System","RTLConsts","JS"],function () {
       };
       return Result;
     };
+    $impl.IntTryStrToInt = function (S, res, aSep) {
+      var Result = false;
+      var Radix = 10;
+      var N = "";
+      var J = undefined;
+      N = S;
+      if ((pas.System.Pos(aSep,N) !== 0) || (pas.System.Pos(".",N) !== 0)) return false;
+      var $tmp = pas.System.Copy(N,1,1);
+      if ($tmp === "$") {
+        Radix = 16}
+       else if ($tmp === "&") {
+        Radix = 8}
+       else if ($tmp === "%") Radix = 2;
+      if ((Radix !== 16) && (pas.System.Pos("e",$mod.LowerCase(N)) !== 0)) return false;
+      if (Radix !== 10) pas.System.Delete({get: function () {
+          return N;
+        }, set: function (v) {
+          N = v;
+        }},1,1);
+      J = parseInt(N,Radix);
+      Result = !isNaN(J);
+      if (Result) res.set(rtl.trunc(J));
+      return Result;
+    };
     $impl.InitGlobalFormatSettings = function () {
       $mod.FormatSettings.$assign($mod.TFormatSettings.Create());
       $mod.TimeSeparator = $mod.FormatSettings.TimeSeparator;
@@ -2589,11 +2698,17 @@ rtl.module("SysUtils",["System","RTLConsts","JS"],function () {
       $mod.CurrencyDecimals = $mod.FormatSettings.CurrencyDecimals;
       $mod.CurrencyString = $mod.FormatSettings.CurrencyString;
     };
+    $impl.DoClassRef = function (C) {
+      if (C === null) ;
+    };
   };
   $mod.$init = function () {
     (function () {
       $impl.InitGlobalFormatSettings();
     })();
+    $impl.DoClassRef($mod.EInvalidCast);
+    $impl.DoClassRef($mod.EAbstractError);
+    $impl.DoClassRef($mod.ERangeError);
     $mod.ShortMonthNames = $impl.DefaultShortMonthNames.slice(0);
     $mod.LongMonthNames = $impl.DefaultLongMonthNames.slice(0);
     $mod.ShortDayNames = $impl.DefaultShortDayNames.slice(0);
@@ -2720,6 +2835,14 @@ rtl.module("Classes",["System","RTLConsts","Types","SysUtils","JS"],function () 
       this.FSkipLastLineBreak = false;
       this.FLineBreak = "";
     };
+    this.SetValue = function (Name, Value) {
+      var L = 0;
+      this.CheckSpecialChars();
+      L = this.IndexOfName(Name);
+      if (L === -1) {
+        this.Add(Name + this.FNameValueSeparator + Value)}
+       else this.Put(L,Name + this.FNameValueSeparator + Value);
+    };
     this.GetSkipLastLineBreak = function () {
       var Result = false;
       this.CheckSpecialChars();
@@ -2732,6 +2855,12 @@ rtl.module("Classes",["System","RTLConsts","Types","SysUtils","JS"],function () 
     this.GetCapacity = function () {
       var Result = 0;
       Result = this.GetCount();
+      return Result;
+    };
+    this.GetObject = function (Index) {
+      var Result = null;
+      if (Index === 0) ;
+      Result = null;
       return Result;
     };
     this.GetTextStr = function () {
@@ -2759,6 +2888,21 @@ rtl.module("Classes",["System","RTLConsts","Types","SysUtils","JS"],function () 
       };
       return Result;
     };
+    this.Put = function (Index, S) {
+      var Obj = null;
+      Obj = this.GetObject(Index);
+      this.Delete(Index);
+      this.InsertObject(Index,S,Obj);
+    };
+    this.PutObject = function (Index, AObject) {
+      if (Index === 0) return;
+      if (AObject === null) return;
+    };
+    this.DoCompareText = function (s1, s2) {
+      var Result = 0;
+      Result = pas.SysUtils.CompareText(s1,s2);
+      return Result;
+    };
     this.CheckSpecialChars = function () {
       if (!this.FSpecialCharsInited) {
         this.FQuoteChar = '"';
@@ -2782,6 +2926,32 @@ rtl.module("Classes",["System","RTLConsts","Types","SysUtils","JS"],function () 
       Result = this.GetCount();
       this.Insert(this.GetCount(),S);
       return Result;
+    };
+    this.IndexOf = function (S) {
+      var Result = 0;
+      Result = 0;
+      while ((Result < this.GetCount()) && (this.DoCompareText(this.Get(Result),S) !== 0)) Result = Result + 1;
+      if (Result === this.GetCount()) Result = -1;
+      return Result;
+    };
+    this.IndexOfName = function (Name) {
+      var Result = 0;
+      var len = 0;
+      var S = "";
+      this.CheckSpecialChars();
+      Result = 0;
+      while (Result < this.GetCount()) {
+        S = this.Get(Result);
+        len = pas.System.Pos(this.FNameValueSeparator,S) - 1;
+        if ((len >= 0) && (this.DoCompareText(Name,pas.System.Copy(S,1,len)) === 0)) return Result;
+        Result += 1;
+      };
+      Result = -1;
+      return Result;
+    };
+    this.InsertObject = function (Index, S, AObject) {
+      this.Insert(Index,S);
+      this.PutObject(Index,AObject);
     };
   });
   rtl.recNewT(this,"TStringItem",function () {
@@ -2880,6 +3050,25 @@ rtl.module("Classes",["System","RTLConsts","Types","SysUtils","JS"],function () 
       Result = this.FCount;
       return Result;
     };
+    this.GetObject = function (Index) {
+      var Result = null;
+      this.CheckIndex(Index);
+      Result = this.FList[Index].FObject;
+      return Result;
+    };
+    this.Put = function (Index, S) {
+      if (this.GetSorted()) this.Error(rtl.getResStr(pas.RTLConsts,"SSortedListError"),0);
+      this.CheckIndex(Index);
+      this.Changing();
+      this.FList[Index].FString = S;
+      this.Changed();
+    };
+    this.PutObject = function (Index, AObject) {
+      this.CheckIndex(Index);
+      this.Changing();
+      this.FList[Index].FObject = AObject;
+      this.Changed();
+    };
     this.SetCapacity = function (NewCapacity) {
       if (NewCapacity < 0) this.Error(rtl.getResStr(pas.RTLConsts,"SListCapacityError"),NewCapacity);
       if (NewCapacity !== this.GetCapacity()) this.FList = rtl.arraySetLength(this.FList,$mod.TStringItem,NewCapacity);
@@ -2925,6 +3114,26 @@ rtl.module("Classes",["System","RTLConsts","Types","SysUtils","JS"],function () 
       this.InsertItem(Result,S);
       return Result;
     };
+    this.Clear = function () {
+      if (this.FCount === 0) return;
+      this.Changing();
+      this.InternalClear(0,false);
+      this.Changed();
+    };
+    this.Delete = function (Index) {
+      this.CheckIndex(Index);
+      this.Changing();
+      if (this.FOwnsObjects) pas.SysUtils.FreeAndNil({p: this.FList[Index], get: function () {
+          return this.p.FObject;
+        }, set: function (v) {
+          this.p.FObject = v;
+        }});
+      this.FList.splice(Index,1);
+      this.FList[this.GetCount() - 1].FString = "";
+      this.FList[this.GetCount() - 1].FObject = null;
+      this.FCount -= 1;
+      this.Changed();
+    };
     this.Find = function (S, Index) {
       var Result = false;
       var L = 0;
@@ -2950,6 +3159,17 @@ rtl.module("Classes",["System","RTLConsts","Types","SysUtils","JS"],function () 
         };
       };
       Index.set(L);
+      return Result;
+    };
+    this.IndexOf = function (S) {
+      var Result = 0;
+      if (!this.GetSorted()) {
+        Result = $mod.TStrings.IndexOf.call(this,S)}
+       else if (!this.Find(S,{get: function () {
+          return Result;
+        }, set: function (v) {
+          Result = v;
+        }})) Result = -1;
       return Result;
     };
     this.Insert = function (Index, S) {
@@ -3161,86 +3381,198 @@ rtl.module("Classes",["System","RTLConsts","Types","SysUtils","JS"],function () 
     $impl.ClassList = new Object();
   };
 },[]);
-rtl.module("CustApp",["System","Classes","SysUtils","Types","JS"],function () {
-  "use strict";
-  var $mod = this;
-  rtl.createClass(this,"TCustomApplication",pas.Classes.TComponent,function () {
-    this.$init = function () {
-      pas.Classes.TComponent.$init.call(this);
-      this.FExceptObjectJS = undefined;
-      this.FTerminated = false;
-      this.FOptionChar = "";
-      this.FCaseSensitiveOptions = false;
-      this.FStopOnException = false;
-      this.FExceptionExitCode = 0;
-      this.FExceptObject = null;
-    };
-    this.$final = function () {
-      this.FExceptObject = undefined;
-      pas.Classes.TComponent.$final.call(this);
-    };
-    this.Create$1 = function (AOwner) {
-      pas.Classes.TComponent.Create$1.call(this,AOwner);
-      this.FOptionChar = "-";
-      this.FCaseSensitiveOptions = true;
-      this.FStopOnException = false;
-      return this;
-    };
-    this.HandleException = function (Sender) {
-      var E = null;
-      var Tmp = null;
-      Tmp = null;
-      E = this.FExceptObject;
-      if ((E === null) && pas.System.Assigned(this.FExceptObjectJS)) {
-        if (rtl.isExt(this.FExceptObjectJS,Error,1)) {
-          Tmp = pas.SysUtils.EExternalException.$create("Create$1",[this.FExceptObjectJS.message])}
-         else if (rtl.isExt(this.FExceptObjectJS,Object,1) && this.FExceptObjectJS.hasOwnProperty("message")) {
-          Tmp = pas.SysUtils.EExternalException.$create("Create$1",["" + this.FExceptObjectJS["message"]])}
-         else Tmp = pas.SysUtils.EExternalException.$create("Create$1",[JSON.stringify(this.FExceptObjectJS)]);
-        E = Tmp;
-      };
-      try {
-        this.ShowException(E);
-        if (this.FStopOnException) this.Terminate$1(this.FExceptionExitCode);
-      } finally {
-        Tmp = rtl.freeLoc(Tmp);
-      };
-      if (Sender === null) ;
-    };
-    this.Run = function () {
-      do {
-        this.FExceptObject = null;
-        this.FExceptObjectJS = null;
-        try {
-          this.DoRun();
-        } catch ($e) {
-          if (pas.SysUtils.Exception.isPrototypeOf($e)) {
-            var E = $e;
-            this.FExceptObject = E;
-            this.FExceptObjectJS = E;
-            this.HandleException(this);
-          } else {
-            this.FExceptObject = null;
-            this.FExceptObjectJS = $e;
-            this.HandleException(this);
-          }
-        };
-        break;
-      } while (!this.FTerminated);
-    };
-    this.Terminate$1 = function (AExitCode) {
-      this.FTerminated = true;
-      rtl.exitcode = AExitCode;
-    };
-  });
-});
 rtl.module("weborworker",["System","JS","Types"],function () {
   "use strict";
   var $mod = this;
+  this.isMainBrowserThread = function () {
+    return (typeof window !== "undefined");
+  };
+  this.isWebWorker = function () {
+    return (typeof DedicatedWorkerGlobalScope !== 'undefined') &&
+    (self instanceof DedicatedWorkerGlobalScope);
+  };
+  this.IsServiceWorker = function () {
+    return (typeof ServiceWorkerGlobalScope !== 'undefined') && (self instanceof ServiceWorkerGlobalScope);
+  };
 });
-rtl.module("webworker",["System","JS","weborworker"],function () {
+rtl.module("Rtl.WorkerCommands",["System","SysUtils","JS","weborworker"],function () {
   "use strict";
   var $mod = this;
+  this.cmdException = "exception";
+  this.channelConsole = "console_output";
+  this.cFldCommand = "command";
+  rtl.createClass(this,"EWorkerCommand",pas.SysUtils.Exception,function () {
+  });
+  rtl.createHelper(this,"TCustomWorkerCommandHelper",null,function () {
+    this.createCommand = function (aCommand, aSenderID) {
+      var Result = null;
+      Result = new Object();
+      Result.canceled = false;
+      Result.command = aCommand;
+      Result.senderId = aSenderID;
+      return Result;
+    };
+  });
+  rtl.createHelper(this,"TWorkerExceptionCommandHelper",this.TCustomWorkerCommandHelper,function () {
+    this.Create = function (aExceptionClass, aExceptionMessage, aThreadID) {
+      var Result = null;
+      Result = $mod.TCustomWorkerCommandHelper.createCommand($mod.cmdException,pas.SysUtils.IntToStr(aThreadID));
+      Result.ExceptionClass = aExceptionClass;
+      Result.ExceptionMessage = aExceptionMessage;
+      return Result;
+    };
+  });
+  rtl.createClass(this,"TCommandDispatcher",pas.System.TObject,function () {
+    rtl.recNewT(this,"TCommandHandlerReg",function () {
+      this.SingleHandler = false;
+      this.$new = function () {
+        var r = Object.create(this);
+        r.Handlers = [];
+        return r;
+      };
+      this.$eq = function (b) {
+        return (this.Handlers === b.Handlers) && (this.SingleHandler === b.SingleHandler);
+      };
+      this.$assign = function (s) {
+        this.Handlers = rtl.arrayRef(s.Handlers);
+        this.SingleHandler = s.SingleHandler;
+        return this;
+      };
+    });
+    rtl.recNewT(this,"TJSWorkerReg",function () {
+      this.Worker = null;
+      this.Name = "";
+      this.$eq = function (b) {
+        return (this.Worker === b.Worker) && (this.Name === b.Name);
+      };
+      this.$assign = function (s) {
+        this.Worker = s.Worker;
+        this.Name = s.Name;
+        return this;
+      };
+    });
+    this._Instance = null;
+    this._DispatcherClass = null;
+    this.$init = function () {
+      pas.System.TObject.$init.call(this);
+      this.FDefaultSenderID = "";
+      this.FMap = null;
+      this.FWorkers = [];
+      this.FConsoleChannel = null;
+    };
+    this.$final = function () {
+      this.FMap = undefined;
+      this.FWorkers = undefined;
+      this.FConsoleChannel = undefined;
+      pas.System.TObject.$final.call(this);
+    };
+    this.GetInstance = function () {
+      var Result = null;
+      var C = null;
+      if (!($mod.TCommandDispatcher._Instance != null)) {
+        C = $mod.TCommandDispatcher._DispatcherClass;
+        if (C === null) C = $mod.TCommandDispatcher;
+        $mod.TCommandDispatcher._Instance = C.$create("create$1");
+      };
+      Result = $mod.TCommandDispatcher._Instance;
+      return Result;
+    };
+    this.IsCommandEvent = function (aEvent) {
+      var Result = false;
+      var Obj = null;
+      Result = (aEvent != null) && rtl.isObject(aEvent.data);
+      if (Result) {
+        Obj = aEvent.data;
+        Result = Obj.hasOwnProperty($mod.cFldCommand) && rtl.isString(Obj[$mod.cFldCommand]);
+      };
+      return Result;
+    };
+    this.CheckSenderID = function (aCommand) {
+      if (aCommand.senderId === "") aCommand.senderId = this.FDefaultSenderID;
+    };
+    this.IndexOfWorker = function (aWorker) {
+      var Result = 0;
+      Result = rtl.length(this.FWorkers) - 1;
+      while ((Result >= 0) && (this.FWorkers[Result].Worker !== aWorker)) Result -= 1;
+      return Result;
+    };
+    this.IndexOfWorker$1 = function (aName) {
+      var Result = 0;
+      Result = rtl.length(this.FWorkers) - 1;
+      while ((Result >= 0) && (this.FWorkers[Result].Name !== aName)) Result -= 1;
+      return Result;
+    };
+    this.HandleIncomingMessage = function (aEvent) {
+      var lCommand = null;
+      if (this.$class.IsCommandEvent(aEvent)) {
+        lCommand = aEvent.data;
+        lCommand._sender = aEvent.target;
+        this.HandleCommand(lCommand);
+      };
+    };
+    this.HandleCommand = function (aCommand) {
+      var lCmd = "";
+      var lValue = undefined;
+      var lHandler = null;
+      lCmd = aCommand.command;
+      lValue = this.FMap.get(lCmd);
+      if (pas.System.Assigned(lValue)) for (var $in = lValue.Handlers, $l = 0, $end = rtl.length($in) - 1; $l <= $end; $l++) {
+        lHandler = $in[$l];
+        lHandler(aCommand);
+        if (aCommand.canceled) break;
+      };
+    };
+    this.create$1 = function () {
+      this.FMap = new Map();
+      this.FConsoleChannel = new BroadcastChannel($mod.channelConsole);
+      if (pas.weborworker.isMainBrowserThread()) {
+        this.FConsoleChannel.addEventListener("message",rtl.createSafeCallback(this,"HandleIncomingMessage"))}
+       else self.addEventListener("message",rtl.createSafeCallback(this,"HandleIncomingMessage"));
+      return this;
+    };
+    this.Destroy = function () {
+      this.FConsoleChannel.close();
+      this.FConsoleChannel = null;
+      pas.System.TObject.Destroy.call(this);
+    };
+    this.SendCommand = function (aWorker, aCommand) {
+      this.CheckSenderID(aCommand);
+      aWorker.postMessage(aCommand);
+    };
+    this.SendCommand$2 = function (aCommand) {
+      if (!(pas.weborworker.isWebWorker() || pas.weborworker.IsServiceWorker())) throw $mod.EWorkerCommand.$create("Create$1",["Cannot send to starting thread from main page"]);
+      this.CheckSenderID(aCommand);
+      self.postMessage(aCommand);
+    };
+    this.RegisterCommandHandler = function (aCommand, aHandler, IsSingle) {
+      var lValue = undefined;
+      var lNewReg = this.TCommandHandlerReg.$new();
+      lValue = this.FMap.get(aCommand);
+      if (pas.System.Assigned(lValue)) {
+        if (!(lValue.SingleHandler || IsSingle)) {
+          lValue.Handlers.push(aHandler)}
+         else {
+          if (rtl.length(lValue.Handlers) > 0) throw $mod.EWorkerCommand.$create("CreateFmt",["There is already a handler for command %s",pas.System.VarRecs(18,aCommand)]);
+          lValue.Handlers = [aHandler];
+          lValue.SingleHandler = IsSingle;
+        };
+      } else {
+        lNewReg.$assign(this.TCommandHandlerReg.$new());
+        lNewReg.Handlers = [aHandler];
+        lNewReg.SingleHandler = IsSingle;
+        this.FMap.set(aCommand,this.TCommandHandlerReg.$clone(lNewReg));
+      };
+    };
+    this.RegisterWorker = function (aWorker, aName) {
+      var lReg = this.TJSWorkerReg.$new();
+      if (this.IndexOfWorker$1(aName) >= 0) throw $mod.EWorkerCommand.$create("CreateFmt",["Duplicate worker name: %s",pas.System.VarRecs(18,aName)]);
+      if (this.IndexOfWorker(aWorker) >= 0) throw $mod.EWorkerCommand.$create("Create$1",["Duplicate worker instance"]);
+      lReg.Worker = aWorker;
+      lReg.Name = aName;
+      this.FWorkers = rtl.arrayPush(this.TJSWorkerReg,this.FWorkers,this.TJSWorkerReg.$clone(lReg));
+      aWorker.addEventListener("message",rtl.createSafeCallback(this,"HandleIncomingMessage"));
+    };
+  });
 });
 rtl.module("webassembly",["System","JS"],function () {
   "use strict";
@@ -3286,6 +3618,7 @@ rtl.module("wasitypes",["System","JS"],function () {
   this.WASI_CLOCK_PROCESS_CPUTIME_ID = 1;
   this.WASI_CLOCK_REALTIME = 2;
   this.WASI_CLOCK_THREAD_CPUTIME_ID = 3;
+  this.WASI_EVENTTYPE_CLOCK = 0;
   this.WASI_STDIN_FILENO = 0;
   this.WASI_STDOUT_FILENO = 1;
   this.WASI_STDERR_FILENO = 2;
@@ -3361,6 +3694,19 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
   this.SizeUInt8 = 1;
   this.SizeUInt32 = 4;
   this.SizeUInt64 = 8;
+  rtl.createClass(this,"EWasmNativeException",pas.SysUtils.Exception,function () {
+    this.$init = function () {
+      pas.SysUtils.Exception.$init.call(this);
+      this.FNativeClass = "";
+      this.FNativeMessage = "";
+    };
+    this.create$2 = function (aNativeClass, aNativeMessage) {
+      pas.SysUtils.Exception.CreateFmt.call(this,"Webassembly code raised an exception %s : %s",pas.System.VarRecs(18,aNativeClass,18,aNativeMessage));
+      this.FNativeClass = aNativeClass;
+      this.FNativeMessage = aNativeMessage;
+      return this;
+    };
+  });
   rtl.createClass(this,"EWasiError",pas.SysUtils.Exception,function () {
   });
   rtl.createClass(this,"EWasiFSError",pas.SysUtils.Exception,function () {
@@ -3369,9 +3715,26 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       this.FErrorcode = 0;
     };
   });
+  rtl.recNewT(this,"TLastExceptionInfo",function () {
+    this.ClassName = "";
+    this.Message = "";
+    this.more = false;
+    this.doraise = false;
+    this.$eq = function (b) {
+      return (this.ClassName === b.ClassName) && (this.Message === b.Message) && (this.more === b.more) && (this.doraise === b.doraise);
+    };
+    this.$assign = function (s) {
+      this.ClassName = s.ClassName;
+      this.Message = s.Message;
+      this.more = s.more;
+      this.doraise = s.doraise;
+      return this;
+    };
+  });
   rtl.createClass(this,"TPas2JSWASIEnvironment",pas.System.TObject,function () {
     this.UTF8TextDecoder = null;
     this.UTF8TextEncoder = null;
+    this.IsLittleEndian = true;
     this.$init = function () {
       pas.System.TObject.$init.call(this);
       this.FArguments = null;
@@ -3379,7 +3742,6 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       this.FExitCode = 0;
       this.FImportObject = null;
       this.Finstance = null;
-      this.FIsLittleEndian = false;
       this.FLogAPI = false;
       this.FModuleInstanceExports = null;
       this.FOnGetConsoleInputBuffer = null;
@@ -3455,7 +3817,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
         avail = ReadBuffer.byteLength;
       };
       if (avail > 0) WasiBuffers.forEach(readv);
-      view.setUint32(nread,bytesRead,this.FIsLittleEndian);
+      view.setUint32(nread,bytesRead,true);
       Result = 0;
       return Result;
     };
@@ -3506,8 +3868,8 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       Ptr = iovs;
       for (var $l = 0, $end = iovsLen - 1; $l <= $end; $l++) {
         I = $l;
-        Buf = view.getUint32(Ptr,this.FIsLittleEndian);
-        BufLen = view.getUint32(Ptr + 4,this.FIsLittleEndian);
+        Buf = view.getUint32(Ptr,true);
+        BufLen = view.getUint32(Ptr + 4,true);
         ArrayBuf = new Uint8Array(this.GetMemory().buffer,Buf,BufLen);
         Result[I] = ArrayBuf;
         Ptr += 8;
@@ -3627,7 +3989,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       var S = "";
       var Evt = null;
       try {
-        S = this.UTF8TextDecoder.decode(aBytes);
+        S = this.GetUTF8StringFromArray(aBytes);
       } catch ($e) {
         S = TryConvert();
       };
@@ -3733,10 +4095,10 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       var Size = 0;
       if (this.FLogAPI) this.DoLog$1("TPas2JSWASIEnvironment.args_sizes_get([%x],[%x])",pas.System.VarRecs(0,argc,0,argvBufSize));
       View = this.getModuleMemoryDataView();
-      View.setUint32(argc,this.FArguments.GetCount(),this.FIsLittleEndian);
+      View.setUint32(argc,this.FArguments.GetCount(),true);
       Size = 0;
       if (this.FArguments.GetCount() > 0) Size = this.FArguments.GetTextStr().length + 1;
-      View.setUint32(argvBufSize,Size,this.FIsLittleEndian);
+      View.setUint32(argvBufSize,Size,true);
       Result = 0;
       return Result;
     };
@@ -3745,7 +4107,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       var view = null;
       if (this.FLogAPI) this.DoLog$1("TPas2JSWASIEnvironment.clock_res_get(%d,%d)",pas.System.VarRecs(19,clockId,19,resolution));
       view = this.getModuleMemoryDataView();
-      this.$class.setBigUint64(view,resolution,0,this.FIsLittleEndian);
+      this.$class.setBigUint64(view,resolution,0,true);
       Result = 0;
       return Result;
     };
@@ -3759,7 +4121,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       if (n === -1) {
         Result = 28}
        else {
-        this.$class.setBigUint64(view,time,n,this.FIsLittleEndian);
+        this.$class.setBigUint64(view,time,n,true);
         Result = 0;
       };
       return Result;
@@ -3789,10 +4151,10 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       var Size = 0;
       if (this.FLogAPI) this.DoLog$1("TPas2JSWASIEnvironment.environ_sizes_get([%x],[%x])",pas.System.VarRecs(0,environCount,0,environBufSize));
       View = this.getModuleMemoryDataView();
-      View.setUint32(environCount,this.FEnvironment.GetCount(),this.FIsLittleEndian);
+      View.setUint32(environCount,this.FEnvironment.GetCount(),true);
       Size = 0;
       if (this.FEnvironment.GetCount() > 0) Size = this.FEnvironment.GetTextStr().length + 1;
-      View.setUint32(environBufSize,Size,this.FIsLittleEndian);
+      View.setUint32(environBufSize,Size,true);
       Result = 0;
       return Result;
     };
@@ -3846,10 +4208,10 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       if (this.FLogAPI) this.DoLog$1("TPas2JSWASIEnvironment.fd_fdstat_get(%d,%d)",pas.System.VarRecs(19,fd,0,bufPtr));
       View = this.getModuleMemoryDataView();
       View.setUint8(bufPtr,fd);
-      View.setUint16(bufPtr + 2,0,this.FIsLittleEndian);
-      View.setUint16(bufPtr + 4,0,this.FIsLittleEndian);
-      this.$class.setBigUint64(View,bufPtr + 8,0,this.FIsLittleEndian);
-      this.$class.setBigUint64(View,bufPtr + 8 + 8,0,this.FIsLittleEndian);
+      View.setUint16(bufPtr + 2,0,true);
+      View.setUint16(bufPtr + 4,0,true);
+      this.$class.setBigUint64(View,bufPtr + 8,0,true);
+      this.$class.setBigUint64(View,bufPtr + 8 + 8,0,true);
       Result = 0;
       return Result;
     };
@@ -3975,7 +4337,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
         Buf = this.GetIOVsAsBytes(iovs,iovsLen);
         written = Buf.byteLength;
         this.DoConsoleWrite(fd === 2,Buf);
-        view.setUint32(nwritten,written,this.FIsLittleEndian);
+        view.setUint32(nwritten,written,true);
         Result = 0;
       } else if (!(this.FWasiFS != null)) {
         Result = 52}
@@ -3986,7 +4348,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
           }, set: function (v) {
             written = v;
           }});
-        if (Result === 0) view.setUint32(nwritten,written,this.FIsLittleEndian);
+        if (Result === 0) view.setUint32(nwritten,written,true);
       };
       Result = 52;
       return Result;
@@ -4120,7 +4482,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
         Buf = this.GetIOVsAsBytes(iovs,iovsLen);
         written = Buf.byteLength;
         this.DoConsoleWrite(fd === 2,Buf);
-        view.setUint32(nwritten,written,this.FIsLittleEndian);
+        view.setUint32(nwritten,written,true);
         Result = 0;
       } else if (!(this.FWasiFS != null)) {
         Result = 52}
@@ -4131,7 +4493,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
           }, set: function (v) {
             written = v;
           }});
-        if (Result === 0) view.setUint32(nwritten,written,this.FIsLittleEndian);
+        if (Result === 0) view.setUint32(nwritten,written,true);
       };
       return Result;
     };
@@ -4333,10 +4695,30 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       };
       return Result;
     };
+    var TagOffset = 8;
+    var TimeoutOffset = 24;
+    var PrecisionOffset = 32;
     this.poll_oneoff = function (sin, sout, nsubscriptions, nevents) {
       var Result = 0;
-      console.log("Unimplemented: TPas2JSWASIEnvironment.poll_oneoff");
-      Result = 52;
+      var Tag = 0;
+      var Precision = null;
+      var TimeOut = null;
+      var msTimeOut = null;
+      var msTimeout32 = 0;
+      var arr = null;
+      var mem = null;
+      Tag = this.GetMemInfoInt8(sin + 8);
+      if (Tag === 0) {
+        mem = this.getModuleMemoryDataView();
+        TimeOut = mem.getBigInt64(sin + 24,true);
+        Precision = mem.getBigInt64(sin + 32,true);
+        msTimeOut = TimeOut / Precision;
+        arr = new Int32Array(this.FMemory.buffer);
+        Atomics.store(arr,256,0);
+        msTimeout32 = pas.SysUtils.StrToInt(msTimeOut.toString());
+        Atomics.wait(arr,256,0,msTimeout32);
+      };
+      Result = 0;
       return Result;
     };
     this.proc_exit = function (rval) {
@@ -4394,7 +4776,6 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
     };
     this.Create$1 = function () {
       var I = 0;
-      this.FIsLittleEndian = true;
       this.FWASIImportName = "wasi_snapshot_preview1";
       this.FArguments = pas.Classes.TStringList.$create("Create$1");
       this.FEnvironment = pas.Classes.TStringList.$create("Create$1");
@@ -4424,7 +4805,16 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
     };
     this.GetUTF8StringFromMem = function (aLoc, aLen) {
       var Result = "";
-      Result = this.UTF8TextDecoder.decode(this.getModuleMemoryDataView().buffer.slice(aLoc,aLoc + aLen));
+      var tmpBuf = null;
+      tmpBuf = pas.JS.SharedToNonShared(this.getModuleMemoryDataView().buffer.slice(aLoc,aLoc + aLen));
+      Result = this.UTF8TextDecoder.decode(tmpBuf);
+      return Result;
+    };
+    this.GetUTF8StringFromArray = function (aSourceArray) {
+      var Result = "";
+      var TmpBytes = null;
+      TmpBytes = pas.JS.SharedToNonShared$1(aSourceArray,false);
+      Result = this.UTF8TextDecoder.decode(TmpBytes);
       return Result;
     };
     this.SetUTF8StringInMem = function (aLoc, aLen, AString) {
@@ -4451,7 +4841,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       var Result = 0;
       var View = null;
       View = this.getModuleMemoryDataView();
-      View.setInt32(aLoc,aValue,this.FIsLittleEndian);
+      View.setInt32(aLoc,aValue,true);
       Result = aLoc + 4;
       return Result;
     };
@@ -4459,7 +4849,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       var Result = 0;
       var View = null;
       View = this.getModuleMemoryDataView();
-      this.$class.setBigInt64(View,aLoc,aValue,this.FIsLittleEndian);
+      this.$class.setBigInt64(View,aLoc,aValue,true);
       Result = aLoc + 8;
       return Result;
     };
@@ -4475,7 +4865,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       var Result = 0;
       var View = null;
       View = this.getModuleMemoryDataView();
-      View.setUint32(aLoc,aValue,this.FIsLittleEndian);
+      View.setUint32(aLoc,aValue,true);
       Result = aLoc + 4;
       return Result;
     };
@@ -4483,8 +4873,22 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       var Result = 0;
       var View = null;
       View = this.getModuleMemoryDataView();
-      this.$class.setBigUint64(View,aLoc,aValue,this.FIsLittleEndian);
+      this.$class.setBigUint64(View,aLoc,aValue,true);
       Result = aLoc + 8;
+      return Result;
+    };
+    this.GetMemInfoInt8 = function (aLoc) {
+      var Result = 0;
+      var View = null;
+      View = this.getModuleMemoryDataView();
+      Result = View.getInt8(aLoc);
+      return Result;
+    };
+    this.GetMemInfoInt32 = function (aLoc) {
+      var Result = 0;
+      var View = null;
+      View = this.getModuleMemoryDataView();
+      Result = View.getInt32(aLoc,true);
       return Result;
     };
     this.AddImports = function (aObject) {
@@ -4534,6 +4938,39 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       if (this.FEnv != null) this.FEnv.RemoveExtension(this);
       pas.System.TObject.Destroy.call(this);
     };
+    this.RegisterName = function () {
+      var Result = "";
+      Result = this.$classname;
+      return Result;
+    };
+  });
+  rtl.createClass(this,"TImportExtensionRegistry",pas.System.TObject,function () {
+    this._Instance = null;
+    this.$init = function () {
+      pas.System.TObject.$init.call(this);
+      this.FExtensions = [];
+      this.FExtensionCount = 0;
+    };
+    this.$final = function () {
+      this.FExtensions = undefined;
+      pas.System.TObject.$final.call(this);
+    };
+    this.Grow = function () {
+      this.FExtensions = rtl.arraySetLength(this.FExtensions,null,rtl.length(this.FExtensions) + 1);
+    };
+    this.create$1 = function () {
+      this.FExtensionCount = 0;
+      this.Grow();
+      return this;
+    };
+    this.Destroy = function () {
+      pas.System.TObject.Destroy.call(this);
+    };
+    this.GetExtensions = function () {
+      var Result = [];
+      Result = rtl.arrayCopy(0,this.FExtensions,0,this.FExtensionCount);
+      return Result;
+    };
   });
   rtl.recNewT(this,"TWebAssemblyStartDescriptor",function () {
     this.Module = null;
@@ -4566,12 +5003,18 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       pas.Classes.TComponent.$init.call(this);
       this.FAfterInstantation = null;
       this.FAfterStart = null;
+      this.FAutoCreateExtensions = false;
       this.FBeforeInstantation = null;
       this.FBeforeStart = null;
+      this.FConvertNativeExceptions = false;
       this.FEnv = null;
+      this.FExcludeExtensions = null;
       this.FExported = null;
+      this.FOnAllExtensionsCreated = null;
+      this.FOnExtensionCreated = null;
       this.FOnInstantiateFail = null;
       this.FOnLoadFail = null;
+      this.FOnWasmException = null;
       this.FPreparedStartDescriptor = $mod.TWebAssemblyStartDescriptor.$new();
       this.FMemoryDescriptor = pas.webassembly.TJSWebAssemblyMemoryDescriptor.$new();
       this.FOnConsoleRead = null;
@@ -4580,6 +5023,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       this.FReadLineCount = 0;
       this.FRunEntryFunction = "";
       this.FTableDescriptor = pas.webassembly.TJSWebAssemblyTableDescriptor.$new();
+      this.FExtensions = [];
     };
     this.$final = function () {
       this.FAfterInstantation = undefined;
@@ -4587,21 +5031,116 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       this.FBeforeInstantation = undefined;
       this.FBeforeStart = undefined;
       this.FEnv = undefined;
+      this.FExcludeExtensions = undefined;
       this.FExported = undefined;
+      this.FOnAllExtensionsCreated = undefined;
+      this.FOnExtensionCreated = undefined;
       this.FOnInstantiateFail = undefined;
       this.FOnLoadFail = undefined;
+      this.FOnWasmException = undefined;
       this.FPreparedStartDescriptor = undefined;
       this.FMemoryDescriptor = undefined;
       this.FOnConsoleRead = undefined;
       this.FOnConsoleWrite = undefined;
       this.FPredefinedConsoleInput = undefined;
       this.FTableDescriptor = undefined;
+      this.FExtensions = undefined;
       pas.Classes.TComponent.$final.call(this);
     };
-    this.GetStartDescriptorReady = function () {
+    this.GetEnv = function () {
+      var Result = null;
+      if (this.FEnv === null) {
+        this.FEnv = this.CreateWasiEnvironment();
+        this.FEnv.FOnStdErrorWrite = rtl.createCallback(this,"DoStdWrite");
+        this.FEnv.FOnStdOutputWrite = rtl.createCallback(this,"DoStdWrite");
+        this.FEnv.FOnGetConsoleInputString = rtl.createCallback(this,"DoStdRead");
+        if (this.FAutoCreateExtensions) this.CreateStandardExtensions();
+      };
+      Result = this.FEnv;
+      return Result;
+    };
+    this.NeedSharedMemory = function () {
       var Result = false;
-      var $with = this.FPreparedStartDescriptor;
-      Result = ($with.Memory != null) && ($with.Module != null);
+      Result = false;
+      return Result;
+    };
+    this.ConvertWasmException = function () {
+      var Result = false;
+      var lInfo = $mod.TLastExceptionInfo.$new();
+      lInfo.$assign($mod.TLastExceptionInfo.$new());
+      Result = !this.GetExceptionInfo(lInfo);
+      if (Result) return Result;
+      lInfo.doraise = true;
+      if (this.FOnWasmException != null) this.FOnWasmException(this,lInfo);
+      if (lInfo.doraise) throw $mod.EWasmNativeException.$create("create$2",[lInfo.ClassName,lInfo.Message]);
+      return Result;
+    };
+    this.WrapExports = function (aExported) {
+      var $Self = this;
+      var Result = null;
+      function createwrapper(aScope, aFunc) {
+        var Result = undefined;
+        Result = function () {
+          var Result = undefined;
+          Result = undefined;
+          try {
+            Result=aFunc.apply(aScope,arguments);
+          } catch ($e) {
+            if (rtl.isExt($e,WebAssembly.Exception)) {
+              var E = $e;
+              if ($Self.ConvertWasmException()) throw $e;
+            } else throw $e
+          };
+          return Result;
+        };
+        return Result;
+      };
+      var S = "";
+      var lFunc = undefined;
+      var LNew = null;
+      LNew = new Object();
+      for (var $in = Object.getOwnPropertyNames(aExported), $l = 0, $end = rtl.length($in) - 1; $l <= $end; $l++) {
+        S = $in[$l];
+        lFunc = aExported[S];
+        if (!rtl.isFunction(lFunc) || (S === "GetLastExceptionInfo") || (S === "FreeLastExceptionInfo")) {
+          LNew[S] = lFunc}
+         else LNew[S] = createwrapper(this,lFunc);
+      };
+      Result = LNew;
+      return Result;
+    };
+    this.DeleteExtensions = function () {
+      var I = 0;
+      for (var $l = 0, $end = rtl.length(this.FExtensions) - 1; $l <= $end; $l++) {
+        I = $l;
+        pas.SysUtils.FreeAndNil({a: I, p: this.FExtensions, get: function () {
+            return this.p[this.a];
+          }, set: function (v) {
+            this.p[this.a] = v;
+          }});
+      };
+      this.FExtensions = rtl.arraySetLength(this.FExtensions,null,0);
+    };
+    this.DoCreateStandardExtensions = function () {
+      var lCount = 0;
+      var lClass = null;
+      var lClasses = [];
+      this.DeleteExtensions();
+      lClasses = $mod.TImportExtensionRegistry._Instance.GetExtensions();
+      this.FExtensions = rtl.arraySetLength(this.FExtensions,null,rtl.length(lClasses));
+      lCount = 0;
+      for (var $in = lClasses, $l = 0, $end = rtl.length($in) - 1; $l <= $end; $l++) {
+        lClass = $in[$l];
+        if ((this.FExcludeExtensions.IndexOf(lClass.RegisterName()) === -1) && (this.FExcludeExtensions.IndexOf(lClass.$classname) === -1)) {
+          this.FExtensions[lCount] = this.CreateStandardExtension(lClass);
+          lCount += 1;
+        };
+      };
+    };
+    this.CreateStandardExtension = function (aClass) {
+      var Result = null;
+      Result = aClass.$create("Create");
+      if (this.FOnExtensionCreated != null) this.FOnExtensionCreated(this,Result);
       return Result;
     };
     this.DoAfterInstantiate = function () {
@@ -4615,14 +5154,6 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
     };
     this.DoInstantiateFail = function (aError) {
       if (this.FOnInstantiateFail != null) this.FOnInstantiateFail(this,aError);
-    };
-    this.PrepareWebAssemblyInstance = function (aDescr) {
-      this.FPreparedStartDescriptor.$assign(aDescr);
-      this.FExported = aDescr.Exported;
-      this.FEnv.SetInstance(aDescr.Instance);
-      this.FEnv.SetMemory(aDescr.Memory);
-      this.FEnv.SetExports(this.FExported);
-      this.DoAfterInstantiate();
     };
     this.RunWebAssemblyInstance = function (aBeforeStart, aAfterStart, aRun) {
       var Result = false;
@@ -4733,20 +5264,23 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
     };
     this.Create$1 = function (aOwner) {
       pas.Classes.TComponent.Create$1.call(this,aOwner);
-      this.FEnv = this.CreateWasiEnvironment();
-      this.FEnv.FOnStdErrorWrite = rtl.createCallback(this,"DoStdWrite");
-      this.FEnv.FOnStdOutputWrite = rtl.createCallback(this,"DoStdWrite");
-      this.FEnv.FOnGetConsoleInputString = rtl.createCallback(this,"DoStdRead");
       this.FMemoryDescriptor.initial = 256;
       this.FMemoryDescriptor.maximum = 256;
-      this.FMemoryDescriptor.shared = false;
+      this.FMemoryDescriptor.shared = this.$class.NeedSharedMemory();
       this.FTableDescriptor.initial = 0;
       this.FTableDescriptor.maximum = 0;
       this.FTableDescriptor.element = "anyfunc";
       this.FPredefinedConsoleInput = pas.Classes.TStringList.$create("Create$1");
+      this.FExcludeExtensions = pas.Classes.TStringList.$create("Create$1");
+      this.FConvertNativeExceptions = true;
       return this;
     };
     this.Destroy = function () {
+      pas.SysUtils.FreeAndNil({p: this, get: function () {
+          return this.p.FExcludeExtensions;
+        }, set: function (v) {
+          this.p.FExcludeExtensions = v;
+        }});
       pas.SysUtils.FreeAndNil({p: this, get: function () {
           return this.p.FPredefinedConsoleInput;
         }, set: function (v) {
@@ -4759,10 +5293,53 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
         }});
       pas.Classes.TComponent.Destroy.call(this);
     };
+    this.CreateStandardExtensions = function () {
+      this.DoCreateStandardExtensions();
+      if (this.FOnAllExtensionsCreated != null) this.FOnAllExtensionsCreated(this);
+    };
+    this.GetExceptionInfo = function (aInfo) {
+      var Result = false;
+      var lPtr = 0;
+      var lPointer = 0;
+      var lString = 0;
+      var lLen = 0;
+      var lVal = undefined;
+      var lVal2 = undefined;
+      Result = false;
+      lVal = this.FExported["GetLastExceptionInfo"];
+      lVal2 = this.FExported["FreeLastExceptionInfo"];
+      if (!(pas.JS.isDefined(lVal) && pas.JS.isDefined(lVal2))) return Result;
+      lPointer = lVal();
+      if (lPointer === 0) return Result;
+      lPtr = lPointer;
+      lString = this.GetEnv().GetMemInfoInt32(lPtr);
+      lPtr += 4;
+      lLen = this.GetEnv().GetMemInfoInt32(lPtr);
+      lPtr += 4;
+      aInfo.ClassName = this.GetEnv().GetUTF8StringFromMem(lString,lLen);
+      lString = this.GetEnv().GetMemInfoInt32(lPtr);
+      lPtr += 4;
+      lLen = this.GetEnv().GetMemInfoInt32(lPtr);
+      lPtr += 4;
+      aInfo.Message = this.GetEnv().GetUTF8StringFromMem(lString,lLen);
+      aInfo.more = this.GetEnv().GetMemInfoInt8(lPtr) !== 0;
+      lVal2(lPointer);
+      Result = true;
+      return Result;
+    };
     this.WriteOutput = function (aOutput) {
       if (this.FOnConsoleWrite != null) {
         this.FOnConsoleWrite(this,aOutput)}
        else pas.System.Writeln(aOutput);
+    };
+    this.PrepareWebAssemblyInstance = function (aDescr) {
+      if (this.FConvertNativeExceptions) aDescr.Exported = this.WrapExports(aDescr.Exported);
+      this.FPreparedStartDescriptor.$assign(aDescr);
+      this.FExported = this.FPreparedStartDescriptor.Exported;
+      this.GetEnv().SetInstance(aDescr.Instance);
+      this.GetEnv().SetMemory(aDescr.Memory);
+      this.GetEnv().SetExports(this.FExported);
+      this.DoAfterInstantiate();
     };
     this.InitStartDescriptor = function (aMemory, aTable, aImportObj) {
       var Result = $mod.TWebAssemblyStartDescriptor.$new();
@@ -4770,7 +5347,7 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       Result.Table = aTable;
       if (!(aImportObj != null)) aImportObj = new Object();
       aImportObj["env"] = pas.JS.New(["memory",Result.Memory,"tbl",Result.Table]);
-      this.FEnv.AddImports(aImportObj);
+      this.GetEnv().AddImports(aImportObj);
       Result.Imports = aImportObj;
       return Result;
     };
@@ -4871,14 +5448,15 @@ rtl.module("wasienv",["System","SysUtils","Classes","JS","webassembly","Types","
       $mod.TPas2JSWASIEnvironment.UTF8TextDecoder = new TextDecoder("utf-8",Opts);
       $mod.TPas2JSWASIEnvironment.UTF8TextEncoder = new TextEncoder();
     })();
+    (function () {
+      $mod.TImportExtensionRegistry._Instance = $mod.TImportExtensionRegistry.$create("create$1");
+    })();
   };
 },["weborworker"]);
-rtl.module("Rtl.WebThreads",["System","JS","SysUtils","wasienv","webassembly"],function () {
+rtl.module("Rtl.WebThreads",["System","JS","SysUtils","wasienv","webassembly","Rtl.WorkerCommands"],function () {
   "use strict";
   var $mod = this;
-  this.ThreadIDInterval = 1000;
   this.cmdConsole = "console";
-  this.cmdException = "exception";
   this.cmdCleanup = "cleanup";
   this.cmdCancel = "cancel";
   this.cmdLoaded = "loaded";
@@ -4887,67 +5465,43 @@ rtl.module("Rtl.WebThreads",["System","JS","SysUtils","wasienv","webassembly"],f
   this.cmdLoad = "load";
   this.cmdRun = "run";
   this.cmdExecute = "execute";
+  this.cmdRPC = "rpc";
+  this.cmdRPCResult = "rpcresult";
+  this.cmdReady = "ready";
   this.DefaultThreadWorker = "pas2jsthreadworker.js";
   this.DefaultThreadCount = 2;
   this.DefaultMaxWorkerCount = 100;
   this.sThreadSpawn = "thread-spawn";
-  this.sThreadDetach = "thread_detach";
-  this.sThreadCancel = "thread_cancel";
   this.sThreadSelf = "thread_self";
   rtl.createClass(this,"EWasmThreads",pas.SysUtils.Exception,function () {
   });
-  rtl.createHelper(this,"TWorkerCommandHelper",null,function () {
+  rtl.createHelper(this,"TWorkerCommandHelper",pas["Rtl.WorkerCommands"].TCustomWorkerCommandHelper,function () {
     this.NewWorker = function (aCommand, aThreadID) {
       var Result = null;
-      Result = new Object();
-      Result.Command = pas.SysUtils.LowerCase(aCommand);
-      if (aThreadID !== -1) Result.ThreadID = aThreadID;
+      if (aThreadID === -1) {
+        Result = pas["Rtl.WorkerCommands"].TCustomWorkerCommandHelper.createCommand(aCommand,"")}
+       else {
+        Result = pas["Rtl.WorkerCommands"].TCustomWorkerCommandHelper.createCommand(aCommand,"Wasm thread " + pas.SysUtils.IntToStr(aThreadID));
+        Result.ThreadID = aThreadID;
+      };
       return Result;
     };
   });
-  rtl.createHelper(this,"TWorkerExceptionCommandHelper",null,function () {
-    this.CommandName = function () {
-      var Result = "";
-      Result = $mod.cmdException;
-      return Result;
-    };
-    this.CreateNew = function (aExceptionClass, aExceptionMessage, aThreadID) {
-      var Result = null;
-      Result = $mod.TWorkerCommandHelper.NewWorker($mod.TWorkerExceptionCommandHelper.CommandName(),aThreadID);
-      Result.ExceptionClass = aExceptionClass;
-      Result.ExceptionMessage = aExceptionMessage;
-      return Result;
-    };
-  });
-  rtl.createHelper(this,"TWorkerConsoleCommandHelper",null,function () {
-    this.CommandName = function () {
-      var Result = "";
-      Result = $mod.cmdConsole;
-      return Result;
-    };
-    this.Create = function (aMessage, aThreadID) {
-      var Result = null;
-      Result = $mod.TWorkerCommandHelper.NewWorker($mod.TWorkerConsoleCommandHelper.CommandName(),aThreadID);
-      Result.ConsoleMessage = aMessage;
-      return Result;
-    };
-  });
-  rtl.createHelper(this,"TWorkerLoadCommandHelper",null,function () {
+  rtl.createHelper(this,"TWorkerLoadCommandHelper",this.TWorkerCommandHelper,function () {
     this.CommandName = function () {
       var Result = "";
       Result = $mod.cmdLoad;
       return Result;
     };
-    this.Create = function (aStartThreadIdRange, aModule, aMemory) {
+    this.Create = function (aModule, aMemory) {
       var Result = null;
       Result = $mod.TWorkerCommandHelper.NewWorker($mod.TWorkerLoadCommandHelper.CommandName(),-1);
-      Result.ThreadRangeStart = aStartThreadIdRange;
       Result.Memory = aMemory;
       Result.Module = aModule;
       return Result;
     };
   });
-  rtl.createHelper(this,"TWorkerRunCommandHelper",null,function () {
+  rtl.createHelper(this,"TWorkerRunCommandHelper",this.TWorkerCommandHelper,function () {
     this.CommandName = function () {
       var Result = "";
       Result = $mod.cmdRun;
@@ -4958,6 +5512,31 @@ rtl.module("Rtl.WebThreads",["System","JS","SysUtils","wasienv","webassembly"],f
       Result = $mod.TWorkerCommandHelper.NewWorker($mod.TWorkerRunCommandHelper.CommandName(),-1);
       Result.ThreadID = aThreadID;
       Result.Args = aArgs;
+      return Result;
+    };
+  });
+  rtl.createHelper(this,"TWorkerRpcResultCommandHelper",this.TWorkerCommandHelper,function () {
+    this.CommandName = function () {
+      var Result = "";
+      Result = $mod.cmdRPCResult;
+      return Result;
+    };
+    this.Create = function (aID, aResult) {
+      var Result = null;
+      Result = $mod.TWorkerCommandHelper.NewWorker($mod.TWorkerRpcResultCommandHelper.CommandName(),-1);
+      Result.id = aID;
+      Result.result = aResult;
+      Result.jsonrpc = "2.0";
+      return Result;
+    };
+    this.CreateError = function (aID, aCode, aMessage) {
+      var Result = null;
+      Result = $mod.TWorkerCommandHelper.NewWorker($mod.TWorkerRpcResultCommandHelper.CommandName(),-1);
+      Result.id = aID;
+      Result.error = new Object();
+      Result.error.code = aCode;
+      Result.error.message = aMessage;
+      Result.jsonrpc = "2.0";
       return Result;
     };
   });
@@ -4975,14 +5554,70 @@ rtl.module("Rtl.WebThreads",["System","JS","SysUtils","wasienv","webassembly"],f
       return this;
     };
   });
-  rtl.createClass(this,"TWasmThreadSupport",pas.wasienv.TImportExtension,function () {
+  rtl.createClass(this,"TWasmThreadController",pas.System.TObject,function () {
+    this._instanceClass = null;
+    this._instance = null;
     this.$init = function () {
-      pas.wasienv.TImportExtension.$init.call(this);
-      this.FOnSendCommand = null;
+      pas.System.TObject.$init.call(this);
+      this.FLogAPI = false;
+      this.FModule = null;
+      this.FMemory = null;
+      this.FOnLog = null;
     };
     this.$final = function () {
-      this.FOnSendCommand = undefined;
-      pas.wasienv.TImportExtension.$final.call(this);
+      this.FModule = undefined;
+      this.FMemory = undefined;
+      this.FOnLog = undefined;
+      pas.System.TObject.$final.call(this);
+    };
+    this.GetInstance = function () {
+      var Result = null;
+      if ($mod.TWasmThreadController._instance === null) {
+        if ($mod.TWasmThreadController._instanceClass === null) throw $mod.EWasmThreads.$create("Create$1",["No instance class, please include Rtl.ThreadController or Rtl.ThreadWorker unit"]);
+        $mod.TWasmThreadController._instance = $mod.TWasmThreadController._instanceClass.$create("create$1");
+      };
+      Result = $mod.TWasmThreadController._instance;
+      return Result;
+    };
+    this.DoLog = function (msg) {
+      if (this.FLogAPI) if (this.FOnLog != null) {
+        this.FOnLog(msg)}
+       else pas.System.Writeln(msg);
+    };
+    this.DoLog$1 = function (Fmt, args) {
+      this.DoLog(pas.SysUtils.Format(Fmt,args));
+    };
+    this.create$1 = function () {
+      return this;
+    };
+    this.SetWasmModuleAndMemory = function (aModule, aMemory) {
+      this.FModule = aModule;
+      this.FMemory = aMemory;
+      if ((this.FModule != null) && (this.FMemory != null)) this.HaveWebassembly();
+    };
+    this.SetInstanceClass = function (aClass) {
+      $mod.TWasmThreadController._instanceClass = aClass;
+    };
+  });
+  rtl.createClass(this,"TWasmThreadSupportApi",pas.wasienv.TImportExtension,function () {
+    this.thread_spawn = function (start_arg) {
+      var Result = 0;
+      Result = this.ThreadController().SpawnThread(start_arg);
+      return Result;
+    };
+    this.thread_self = function () {
+      var Result = 0;
+      var F = null;
+      F = this.FInstanceExports["GetSelfThread"];
+      if (F != null) {
+        Result = F()}
+       else Result = 0;
+      return Result;
+    };
+    this.ThreadController = function () {
+      var Result = null;
+      Result = $mod.TWasmThreadController.GetInstance();
+      return Result;
     };
     this.ImportName = function () {
       var Result = "";
@@ -4991,48 +5626,19 @@ rtl.module("Rtl.WebThreads",["System","JS","SysUtils","wasienv","webassembly"],f
     };
     this.FillImportObject = function (aObject) {
       aObject[$mod.sThreadSpawn] = rtl.createCallback(this,"thread_spawn");
-      aObject[$mod.sThreadDetach] = rtl.createCallback(this,"thread_detach");
-      aObject[$mod.sThreadCancel] = rtl.createCallback(this,"thread_cancel");
       aObject[$mod.sThreadSelf] = rtl.createCallback(this,"thread_self");
-    };
-    this.HandleCommand = function (aCommand) {
-      var P = null;
-      P = new Object();
-      P.ExceptionClass = "ENotSupportedException";
-      P.ExceptionMessage = "Unsupported command : " + JSON.stringify(aCommand);
-      this.SendCommand(aCommand);
-    };
-    this.SendCommand = function (aCommand) {
-      if (this.FOnSendCommand != null) this.FOnSendCommand(this,aCommand);
     };
   });
 });
-rtl.module("Rtl.threadcontroller",["System","JS","Classes","SysUtils","Rtl.WebThreads","wasienv","weborworker"],function () {
+rtl.module("Rtl.threadcontroller",["System","JS","SysUtils","Rtl.WorkerCommands","Rtl.WebThreads","weborworker"],function () {
   "use strict";
   var $mod = this;
   var $impl = $mod.$impl;
+  this.TThreadWorkerState = {"0": "twsInit", twsInit: 0, "1": "twsReady", twsReady: 1, "2": "twsLoadSent", twsLoadSent: 2, "3": "twsIdle", twsIdle: 3, "4": "twsExecuting", twsExecuting: 4};
   rtl.createHelper(this,"TWasmThreadHelper",null,function () {
-    this.GetLoadSent = function () {
-      var Result = false;
-      var S = undefined;
-      S = this["FLoadSent"];
-      if (pas.JS.isBoolean(S)) {
-        Result = !(S == false)}
-       else Result = false;
-      return Result;
-    };
     this.GetThreadID = function () {
       var Result = 0;
       Result = $mod.TWasmThreadHelper.GetThreadInfo.call(this).ThreadID;
-      return Result;
-    };
-    this.GetThreadIDRange = function () {
-      var Result = 0;
-      var S = undefined;
-      S = this["FThreadIDRange"];
-      if (rtl.isNumber(S)) {
-        Result = rtl.trunc(S)}
-       else Result = 0;
       return Result;
     };
     this.GetThreadInfo = function () {
@@ -5044,130 +5650,130 @@ rtl.module("Rtl.threadcontroller",["System","JS","Classes","SysUtils","Rtl.WebTh
        else Result.$assign(pas["Rtl.WebThreads"].TThreadinfo.$new());
       return Result;
     };
-    this.SetLoaded = function (AValue) {
-      this["FLoaded"] = AValue;
-    };
-    this.SetLoadSent = function (AValue) {
-      this["FLoadSent"] = AValue;
+    this.GetWorkerState = function () {
+      var Result = 0;
+      var S = undefined;
+      S = this["FState"];
+      if (rtl.isNumber(S)) {
+        Result = rtl.trunc(S)}
+       else Result = 0;
+      return Result;
     };
     this.SetThreadID = function (AValue) {
       $mod.TWasmThreadHelper.GetThreadInfo.call(this).ThreadID = AValue;
     };
-    this.SetThreadIDRange = function (AValue) {
-      this["FThreadIDRange"] = AValue;
-    };
     this.SetThreadInfo = function (AValue) {
       this["FThreadInfo"] = AValue;
+    };
+    this.SetWorkerState = function (AValue) {
+      this["FState"] = AValue;
     };
     this.Create = function (aScript) {
       var Result = null;
       Result = new Worker(aScript);
       $mod.TWasmThreadHelper.SetThreadID.call(Result,-1);
-      $mod.TWasmThreadHelper.SetLoaded.call(Result,false);
-      $mod.TWasmThreadHelper.SetLoadSent.call(Result,false);
-      $mod.TWasmThreadHelper.SetThreadIDRange.call(Result,-1);
+      $mod.TWasmThreadHelper.SetWorkerState.call(Result,0);
       $mod.TWasmThreadHelper.SetThreadInfo.call(Result,pas["Rtl.WebThreads"].TThreadinfo.$new());
       return Result;
     };
     this.SendCommand = function (aCommand) {
-      this.postMessage(aCommand);
+      pas["Rtl.WorkerCommands"].TCommandDispatcher.GetInstance().SendCommand(this,aCommand);
     };
   });
-  rtl.createClass(this,"TThreadController",pas["Rtl.WebThreads"].TWasmThreadSupport,function () {
+  rtl.createClass(this,"TThreadController",pas["Rtl.WebThreads"].TWasmThreadController,function () {
     this.$init = function () {
-      pas["Rtl.WebThreads"].TWasmThreadSupport.$init.call(this);
+      pas["Rtl.WebThreads"].TWasmThreadController.$init.call(this);
+      this.FHandleConsoleMessages = false;
+      this.FLogAPI$1 = false;
+      this.FOnConsoleWrite = null;
+      this.FWorkerCount = 0;
       this.FInitialWorkerCount = 0;
       this.FMaxWorkerCount = 0;
-      this.FOnUnknownMessage = null;
-      this.FHost = null;
+      this.FOnAllocateWorker = null;
       this.FWorkerScript = "";
-      this.FNextIDRange = 0;
-      this.FNextThreadID = 0;
       this.FIdleWorkers = [];
       this.FBusyWorkers = [];
       this.FThreads = null;
     };
     this.$final = function () {
-      this.FOnUnknownMessage = undefined;
-      this.FHost = undefined;
+      this.FOnConsoleWrite = undefined;
+      this.FOnAllocateWorker = undefined;
       this.FIdleWorkers = undefined;
       this.FBusyWorkers = undefined;
       this.FThreads = undefined;
-      pas["Rtl.WebThreads"].TWasmThreadSupport.$final.call(this);
+      pas["Rtl.WebThreads"].TWasmThreadController.$final.call(this);
     };
-    this.SetWasiHost = function (AValue) {
-      if (this.FHost === AValue) return;
-      this.FHost = AValue;
-      if ((this.FHost != null) && this.FHost.GetStartDescriptorReady()) this.SendLoadCommands();
+    this.HandleRawCleanupCommand = function (aCommand) {
+      var lWorker = null;
+      lWorker = aCommand._sender;
+      this.HandleCleanupCommand(lWorker,aCommand);
     };
-    this.thread_spawn = function (start_arg) {
-      var Result = 0;
-      var aInfo = pas["Rtl.WebThreads"].TThreadinfo.$new();
-      pas.System.Writeln("In host thread_spawn");
-      aInfo.ThreadID = this.AllocateThreadID();
-      aInfo.Arguments = start_arg;
-      aInfo.OriginThreadID = 0;
-      Result = this.SpawnThread(pas["Rtl.WebThreads"].TThreadinfo.$clone(aInfo));
-      return Result;
+    this.HandleRawReadyCommand = function (aCommand) {
+      var lWorker = null;
+      pas.System.Writeln("Had ready command");
+      lWorker = aCommand._sender;
+      this.HandleReadyCommand(lWorker,aCommand);
     };
-    this.thread_detach = function (thread_id) {
-      var Result = 0;
-      Result = -1;
-      return Result;
+    this.HandleRawSpawnCommand = function (aCommand) {
+      var lWorker = null;
+      lWorker = aCommand._sender;
+      this.HandleSpawnCommand(lWorker,aCommand);
     };
-    this.thread_cancel = function (thread_id) {
-      var Result = 0;
-      Result = -1;
-      return Result;
+    this.HandleRawLoadedCommand = function (aCommand) {
+      var lWorker = null;
+      pas.System.Writeln("Receiving loaded command");
+      lWorker = aCommand._sender;
+      this.HandleLoadedCommand(lWorker,aCommand);
     };
-    this.thread_self = function () {
-      var Result = 0;
-      Result = -1;
-      return Result;
+    this.HandleRawConsoleCommand = function (aCommand) {
+      var lWorker = null;
+      lWorker = aCommand._sender;
+      this.HandleConsoleCommand(lWorker,aCommand);
     };
-    this.AllocateThreadID = function () {
-      var Result = 0;
-      this.FNextThreadID += 1;
-      Result = this.FNextThreadID;
-      return Result;
+    this.HandleRawKillCommand = function (aCommand) {
+      var lWorker = null;
+      lWorker = aCommand._sender;
+      this.HandleKillCommand(lWorker,aCommand);
     };
-    this.GetNextThreadIDRange = function () {
-      var Result = 0;
-      this.FNextIDRange += 1000;
-      Result = this.FNextIDRange;
-      return Result;
+    this.HandleRawCancelCommand = function (aCommand) {
+      var lWorker = null;
+      lWorker = aCommand._sender;
+      this.HandleCancelCommand(lWorker,aCommand);
     };
-    this.DoWorkerMessage = function (aEvent) {
-      var aData = null;
-      var aWorker = null;
-      if (rtl.isObject(aEvent.data) && aEvent.data.hasOwnProperty("Command")) {
-        aData = aEvent.data;
-        aWorker = aEvent.target;
-        this.HandleCommand$1(aWorker,aData);
-      } else if (this.FOnUnknownMessage != null) {
-        this.FOnUnknownMessage(aEvent)}
-       else pas.System.Writeln("Unknown worker message : ",JSON.stringify(aEvent));
+    this.HaveWebassembly = function () {
+      this.SendLoadCommands();
+    };
+    this.DoError = function (msg) {
+      this.DoLog("Error: " + msg);
     };
     this.AllocateNewWorker = function (aWorkerScript) {
       var Result = null;
-      Result = $mod.TWasmThreadHelper.Create(aWorkerScript);
-      $mod.TWasmThreadHelper.SetThreadIDRange.call(Result,this.GetNextThreadIDRange());
-      Result.addEventListener("message",rtl.createSafeCallback(this,"DoWorkerMessage"));
-      if ((this.FHost != null) && this.FHost.GetStartDescriptorReady()) {
-        this.SendLoadCommand(Result)}
-       else pas.System.Writeln("Host not set, delaying sending load command." + aWorkerScript);
+      var lWorkerUrl = "";
+      this.DoLog("Allocating new worker for: " + aWorkerScript);
+      this.FWorkerCount += 1;
+      lWorkerUrl = aWorkerScript;
+      if (pas.System.Pos("?",lWorkerUrl) > 0) {
+        lWorkerUrl = lWorkerUrl + "&"}
+       else lWorkerUrl = lWorkerUrl + "?";
+      lWorkerUrl = lWorkerUrl + "worker=" + pas.SysUtils.IntToStr(this.FWorkerCount);
+      Result = $mod.TWasmThreadHelper.Create(lWorkerUrl);
+      pas["Rtl.WorkerCommands"].TCommandDispatcher.GetInstance().RegisterWorker(Result,"threadworker" + pas.SysUtils.IntToStr(this.FWorkerCount));
+      if (this.FLogAPI$1) this.DoLog("Host not set, delaying sending load command to: " + aWorkerScript);
+      if (this.FOnAllocateWorker != null) this.FOnAllocateWorker(this,Result);
       return Result;
     };
     this.SendLoadCommand = function (aThreadWorker) {
       var WLC = null;
-      WLC = pas["Rtl.WebThreads"].TWorkerLoadCommandHelper.Create($mod.TWasmThreadHelper.GetThreadIDRange.call(aThreadWorker),this.FHost.FPreparedStartDescriptor.Module,this.FHost.FPreparedStartDescriptor.Memory);
+      pas.System.Writeln("Sending load command to worker.");
+      WLC = pas["Rtl.WebThreads"].TWorkerLoadCommandHelper.Create(this.FModule,this.FMemory);
       $mod.TWasmThreadHelper.SendCommand.call(aThreadWorker,WLC);
-      $mod.TWasmThreadHelper.SetLoadSent.call(aThreadWorker,true);
+      $mod.TWasmThreadHelper.SetWorkerState.call(aThreadWorker,2);
     };
     this.GetNewWorker = function () {
       var Result = null;
       var WT = null;
       if (rtl.length(this.FIdleWorkers) === 0) {
+        if (this.FLogAPI$1) this.DoLog("No idle workers, creating new one");
         if (rtl.length(this.FBusyWorkers) < this.FMaxWorkerCount) {
           WT = this.AllocateNewWorker(this.FWorkerScript)}
          else throw pas["Rtl.WebThreads"].EWasmThreads.$create("Create$1",[rtl.getResStr($mod,"SErrMaxWorkersReached")]);
@@ -5178,21 +5784,21 @@ rtl.module("Rtl.threadcontroller",["System","JS","Classes","SysUtils","Rtl.WebTh
       Result = WT;
       return Result;
     };
-    this.SpawnThread = function (aInfo) {
-      var $Self = this;
+    this.SpawnThread$1 = function (aInfo) {
       var Result = 0;
       var WT = null;
-      var TryCount = 0;
-      TryCount = 0;
+      if (this.FWorkerCount === 0) this.AllocateInitialworkers();
+      this.DoLog$1("Enter SpawnThread for ID %d",pas.System.VarRecs(0,aInfo.ThreadID));
       WT = this.GetNewWorker();
       if (WT === null) {
-        pas.System.Writeln("Error: no worker !");
+        this.DoError("Error: no worker !");
         return -1;
       };
       $mod.TWasmThreadHelper.SetThreadInfo.call(WT,aInfo);
       this.FThreads[aInfo.ThreadID] = WT;
       this.SendRunCommand(WT);
       Result = aInfo.ThreadID;
+      this.DoLog$1("Exit: SpawnThread for ID %d",pas.System.VarRecs(0,$mod.TWasmThreadHelper.GetThreadID.call(WT)));
       return Result;
     };
     this.SendRunCommand = function (aThreadWorker) {
@@ -5206,191 +5812,214 @@ rtl.module("Rtl.threadcontroller",["System","JS","Classes","SysUtils","Rtl.WebTh
       aInfo.OriginThreadID = $mod.TWasmThreadHelper.GetThreadID.call(aWorker);
       aInfo.ThreadID = aCommand.ThreadID;
       aInfo.Arguments = aCommand.Arguments;
-      this.SpawnThread(pas["Rtl.WebThreads"].TThreadinfo.$clone(aInfo));
+      this.SpawnThread$1(pas["Rtl.WebThreads"].TThreadinfo.$clone(aInfo));
+    };
+    this.HandleReadyCommand = function (aWorker, aCommand) {
+      $mod.TWasmThreadHelper.SetWorkerState.call(aWorker,1);
+      if ((this.FMemory != null) && (this.FModule != null)) this.SendLoadCommand(aWorker);
     };
     this.HandleCancelCommand = function (aWorker, aCommand) {
+      if ((aWorker !== null) && (aCommand !== null)) ;
     };
     this.HandleCleanupCommand = function (aWorker, aCommand) {
       var Idx = 0;
       $mod.TWasmThreadHelper.SetThreadInfo.call(aWorker,pas["Rtl.WebThreads"].TThreadinfo.$new());
+      $mod.TWasmThreadHelper.SetWorkerState.call(aWorker,3);
       Idx = this.FBusyWorkers.indexOf(aWorker);
       if (Idx !== -1) this.FBusyWorkers.splice(Idx,1);
       Idx = this.FIdleWorkers.indexOf(aWorker);
       if (Idx === -1) this.FIdleWorkers = rtl.arrayPushN(this.FIdleWorkers,aWorker);
+      if (aCommand !== null) ;
     };
     this.HandleKillCommand = function (aWorker, aCommand) {
+      if ((aWorker !== null) && (aCommand !== null)) ;
     };
     this.HandleLoadedCommand = function (aWorker, aCommand) {
-      $mod.TWasmThreadHelper.SetLoaded.call(aWorker,true);
+      this.DoLog("Entering TThreadController.HandleLoadedCommand");
+      $mod.TWasmThreadHelper.SetWorkerState.call(aWorker,3);
       if ($mod.TWasmThreadHelper.GetThreadID.call(aWorker) > 0) this.SendRunCommand(aWorker);
+      this.DoLog("Host: exiting TThreadController.HandleLoadedCommand");
+      if (aCommand !== null) ;
     };
     this.HandleConsoleCommand = function (aWorker, aCommand) {
       var Prefix = "";
-      Prefix = pas.SysUtils.Format("Wasm thread %d: ",pas.System.VarRecs(0,$mod.TWasmThreadHelper.GetThreadID.call(aWorker)));
-      if (this.FHost.FOnConsoleWrite != null) {
-        this.FHost.FOnConsoleWrite(this.FHost,Prefix + aCommand.ConsoleMessage)}
+      if (!this.FHandleConsoleMessages) return;
+      Prefix = aCommand.senderId;
+      if (Prefix === "") {
+        Prefix = pas.SysUtils.Format("[Wasm thread %d]: ",pas.System.VarRecs(0,$mod.TWasmThreadHelper.GetThreadID.call(aWorker)))}
+       else Prefix = "[" + Prefix + "]: ";
+      if (this.FOnConsoleWrite != null) {
+        this.FOnConsoleWrite(this,Prefix + aCommand.ConsoleMessage)}
        else pas.System.Writeln(Prefix + aCommand.ConsoleMessage);
     };
-    this.Create$1 = function (aEnv) {
-      this.Create$3(aEnv,pas["Rtl.WebThreads"].DefaultThreadWorker,2);
+    this.InitMessageCallBacks = function () {
+      var $with = pas["Rtl.WorkerCommands"].TCommandDispatcher.GetInstance();
+      $with.RegisterCommandHandler(pas["Rtl.WebThreads"].cmdSpawn,rtl.createCallback(this,"HandleRawSpawnCommand"),false);
+      $with.RegisterCommandHandler(pas["Rtl.WebThreads"].cmdCleanup,rtl.createCallback(this,"HandleRawCleanupCommand"),false);
+      $with.RegisterCommandHandler(pas["Rtl.WebThreads"].cmdKill,rtl.createCallback(this,"HandleRawKillCommand"),false);
+      $with.RegisterCommandHandler(pas["Rtl.WebThreads"].cmdCancel,rtl.createCallback(this,"HandleRawCancelCommand"),false);
+      $with.RegisterCommandHandler(pas["Rtl.WebThreads"].cmdLoaded,rtl.createCallback(this,"HandleRawLoadedCommand"),false);
+      $with.RegisterCommandHandler(pas["Rtl.WebThreads"].cmdConsole,rtl.createCallback(this,"HandleRawConsoleCommand"),false);
+      $with.RegisterCommandHandler(pas["Rtl.WebThreads"].cmdReady,rtl.createCallback(this,"HandleRawReadyCommand"),false);
+    };
+    this.create$1 = function () {
+      this.Create$3(pas["Rtl.WebThreads"].DefaultThreadWorker,2);
       return this;
     };
-    this.Create$3 = function (aEnv, aWorkerScript, aSpawnWorkerCount) {
-      var I = 0;
-      pas.wasienv.TImportExtension.Create$1.call(this,aEnv);
+    this.Create$3 = function (aWorkerScript, aSpawnWorkerCount) {
+      pas["Rtl.WebThreads"].TWasmThreadController.create$1.call(this);
+      this.InitMessageCallBacks();
       this.FThreads = new Object();
       this.FWorkerScript = aWorkerScript;
       this.FInitialWorkerCount = aSpawnWorkerCount;
       this.FMaxWorkerCount = 100;
-      for (var $l = 1, $end = aSpawnWorkerCount; $l <= $end; $l++) {
-        I = $l;
-        this.FIdleWorkers.push(this.AllocateNewWorker(aWorkerScript));
-      };
       return this;
     };
-    this.HandleCommand$1 = function (aWorker, aCommand) {
-      var $tmp = aCommand.Command;
-      if ($tmp === pas["Rtl.WebThreads"].cmdSpawn) {
-        this.HandleSpawnCommand(aWorker,aCommand)}
-       else if ($tmp === pas["Rtl.WebThreads"].cmdCleanup) {
-        this.HandleCleanupCommand(aWorker,aCommand)}
-       else if ($tmp === pas["Rtl.WebThreads"].cmdKill) {
-        this.HandleKillCommand(aWorker,aCommand)}
-       else if ($tmp === pas["Rtl.WebThreads"].cmdCancel) {
-        this.HandleCancelCommand(aWorker,aCommand)}
-       else if ($tmp === pas["Rtl.WebThreads"].cmdLoaded) {
-        this.HandleLoadedCommand(aWorker,aCommand)}
-       else if ($tmp === pas["Rtl.WebThreads"].cmdConsole) {
-        this.HandleConsoleCommand(aWorker,aCommand)}
-       else {
-        this.HandleCommand(aCommand);
+    this.AllocateInitialworkers = function () {
+      var I = 0;
+      for (var $l = 1, $end = this.FInitialWorkerCount; $l <= $end; $l++) {
+        I = $l;
+        this.FIdleWorkers.push(this.AllocateNewWorker(this.FWorkerScript));
       };
+    };
+    this.SpawnThread = function (start_arg) {
+      var Result = 0;
+      var aInfo = pas["Rtl.WebThreads"].TThreadinfo.$new();
+      aInfo.ThreadID = start_arg;
+      aInfo.Arguments = start_arg;
+      aInfo.OriginThreadID = 0;
+      Result = this.SpawnThread$1(pas["Rtl.WebThreads"].TThreadinfo.$clone(aInfo));
+      return Result;
     };
     this.SendLoadCommands = function () {
       var WT = null;
+      pas.System.Writeln("Send load commands");
+      this.DoLog("Sending load command to all workers");
       for (var $in = this.FIdleWorkers, $l = 0, $end = rtl.length($in) - 1; $l <= $end; $l++) {
         WT = $in[$l];
-        if (!$mod.TWasmThreadHelper.GetLoadSent.call(WT)) this.SendLoadCommand(WT);
+        if ($mod.TWasmThreadHelper.GetWorkerState.call(WT) === 1) this.SendLoadCommand(WT);
       };
     };
   });
+  this.globalThreadController = function () {
+    var Result = null;
+    Result = rtl.as(pas["Rtl.WebThreads"].TWasmThreadController.GetInstance(),$mod.TThreadController);
+    return Result;
+  };
   $mod.$implcode = function () {
     $mod.$resourcestrings = {SErrMaxWorkersReached: {org: "Cannot create thread worker, Maximum number of workers (%d) reached."}};
   };
+  $mod.$init = function () {
+    pas["Rtl.WebThreads"].TWasmThreadController.SetInstanceClass($mod.TThreadController);
+  };
 },[]);
-rtl.module("wasiworkerthreadhost",["System","Classes","SysUtils","JS","CustApp","weborworker","webworker","webassembly","wasienv","Rtl.WebThreads","Rtl.threadcontroller"],function () {
+rtl.module("CustApp",["System","Classes","SysUtils","Types","JS"],function () {
+  "use strict";
+  var $mod = this;
+  rtl.createClass(this,"TCustomApplication",pas.Classes.TComponent,function () {
+    this.$init = function () {
+      pas.Classes.TComponent.$init.call(this);
+      this.FExceptObjectJS = undefined;
+      this.FTerminated = false;
+      this.FOptionChar = "";
+      this.FCaseSensitiveOptions = false;
+      this.FStopOnException = false;
+      this.FExceptionExitCode = 0;
+      this.FExceptObject = null;
+    };
+    this.$final = function () {
+      this.FExceptObject = undefined;
+      pas.Classes.TComponent.$final.call(this);
+    };
+    this.GetEnvironmentVar = function (VarName) {
+      var Result = "";
+      Result = pas.SysUtils.GetEnvironmentVariable(VarName);
+      return Result;
+    };
+    this.Create$1 = function (AOwner) {
+      pas.Classes.TComponent.Create$1.call(this,AOwner);
+      this.FOptionChar = "-";
+      this.FCaseSensitiveOptions = true;
+      this.FStopOnException = false;
+      return this;
+    };
+    this.HandleException = function (Sender) {
+      var E = null;
+      var Tmp = null;
+      Tmp = null;
+      E = this.FExceptObject;
+      if ((E === null) && pas.System.Assigned(this.FExceptObjectJS)) {
+        if (rtl.isExt(this.FExceptObjectJS,Error,1)) {
+          Tmp = pas.SysUtils.EExternalException.$create("Create$1",[this.FExceptObjectJS.message])}
+         else if (rtl.isExt(this.FExceptObjectJS,Object,1) && this.FExceptObjectJS.hasOwnProperty("message")) {
+          Tmp = pas.SysUtils.EExternalException.$create("Create$1",["" + this.FExceptObjectJS["message"]])}
+         else Tmp = pas.SysUtils.EExternalException.$create("Create$1",[JSON.stringify(this.FExceptObjectJS)]);
+        E = Tmp;
+      };
+      try {
+        this.ShowException(E);
+        if (this.FStopOnException) this.Terminate$1(this.FExceptionExitCode);
+      } finally {
+        Tmp = rtl.freeLoc(Tmp);
+      };
+      if (Sender === null) ;
+    };
+    this.Run = function () {
+      do {
+        this.FExceptObject = null;
+        this.FExceptObjectJS = null;
+        try {
+          this.DoRun();
+        } catch ($e) {
+          if (pas.SysUtils.Exception.isPrototypeOf($e)) {
+            var E = $e;
+            this.FExceptObject = E;
+            this.FExceptObjectJS = E;
+            this.HandleException(this);
+          } else {
+            this.FExceptObject = null;
+            this.FExceptObjectJS = $e;
+            this.HandleException(this);
+          }
+        };
+        break;
+      } while (!this.FTerminated);
+    };
+    this.Terminate$1 = function (AExitCode) {
+      this.FTerminated = true;
+      rtl.exitcode = AExitCode;
+    };
+  });
+});
+rtl.module("webworkerbase",["System","JS","weborworker"],function () {
+  "use strict";
+  var $mod = this;
+});
+rtl.module("webworker",["System","JS","weborworker","webworkerbase"],function () {
+  "use strict";
+  var $mod = this;
+});
+rtl.module("workerapp",["System","Classes","SysUtils","CustApp","webworker","Rtl.WorkerCommands"],function () {
   "use strict";
   var $mod = this;
   var $impl = $mod.$impl;
-  rtl.createClass(this,"TWorkerWASIHostApplication",pas.CustApp.TCustomApplication,function () {
+  rtl.createClass(this,"TWorkerApplication",pas.CustApp.TCustomApplication,function () {
     this.$init = function () {
       pas.CustApp.TCustomApplication.$init.call(this);
-      this.FHost = null;
+      this.FSendOutputToConsole = false;
     };
-    this.$final = function () {
-      this.FHost = undefined;
-      pas.CustApp.TCustomApplication.$final.call(this);
-    };
-    this.DoOnSendCommand = function (Sender, aCommand) {
-      this.SendCommand(aCommand);
-    };
-    this.DoRun = function () {
-      self.addEventListener("message",rtl.createSafeCallback(this,"HandleMessage"));
-    };
-    this.Create$1 = function (aOwner) {
-      pas.CustApp.TCustomApplication.Create$1.call(this,aOwner);
-      this.FHost = this.CreateHost();
+    this.Create$1 = function (AOwner) {
+      pas.CustApp.TCustomApplication.Create$1.call(this,AOwner);
+      this.FSendOutputToConsole = true;
       return this;
-    };
-    this.Destroy = function () {
-      pas.SysUtils.FreeAndNil({p: this, get: function () {
-          return this.p.FHost;
-        }, set: function (v) {
-          this.p.FHost = v;
-        }});
-      pas.Classes.TComponent.Destroy.call(this);
-    };
-    this.SendCommand = function (aCommand) {
-      self.postMessage(aCommand);
-    };
-    this.StartWebAssembly = function (aPath, DoRun, aBeforeStart, aAfterStart) {
-      this.FHost.StartWebAssembly(aPath,DoRun,aBeforeStart,aAfterStart);
-    };
-  });
-  rtl.createClass(this,"TWASIThreadControllerHost",pas.wasienv.TWASIHost,function () {
-    this.$init = function () {
-      pas.wasienv.TWASIHost.$init.call(this);
-      this.FThreadSupport = null;
-    };
-    this.$final = function () {
-      this.FThreadSupport = undefined;
-      pas.wasienv.TWASIHost.$final.call(this);
-    };
-    this.SetThreadSupport = function (AValue) {
-      if (this.FThreadSupport != null) this.FThreadSupport.SetWasiHost(null);
-      this.FThreadSupport = AValue;
-      if (this.FThreadSupport != null) this.FThreadSupport.SetWasiHost(this);
-    };
-    this.DoAfterInstantiate = function () {
-      pas.wasienv.TWASIHost.DoAfterInstantiate.call(this);
-      if (this.FThreadSupport != null) this.FThreadSupport.SendLoadCommands();
-    };
-    this.Create$1 = function (aOwner) {
-      pas.wasienv.TWASIHost.Create$1.call(this,aOwner);
-      return this;
-    };
-  });
-  rtl.createClass(this,"TWorkerThreadControllerApplication",this.TWorkerWASIHostApplication,function () {
-    this.$init = function () {
-      $mod.TWorkerWASIHostApplication.$init.call(this);
-      this.FThreadSupport = null;
-    };
-    this.$final = function () {
-      this.FThreadSupport = undefined;
-      $mod.TWorkerWASIHostApplication.$final.call(this);
-    };
-    this.HandleConsoleWrite = function (Sender, aOutput) {
-      this.SendCommand(pas["Rtl.WebThreads"].TWorkerConsoleCommandHelper.Create(aOutput,0));
-    };
-    this.HandleExecuteCommand = function (aCmd) {
-      if (rtl.isObject(aCmd.Env)) $impl.EnvNames = aCmd.Env;
-      if (rtl.isString(aCmd.ExecuteFunc)) this.FHost.FRunEntryFunction = aCmd.ExecuteFunc;
-      this.StartWebAssembly(aCmd.Url,true,null,null);
     };
     this.ShowException = function (aError) {
       var Ex = null;
-      Ex = pas["Rtl.WebThreads"].TWorkerExceptionCommandHelper.CreateNew(aError.$classname,aError.fMessage,-1);
+      Ex = pas["Rtl.WorkerCommands"].TWorkerExceptionCommandHelper.Create(aError.$classname,aError.fMessage,-1);
       this.SendCommand(Ex);
     };
-    this.HandleMessage = function (aEvent) {
-      var aData = null;
-      if (rtl.isObject(aEvent.data) && aEvent.data.hasOwnProperty("Command")) {
-        aData = aEvent.data;
-        var $tmp = aData.Command;
-        if ($tmp === pas["Rtl.WebThreads"].cmdExecute) {
-          this.HandleExecuteCommand(aData)}
-         else if ($tmp === pas["Rtl.WebThreads"].cmdConsole) {
-          this.SendCommand(aData)}
-         else {
-          this.FThreadSupport.HandleCommand(aData);
-        };
-      };
-    };
-    this.CreateHost = function () {
-      var Result = null;
-      var TH = null;
-      var Mem = pas.webassembly.TJSWebAssemblyMemoryDescriptor.$new();
-      TH = $mod.TWASIThreadControllerHost.$create("Create$1",[this]);
-      TH.FOnConsoleWrite = rtl.createCallback(this,"HandleConsoleWrite");
-      this.FThreadSupport = pas["Rtl.threadcontroller"].TThreadController.$create("Create$1",[TH.FEnv]);
-      Mem.initial = 256;
-      Mem.maximum = 1024;
-      Mem.shared = true;
-      TH.FMemoryDescriptor.$assign(Mem);
-      this.FThreadSupport.FOnSendCommand = rtl.createCallback(this,"DoOnSendCommand");
-      TH.SetThreadSupport(this.FThreadSupport);
-      Result = TH;
-      return Result;
+    this.SendCommand = function (aCommand) {
+      pas["Rtl.WorkerCommands"].TCommandDispatcher.GetInstance().SendCommand$2(aCommand);
     };
   });
   $mod.$implcode = function () {
@@ -5445,14 +6074,195 @@ rtl.module("wasiworkerthreadhost",["System","Classes","SysUtils","JS","CustApp",
     pas.SysUtils.OnGetEnvironmentVariableCount = $impl.MyGetEnvironmentVariableCount;
     pas.SysUtils.OnGetEnvironmentString = $impl.MyGetEnvironmentString;
   };
-},["Types"]);
-rtl.module("program",["System","Classes","wasiworkerthreadhost"],function () {
+},["JS","Types"]);
+rtl.module("wasiworkerapp",["System","Classes","SysUtils","workerapp","wasienv"],function () {
   "use strict";
   var $mod = this;
-  rtl.createClass(this,"TApplication",pas.wasiworkerthreadhost.TWorkerThreadControllerApplication,function () {
+  rtl.createClass(this,"TWorkerWASIHostApplication",pas.workerapp.TWorkerApplication,function () {
+    this._WasiHostClass = null;
+    this.$init = function () {
+      pas.workerapp.TWorkerApplication.$init.call(this);
+      this.FHost = null;
+      this.FOnHostCreated = null;
+    };
+    this.$final = function () {
+      this.FHost = undefined;
+      this.FOnHostCreated = undefined;
+      pas.workerapp.TWorkerApplication.$final.call(this);
+    };
+    this.GetEnv = function () {
+      var Result = null;
+      Result = this.FHost.GetEnv();
+      return Result;
+    };
+    this.RegisterMessageHandlers = function () {
+    };
+    this.DoRun = function () {
+    };
+    this.CreateHost = function () {
+      var Result = null;
+      var C = null;
+      C = this._WasiHostClass;
+      if (C === null) C = pas.wasienv.TWASIHost;
+      Result = C.$create("Create$1",[this]);
+      return Result;
+    };
+    this.DoHostCreated = function () {
+      if (this.FOnHostCreated != null) this.FOnHostCreated(this);
+    };
+    this.Create$1 = function (aOwner) {
+      pas.workerapp.TWorkerApplication.Create$1.call(this,aOwner);
+      this.RegisterMessageHandlers();
+      this.FHost = this.CreateHost();
+      this.DoHostCreated();
+      return this;
+    };
+    this.Destroy = function () {
+      pas.SysUtils.FreeAndNil({p: this, get: function () {
+          return this.p.FHost;
+        }, set: function (v) {
+          this.p.FHost = v;
+        }});
+      pas.Classes.TComponent.Destroy.call(this);
+    };
+    this.SetWasiHostClass = function (aClass) {
+      $mod.TWorkerWASIHostApplication._WasiHostClass = aClass;
+    };
+    this.StartWebAssembly = function (aPath, DoRun, aBeforeStart, aAfterStart) {
+      this.FHost.StartWebAssembly(aPath,DoRun,aBeforeStart,aAfterStart);
+    };
+  });
+});
+rtl.module("Rtl.workerthreadhost",["System","Types","Classes","SysUtils","JS","CustApp","webworker","webassembly","wasienv","Rtl.WebThreads","Rtl.threadcontroller","Rtl.WorkerCommands","wasiworkerapp"],function () {
+  "use strict";
+  var $mod = this;
+  rtl.createClass(this,"TWASIThreadControllerHost",pas.wasienv.TWASIHost,function () {
+    this.NeedSharedMemory = function () {
+      var Result = false;
+      Result = true;
+      return Result;
+    };
+    this.GetThreadSupport = function () {
+      var Result = null;
+      Result = rtl.as(pas["Rtl.WebThreads"].TWasmThreadController.GetInstance(),pas["Rtl.threadcontroller"].TThreadController);
+      return Result;
+    };
+    this.DoAfterInstantiate = function () {
+      pas.wasienv.TWASIHost.DoAfterInstantiate.call(this);
+      if (this.GetThreadSupport() != null) this.GetThreadSupport().SetWasmModuleAndMemory(this.FPreparedStartDescriptor.Module,this.FPreparedStartDescriptor.Memory);
+    };
+    this.CreateWasiEnvironment = function () {
+      var Result = null;
+      Result = pas.wasienv.TWASIHost.CreateWasiEnvironment.call(this);
+      return Result;
+    };
+  });
+  rtl.createClass(this,"TWorkerThreadControllerApplication",pas.wasiworkerapp.TWorkerWASIHostApplication,function () {
+    this.$init = function () {
+      pas.wasiworkerapp.TWorkerWASIHostApplication.$init.call(this);
+      this.FThreadSupport = null;
+    };
+    this.$final = function () {
+      this.FThreadSupport = undefined;
+      pas.wasiworkerapp.TWorkerWASIHostApplication.$final.call(this);
+    };
+    this.HandleRawExecuteCommand = function (aCommand) {
+      this.HandleExecuteCommand(aCommand);
+    };
+    this.HandleRawRpcCommand = function (aCommand) {
+      this.HandleRpcCommand(aCommand);
+    };
+    this.DoHostCreated = function () {
+      var Mem = pas.webassembly.TJSWebAssemblyMemoryDescriptor.$new();
+      pas.wasiworkerapp.TWorkerWASIHostApplication.DoHostCreated.call(this);
+      Mem.initial = 256;
+      Mem.maximum = 512;
+      Mem.shared = true;
+      this.FHost.FMemoryDescriptor.$assign(Mem);
+    };
+    this.RegisterMessageHandlers = function () {
+      pas.wasiworkerapp.TWorkerWASIHostApplication.RegisterMessageHandlers.call(this);
+      pas["Rtl.WorkerCommands"].TCommandDispatcher.GetInstance().RegisterCommandHandler(pas["Rtl.WebThreads"].cmdExecute,rtl.createCallback(this,"HandleRawExecuteCommand"),false);
+      pas["Rtl.WorkerCommands"].TCommandDispatcher.GetInstance().RegisterCommandHandler(pas["Rtl.WebThreads"].cmdRPC,rtl.createCallback(this,"HandleRawRpcCommand"),false);
+    };
+    this.HandleExecuteCommand = function (aCmd) {
+      var lName = "";
+      var lVal = undefined;
+      if (rtl.isObject(aCmd.Env)) {
+        this.GetEnv().FEnvironment.Clear();
+        for (var $in = Object.getOwnPropertyNames(aCmd.Env), $l = 0, $end = rtl.length($in) - 1; $l <= $end; $l++) {
+          lName = $in[$l];
+          lVal = aCmd.Env[lName];
+          if (rtl.isString(lVal)) this.GetEnv().FEnvironment.SetValue(lName,lVal);
+        };
+      };
+      if (rtl.isString(aCmd.ExecuteFunc)) this.FHost.FRunEntryFunction = aCmd.ExecuteFunc;
+      this.StartWebAssembly(aCmd.Url,true,null,null);
+    };
+    this.HandleRpcCommand = function (aCmd) {
+      var res = null;
+      var data = undefined;
+      var errClass = "";
+      var errMessage = "";
+      if (aCmd.id === "") {
+        res = pas["Rtl.WebThreads"].TWorkerRpcResultCommandHelper.CreateError(aCmd.id,-32600,"Invalid request: No json-rpc ID")}
+       else if (aCmd.jsonrpc !== "2.0") {
+        res = pas["Rtl.WebThreads"].TWorkerRpcResultCommandHelper.CreateError(aCmd.id,-32600,"Invalid request: no jsonrpc version")}
+       else if (!(this.FHost.FExported[aCmd.method] != null)) {
+        res = pas["Rtl.WebThreads"].TWorkerRpcResultCommandHelper.CreateError(aCmd.id,-32601,'Method "' + aCmd.method + '" not found')}
+       else {
+        try {
+          if (rtl.isArray(aCmd.params)) {
+            data = this.FHost.FExported[aCmd.method].apply(null,aCmd.params)}
+           else data = this.FHost.FExported[aCmd.method].call(null);
+          res = pas["Rtl.WebThreads"].TWorkerRpcResultCommandHelper.Create(aCmd.id,data);
+        } catch ($e) {
+          if (rtl.isExt($e,Error)) {
+            var JE = $e;
+            errClass = pas.JS.JSClassName(JE);
+            errMessage = JE.message;
+          } else if (pas.SysUtils.Exception.isPrototypeOf($e)) {
+            var E = $e;
+            errClass = E.$classname;
+            errMessage = E.fMessage;
+          } else throw $e
+        };
+        if (!(res != null)) res = pas["Rtl.WebThreads"].TWorkerRpcResultCommandHelper.CreateError(aCmd.id,-32603,"Exception " + errClass + ' while executing "' + aCmd.method + '" : ' + errMessage);
+      };
+      self.postMessage(res);
+    };
+    this.Create$1 = function (aOwner) {
+      var lWorker = "";
+      pas.wasiworkerapp.TWorkerWASIHostApplication.Create$1.call(this,aOwner);
+      this.FThreadSupport = pas["Rtl.WebThreads"].TWasmThreadSupportApi.$create("Create$1",[this.GetEnv()]);
+      lWorker = this.GetEnvironmentVar("worker");
+      if (lWorker === "") lWorker = "worker";
+      pas["Rtl.WorkerCommands"].TCommandDispatcher.GetInstance().FDefaultSenderID = lWorker;
+      pas["Rtl.threadcontroller"].globalThreadController().AllocateInitialworkers();
+      return this;
+    };
+    this.Destroy = function () {
+      pas.SysUtils.FreeAndNil({p: this, get: function () {
+          return this.p.FThreadSupport;
+        }, set: function (v) {
+          this.p.FThreadSupport = v;
+        }});
+      pas.wasiworkerapp.TWorkerWASIHostApplication.Destroy.call(this);
+    };
+  });
+  $mod.$init = function () {
+    pas["Rtl.WebThreads"].TWasmThreadController.SetInstanceClass(pas["Rtl.threadcontroller"].TThreadController);
+    pas.wasiworkerapp.TWorkerWASIHostApplication.SetWasiHostClass($mod.TWASIThreadControllerHost);
+  };
+});
+rtl.module("program",["System","Classes","Rtl.threadcontroller","Rtl.workerthreadhost"],function () {
+  "use strict";
+  var $mod = this;
+  rtl.createClass(this,"TApplication",pas["Rtl.workerthreadhost"].TWorkerThreadControllerApplication,function () {
   });
   this.App = null;
   $mod.$main = function () {
+    pas["Rtl.threadcontroller"].globalThreadController().FHandleConsoleMessages = true;
     $mod.App = $mod.TApplication.$create("Create$1",[null]);
     $mod.App.Run();
   };
