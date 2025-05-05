@@ -23,7 +23,7 @@ Type
 
   { ThreadAppWASIHost }
 
-  ThreadAppWASIHost = class(TWASIHost)
+  TThreadAppWASIHost = class(TWASIHost)
   private
   Protected
     class function NeedSharedMemory: Boolean; override;
@@ -36,25 +36,26 @@ Type
 
 implementation
 
-class function ThreadAppWASIHost.NeedSharedMemory: Boolean;
+class function TThreadAppWASIHost.NeedSharedMemory: Boolean;
 begin
   Result:=True;
 end;
 
-function ThreadAppWASIHost.GetThreadSupport: TThreadController;
+function TThreadAppWASIHost.GetThreadSupport: TThreadController;
 begin
   Result:=TThreadController.Instance as TThreadController;
 end;
 
-procedure ThreadAppWASIHost.DoAfterInstantiate;
+procedure TThreadAppWASIHost.DoAfterInstantiate;
 begin
   inherited DoAfterInstantiate;
+  Writeln('Setting wasm module and memory');
   If Assigned(ThreadSupport) then
     // Will send load commands
     ThreadSupport.SetWasmModuleAndMemory(PreparedStartDescriptor.Module,PreparedStartDescriptor.Memory);
 end;
 
-function ThreadAppWASIHost.CreateWasiEnvironment: TPas2JSWASIEnvironment;
+function TThreadAppWASIHost.CreateWasiEnvironment: TPas2JSWASIEnvironment;
 begin
   Result:=inherited CreateWasiEnvironment;
   TWasmThreadSupportApi.Create(Result);
@@ -64,6 +65,6 @@ end;
 initialization
   TCommandDispatcher.Instance.DefaultSenderID:='HTML page thread';
   TThreadConsoleOutput.Init;
-  TWASIHostApplication.SetWasiHostClass(ThreadAppWASIHost);
+  TWASIHostApplication.SetWasiHostClass(TThreadAppWASIHost);
 end.
 
