@@ -1,10 +1,8 @@
 {
     This file is part of the Free Pascal run time library.
-    Copyright (c) 2003 by the Free Pascal development team
+    Copyright (c) 2025 by the Free Pascal development team
 
-    Pascal code generator class.
-
-    Port to pas2js by Mattias Gaertner mattias@freepascal.org
+    Browser application class.
 
     See the file COPYING.FPC, included in this distribution,
     for details about the copyright.
