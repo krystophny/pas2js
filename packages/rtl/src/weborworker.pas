@@ -1425,7 +1425,7 @@ type
     FisSecureContext : boolean; external name 'isSecureContext';
     FIDBFactory : TJSIDBFactory; external name 'indexedDB';
     fcaches : TJSCacheStorage; external name 'caches';
-    FPerformance : TJSPerformance; external name 'performanc';
+    FPerformance : TJSPerformance; external name 'performance';
   Public
     Function setInterval(ahandler : TJSTimerCallBack; aInterval : NativeUInt) : NativeInt; varargs;
     Function setTimeout(ahandler : TJSTimerCallBack; aTimeout : NativeUInt) : NativeInt; varargs;
