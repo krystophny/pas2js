@@ -26,6 +26,7 @@ Type
   private
     function AllocateTimer(ainterval: longint; userdata: TWasmPointer): TWasmTimerID;
     procedure DeallocateTimer(timerid: TWasmTimerID);
+    function PerformanceNow(aNow : TWasmPointer) : Longint;
     function GetLogApiCalls: Boolean;
     procedure SetLogApiCalls(AValue: Boolean);
   Protected
@@ -68,6 +69,7 @@ procedure TWasmTimerAPI.FillImportObject(aObject: TJSObject);
 begin
   aObject[TimerFN_Allocate]:=@AllocateTimer;
   aObject[TimerFN_DeAllocate]:=@DeAllocateTimer;
+  aObject[TimerFN_Performance_Now]:=@PerformanceNow;
 end;
 
 
@@ -132,6 +134,19 @@ begin
   {$else}
   window.clearInterval(TimerID);
   {$endif}
+end;
+
+function TWasmTimerAPI.PerformanceNow(aNow: TWasmPointer): Longint;
+
+begin
+  if assigned(self_.Performance) then
+    begin
+    env.SetMemInfoFloat64(aNow,self_.Performance.Now);
+    Result:=ETIMER_SUCCESS;
+    end
+  else
+    Result:=ETIMER_NOPERFORMANCE;
+
 end;
 
 function TWasmTimerAPI.GetLogApiCalls: Boolean;
