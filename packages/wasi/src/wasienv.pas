@@ -239,6 +239,8 @@ type
     function SetMemInfoUInt16(aLoc : TWasmMemoryLocation; aValue : Word) : TWasmMemoryLocation;
     function SetMemInfoUInt32(aLoc : TWasmMemoryLocation; aValue : Cardinal) : TWasmMemoryLocation;
     function SetMemInfoUInt64(aLoc : TWasmMemoryLocation; aValue : NativeUint) : TWasmMemoryLocation;
+    function SetMemInfoFloat32(aLoc : TWasmMemoryLocation; aValue : Double) : TWasmMemoryLocation;
+    function SetMemInfoFloat64(aLoc : TWasmMemoryLocation; aValue : Double) : TWasmMemoryLocation;
     // Read values
     function GetMemInfoInt8(aLoc : TWasmMemoryLocation) : ShortInt;
     function GetMemInfoInt16(aLoc : TWasmMemoryLocation): SmallInt;
@@ -2758,7 +2760,7 @@ begin
   Result:=aStringBuf.byteLength;
 end;
 
-function TPas2JSWASIEnvironment.SetUTF16StringInMem(p: TWasmPointer; const aString: String) : Integer;
+function TPas2JSWASIEnvironment.SetUTF16StringInMem(p: TWasmPointer; const aString: String): integer;
 var
   i : Integer;
   view : TJSDataView;
@@ -2863,6 +2865,27 @@ begin
   view:=getModuleMemoryDataView();
   setBigUint64(View,aLoc,aValue,IsLittleEndian);
   Result:=aLoc+SizeUint64;
+end;
+
+function TPas2JSWASIEnvironment.SetMemInfoFloat32(aLoc: TWasmMemoryLocation; aValue: Double): TWasmMemoryLocation;
+Var
+  View : TJSDataView;
+
+begin
+  view:=getModuleMemoryDataView();
+  view.setFloat32(aLoc,aValue,IsLittleEndian);
+  Result:=aLoc+SizeFloat32;
+end;
+
+function TPas2JSWASIEnvironment.SetMemInfoFloat64(aLoc: TWasmMemoryLocation; aValue: Double): TWasmMemoryLocation;
+
+Var
+  View : TJSDataView;
+
+begin
+  view:=getModuleMemoryDataView();
+  view.setFloat64(aLoc,aValue,IsLittleEndian);
+  Result:=aLoc+SizeFloat64;
 end;
 
 function TPas2JSWASIEnvironment.GetMemInfoInt8(aLoc: TWasmMemoryLocation): ShortInt;
