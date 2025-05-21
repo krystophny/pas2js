@@ -297,6 +297,7 @@ Type
     property svc : TJSVideoChunkMetaDataSvc Read FSvc;
     property alphaSideData : TJSObject Read FalphaSideData;
   end;
+  TJSEncodedVideoChunkMetadata = TJSVideoChunkMetaData;
 
 
   TJSVideoColorSpaceOptions = class external name 'Object' (TJSObject)
@@ -305,6 +306,7 @@ Type
     matrix : string;
     fullrange : boolean;
   end;
+  TJSVideoColorSpaceInit = TJSVideoColorSpaceOptions;
 
   { TJSVideoColorSpace }
 
@@ -333,6 +335,7 @@ Type
     displayWidth : integer;
     displayHeight : integer;
   end;
+  TJSVideoFrameInit = TJSVideoFrameOptions;
 
   TJSVideoFramePlaneLayout = class external name 'Object' (TJSObject)
     offset : integer;
@@ -346,6 +349,12 @@ Type
     layout : TJSVideoFramePlaneLayoutArray;
     format : string;
     colorspace : string;
+  end;
+  TJSVideoFrameAllocationOptions = TJSVideoFrameAllocationSizeOptions;
+  
+  TJSVideoFrameCopyOptions = class external name 'Object' (TJSObject)
+    rect : TJSVideoFrameOptionsRect;
+    layout : TJSVideoFramePlaneLayoutArray;
   end;
 
   TJSVideoFrame = class external name 'VideoFrame' (TJSObject)
@@ -376,6 +385,9 @@ Type
     procedure copyTo(aDestination : TJSArrayBuffer);
     procedure copyTo(aDestination : TJSTypedArray);
     procedure copyTo(aDestination : TJSDataView);
+    procedure copyTo(aDestination : TJSArrayBuffer; aOptions : TJSVideoFrameCopyOptions);
+    procedure copyTo(aDestination : TJSTypedArray; aOptions : TJSVideoFrameCopyOptions);
+    procedure copyTo(aDestination : TJSDataView; aOptions : TJSVideoFrameCopyOptions);
 
     property format : string read FFormat;
     property codedHeight : NativeInt Read FcodedHeight;
@@ -396,6 +408,7 @@ Type
     data : TJSObject;
     transfer : TJSObjectDynArray;
   end;
+  TJSEncodedVideoChunkInit = TJSEncodedVideoChunkOptions;
 
   { TJSEncodedVideoChunk }
 
@@ -438,6 +451,8 @@ Type
     bitrateMode : string;
     latencyMode : string;
   end;
+  TJSVideoEncoderConfig = TJSVideoEncoderConfiguration;
+  TJSVideoEncoderInit = TJSVideoEncoderConfiguration;
 
   TJSVideoEncodeQuantizerOptions = class external name 'Object' (TJSObject)
     quantizer : Nativeint;
@@ -450,6 +465,7 @@ Type
     avc : TJSVideoEncodeQuantizerOptions;
     hevc : TJSVideoEncodeQuantizerOptions;
   end;
+  TJSVideoEncoderEncodeOptions =  TJSVideoEncodeOptions;
 
   { TJSVideoEncoder }
 
@@ -476,6 +492,7 @@ Type
     output : TJSVideoDecoderOutputCallback;
     error : TJSVideoDecoderErrorCallback;
   end;
+  TJSVideoDecoderInit = TJSNewVideoDecoderOptions; 
 
   TJSVideoDecoderConfiguration = class external name 'Object' (TJSObject)
     codec : string;
@@ -487,7 +504,8 @@ Type
     hardwareAcceleration : string;
     optimizeForLatency : Boolean;
   end;
-
+  TJSVideoDecoderConfig = TJSVideoDecoderConfiguration;
+  
   { TJSVideoDecoder }
 
   TJSVideoDecoder = class external name 'VideoDecoder' (TJSEventTarget)
@@ -498,11 +516,10 @@ Type
     constructor new(aOptions : TJSNewVideoDecoderOptions);
     class function isConfigSupported(aOptions : TJSVideoDecoderConfiguration) : boolean;
     procedure close;
-    procedure configure(aConfig :TJSVideoEncoderConfiguration);
+    procedure configure(aConfig :TJSVideoDecoderConfiguration);
     procedure decode(Frame : TJSEncodedVideoChunk);
     procedure flush;
     procedure reset;
-    procedure configure(aConfig :TJSVideoDecoderConfiguration);
     property decodeQueueSize : NativeInt Read FdecodeQueueSize;
     property State : string read FState;
   end;
