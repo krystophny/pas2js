@@ -355,6 +355,7 @@ begin
   asm
   self.postMessage(aCommand,aTransfer);
   end;
+  if length(aTransfer)=0 then ;
 end;
 
 procedure TCommandDispatcher.SendConsoleCommand(aCommand: TConsoleOutputCommand);
