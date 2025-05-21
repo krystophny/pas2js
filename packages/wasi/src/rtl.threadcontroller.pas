@@ -412,9 +412,6 @@ end;
 
 constructor TThreadController.Create(aWorkerScript: String; aSpawnWorkerCount: integer);
 
-Var
-  I : Integer;
-
 begin
   Inherited Create;
   InitMessageCallBacks;
@@ -543,6 +540,8 @@ begin
   aWorker.WorkerState:=twsReady;
   if Assigned(WasmMemory) and Assigned(WasmModule) then
     SendLoadCommand(aWorker);
+  if (aCommand=Nil) then ; // Silence compiler warning
+
 end;
 
 procedure TThreadController.HandleCleanupCommand(aWorker : TWasmThread; aCommand: TWorkerCleanupCommand);
