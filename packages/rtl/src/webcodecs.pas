@@ -167,7 +167,9 @@ Type
     FbyteLength : NativeInt; external name 'byteLength';
   Public
     constructor new(init : TJSEncodedAudioChunkInit);
-    function copyTo(destination : TJSArrayBuffer) : NativeInt;
+    procedure copyTo(destination : TJSArrayBuffer);
+    procedure copyTo(destination : TJSDataView);
+    procedure copyTo(destination : TJSTypedArray);
 
     Property type_ : String Read Ftype_;
     Property timestamp : NativeInt Read Ftimestamp;
@@ -196,7 +198,13 @@ Type
   Public
     constructor new(init : TJSAudioDataInit);
     Function allocationSize(options : TJSAudioDataAllocationOptions) : NativeInt;
-    Function copyTo(destination : TJSArrayBuffer; options : TJSAudioDataCopyOptions) : NativeInt;
+    procedure copyTo(destination : TJSArrayBuffer; options : TJSAudioDataCopyOptions);
+    procedure copyTo(destination : TJSDataView; options : TJSAudioDataCopyOptions);
+    procedure copyTo(destination : TJSTypedArray; options : TJSAudioDataCopyOptions);
+    procedure copyTo(destination : TJSArrayBuffer);
+    procedure copyTo(destination : TJSDataView);
+    procedure copyTo(destination : TJSTypedArray);
+
     Procedure close;
 
     Property format : String Read Fformat;
@@ -479,7 +487,7 @@ Type
     procedure close;
     procedure configure(aConfig :TJSVideoEncoderConfiguration);
     procedure encode(Frame : TJSVideoFrame; aOptions : TJSVideoEncodeOptions);
-    procedure flush;
+    function flush : TJSPromise;
     procedure reset;
     property encodeQueueSize : NativeInt Read FencodeQueueSize;
     property State : string read FState;
@@ -518,7 +526,7 @@ Type
     procedure close;
     procedure configure(aConfig :TJSVideoDecoderConfiguration);
     procedure decode(Frame : TJSEncodedVideoChunk);
-    procedure flush;
+    function flush : TJSPromise;
     procedure reset;
     property decodeQueueSize : NativeInt Read FdecodeQueueSize;
     property State : string read FState;
