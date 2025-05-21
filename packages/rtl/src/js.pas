@@ -16,6 +16,7 @@ unit JS;
 
 {$mode objfpc}
 {$modeswitch externalclass}
+{$modeswitch typehelpers}
 
 interface
 
@@ -1108,9 +1109,14 @@ type
   end;
 
   TJSBigInt = class external name 'BigInt' (TJSObject)
-     constructor new(aValue : JSValue);
      class function asIntN(Size : Integer;aValue : TJSBigInt) : NativeInt;
      class function asUIntN(Size : Integer;aValue : TJSBigInt) : NativeInt;
+  end;
+
+  { TJSBigIntHelper }
+
+  TJSBigIntHelper = type helper for TJSBigint
+    class function new(aValue : JSValue) : TJSBigInt; static;
   end;
 
   { TJSAtomicWaitResult }
@@ -1862,6 +1868,7 @@ Function GetValueType(JS : JSValue) : TJSValueType;
 Function HaveSharedArrayBuffer : Boolean;
 Function SharedToNonShared(aBuffer : TJSAbstractArrayBuffer) : TJSArrayBuffer;
 Function SharedToNonShared(aArray : TJSTypedArray; aWordSized : Boolean = False) : TJSTypedArray;
+Function JSBigInt(aValue : JSValue) : TJSBigInt;
 
 Const
   Null : JSValue; external name 'null';
@@ -2092,6 +2099,13 @@ begin
   FMessage:=Msg;
 end;
 
+{ TJSBigIntHelper }
+
+class function TJSBigIntHelper.new(aValue: JSValue): TJSBigInt;
+begin
+  Result:=JSBigint(aValue);
+end;
+
 
 function GetValueType(JS: JSValue): TJSValueType;
 
@@ -2171,6 +2185,12 @@ function Symbol(Description : String) : TJSSymbol; assembler;
 
 asm
   return Symbol(Description);
+end;
+
+Function JSBigInt(aValue : JSValue) : TJSBigInt; assembler;
+
+asm
+  return BigInt(aValue);
 end;
 
 end.
