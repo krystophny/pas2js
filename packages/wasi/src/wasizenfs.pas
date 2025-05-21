@@ -349,7 +349,6 @@ function TWASIZenFS.Seek(FD: integer; Offset: Integer; Whence: TSeekWhence; out
 var
   lPos : JSValue;
   lIntPos : Integer absolute lPos;
-  F : TZenFSFile;
   Stat : TZenFSStats;
 
 
