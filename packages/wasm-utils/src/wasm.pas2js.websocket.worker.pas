@@ -6,7 +6,7 @@ unit wasm.pas2js.websocket.worker;
 interface
 
 uses
-  JS, Rtl.WebThreads, Rtl.WorkerCommands, weborworker, wasm.pas2js.websocketapi, wasm.websocket.shared;
+  JS, Rtl.WebThreads, Rtl.WorkerCommands, weborworker, wasienv, wasm.pas2js.websocketapi, wasm.websocket.shared;
 
 
 type
@@ -20,6 +20,18 @@ type
     Class function CommandName : string; static;
     Class function CreateNew(aBuffer : TJSSharedArrayBuffer; aThreadID : Integer = -1) : TWebsocketSetMemCommand; static;
   end;
+
+  // When an unexpected error occurred.
+  TWebsocketHandlerOKCommand  = class external name 'Object' (TCustomWorkerCommand)
+  end;
+
+  { TWebsocketHandlerOKCommandHelper }
+
+  TWebsocketHandlerOKCommandHelper = class helper for TWebsocketHandlerOKCommand
+    Class function CommandName : string; static;
+    Class function CreateNew(aBuffer : TJSSharedArrayBuffer; aThreadID : Integer = -1) : TWebsocketHandlerOKCommand; static;
+  end;
+
 
   {
     This class implements an API where the websocket commands are actually transferred to a worker thread.
@@ -35,23 +47,44 @@ type
     FArray32 : TJSInt32Array;
     FArray8 : TJSUInt8Array;
     FView : TJSDataView;
-    FWebsocketWorker : TJSWorker;
-    procedure SetSharedMem(AValue: TJSSharedArrayBuffer);
   protected
-    procedure SendSharedMemToWorker;
+    procedure SetSharedMem(AValue: TJSSharedArrayBuffer); virtual;
     function AwaitResult: TWasmWebsocketResult;
   Public
     function LockMem : boolean;
     procedure UnlockMem;
-    procedure StartWebsocketHandler(const aScriptName : string = '');
     function WebsocketAllocate(aURL : PByte; aUrlLen : Longint; aProtocols : PByte; aProtocolLen : Longint; aUserData : TWasmPointer; aWebsocketID : PWasmWebSocketID) : TWasmWebsocketResult; override;
     function WebsocketDeAllocate(aWebsocketID : TWasmWebSocketID) : TWasmWebsocketResult; override;
     function WebsocketClose(aWebsocketID : TWasmWebSocketID; aCode : Longint; aReason : PByte; aReasonLen : Longint) : TWasmWebsocketResult; override;
     function WebsocketSend(aWebsocketID : TWasmWebSocketID; aData : PByte; aDataLen : Longint; aType : Longint) : TWasmWebsocketResult; override;
     property SharedMem : TJSSharedArrayBuffer Read FSharedMem Write SetSharedMem;
+  end;
+
+  { TLoaderWorkerWebSocketAPI }
+
+  TLoaderWorkerWebSocketAPI = class(TWorkerWebSocketAPI)
+  Private
+    FWebsocketWorker : TJSWorker;
+    FWorkerOK : Boolean;
+    procedure HandleWebsoketHandlerOK(aCommand: TWebsocketHandlerOKCommand);
+  Protected
+    procedure SetSharedMem(AValue: TJSSharedArrayBuffer); override;
+    procedure SendSharedMemToWorker;
+  Public
+    procedure SendSharedMemToWorker(aWorker : TJSWorker);
+    procedure StartWebsocketHandler(const aScriptName : string = '');
     property WebsocketWorker : TJSWorker Read FWebsocketWorker;
   end;
 
+  { TRunnerWorkerWebSocketAPI }
+
+  TRunnerWorkerWebSocketAPI = class(TWorkerWebSocketAPI)
+    procedure ListenForSharedMemory;
+  private
+    procedure HandleWebSocketMemMessage(aCommand: TWebsocketSetMemCommand);
+  Public
+    constructor Create(aEnv: TPas2JSWASIEnvironment); override;
+  end;
 
 
 
@@ -73,6 +106,19 @@ begin
   Result.Buffer:=aBuffer;
 end;
 
+{ TWebsocketHandlerOKCommandHelper }
+
+class function TWebsocketHandlerOKCommandHelper.CommandName: string;
+begin
+  Result:='websockethandlerok';
+end;
+
+class function TWebsocketHandlerOKCommandHelper.CreateNew(aBuffer: TJSSharedArrayBuffer; aThreadID: Integer
+  ): TWebsocketHandlerOKCommand;
+begin
+  Result:= TWebsocketHandlerOKCommand(createCommand(CommandName,IntToStr(aThreadID)));
+end;
+
 
 { TWorkerWebSocketAPI }
 
@@ -92,18 +138,6 @@ begin
     FArray8:=Nil;
     FView:=Nil;
     end;
-  if Assigned(FSharedMem) and Assigned(FWebsocketWorker) then
-    SendSharedMemToWorker;
-end;
-
-procedure TWorkerWebSocketAPI.SendSharedMemToWorker;
-
-var
-  Obj : TWebsocketSetMemCommand;
-
-begin
-  Obj:=TWebsocketSetMemCommand.CreateNew(FSharedMem,-1);
-  FWebsocketWorker.postMessage(Obj);
 end;
 
 function TWorkerWebSocketAPI.LockMem: boolean;
@@ -145,17 +179,6 @@ begin
   TJSAtomics.notify(FArray32, WASM_SHMSG_SEMAPHORE div SizeInt32, 1);
 end;
 
-procedure TWorkerWebSocketAPI.StartWebsocketHandler(const aScriptName: string);
-var
-  lScript : string;
-begin
-  lScript:=aScriptName;
-  if lScript='' then
-    lScript:='websocket_worker.js';
-  FWebsocketWorker:=TJSWorker.new(lScript);
-  if Assigned(FSharedMem) then
-    SendSharedMemToWorker;
-end;
 
 function TWorkerWebSocketAPI.WebsocketAllocate(aURL: PByte; aUrlLen: Longint; aProtocols: PByte; aProtocolLen: Longint;
   aUserData: TWasmPointer; aWebsocketID: PWasmWebSocketID): TWasmWebsocketResult;
@@ -259,6 +282,70 @@ begin
   finally
     UnlockMem;
   end;
+end;
+
+{ TLoaderWorkerWebSocketAPI }
+
+procedure TLoaderWorkerWebSocketAPI.SendSharedMemToWorker;
+
+
+begin
+  SendSharedMemToWorker(FWebsocketWorker);
+end;
+
+procedure TLoaderWorkerWebSocketAPI.SendSharedMemToWorker(aWorker: TJSWorker);
+var
+  Obj : TWebsocketSetMemCommand;
+begin
+  Obj:=TWebsocketSetMemCommand.CreateNew(FSharedMem,-1);
+  aWorker.postMessage(Obj);
+end;
+
+procedure TLoaderWorkerWebSocketAPI.SetSharedMem(AValue: TJSSharedArrayBuffer);
+begin
+  inherited SetSharedMem(AValue);
+  if Assigned(FSharedMem) and FWorkerOK then
+    SendSharedMemToWorker;
+end;
+
+procedure TLoaderWorkerWebSocketAPI.HandleWebsoketHandlerOK(aCommand : TWebsocketHandlerOKCommand);
+
+begin
+  FWorkerOK:=True;
+  if Assigned(FSharedMem) then
+    SendSharedMemToWorker;
+end;
+
+procedure TLoaderWorkerWebSocketAPI.StartWebsocketHandler(const aScriptName: string);
+var
+  lScript : string;
+begin
+  lScript:=aScriptName;
+  if lScript='' then
+    lScript:='websocket_worker.js';
+  FWebsocketWorker:=TJSWorker.new(lScript);
+  TCommandDispatcher.Instance.RegisterWorker(FWebsocketWorker,'websockethandler');
+  TCommandDispatcher.Instance.specialize AddCommandHandler<TWebsocketHandlerOKCommand>(TWebsocketHandlerOKCommand.CommandName, @HandleWebsoketHandlerOK);
+
+end;
+
+{ TRunnerWorkerWebSocketAPI }
+
+procedure TRunnerWorkerWebSocketAPI.HandleWebSocketMemMessage(aCommand :TWebsocketSetMemCommand);
+begin
+  Writeln('Worker, accepting websocket shared memory');
+  SharedMem:=aCommand.Buffer;
+end;
+
+procedure TRunnerWorkerWebSocketAPI.ListenForSharedMemory;
+begin
+  CommandDispatcher.specialize AddCommandHandler<TWebsocketSetMemCommand>(TWebsocketSetMemCommand.CommandName,@HandleWebSocketMemMessage);
+end;
+
+constructor TRunnerWorkerWebSocketAPI.Create(aEnv: TPas2JSWASIEnvironment);
+begin
+  inherited Create(aEnv);
+  ListenForSharedMemory;
 end;
 
 
