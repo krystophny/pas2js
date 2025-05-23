@@ -1,16 +1,30 @@
 unit wasm.pas2js.storage;
 
 {$mode ObjFPC}
+{$modeswitch externalclass}
 
 // Uncomment this if you want to remove all logging calls
 { $DEFINE NOLOGAPICALLS}
 interface
 
 uses
-  js, web, wasienv, wasm.storage.shared;
+  js, weborworker, wasienv, wasm.storage.shared;
 
 Type
-  
+  TJSStorage = class external name 'Storage' (TJSEventTarget)
+  private
+    FLength: NativeInt; external name 'length';
+  public
+    function key(aIndex : Integer) : String;
+    function getItem(aKeyName : string) : string;
+    procedure setItem(aKeyName : string; aValue : string);
+    procedure removeItem(aKeyName : string);
+    procedure clear;
+    property Keys[AIndex : Integer] : String read key;
+    property Items[aKeyName: String] : String read getItem write setItem; default;
+    property length : NativeInt Read FLength;
+  end;
+
   { TStorageAPI }
 
   TStorageAPI = Class(TImportExtension)
@@ -45,10 +59,11 @@ end;
 
 function TStorageAPI.GetStorage(aKind: Longint): TJSStorage;
 
+
 begin
   Case aKind of
-    STORAGE_LOCAL : Result:=window.localStorage;
-    STORAGE_SESSION : Result:=window.sessionStorage;
+    STORAGE_LOCAL : Result:=TJSStorage(Self_['localStorage']);
+    STORAGE_SESSION : Result:=TJSStorage(Self_['sessionStorage']);
   else
     Result:=Nil;
   end;
