@@ -12,7 +12,7 @@ uses
   {$ifdef JOB_WORKER}
   webworker,
   {$ELSE}
-  web,
+  web, weborworker,
   {$ENDIF}
   wasm.timer.shared;
 
