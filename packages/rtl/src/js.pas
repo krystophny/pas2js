@@ -1868,7 +1868,7 @@ Function GetValueType(JS : JSValue) : TJSValueType;
 Function HaveSharedArrayBuffer : Boolean;
 Function SharedToNonShared(aBuffer : TJSAbstractArrayBuffer) : TJSArrayBuffer;
 Function SharedToNonShared(aArray : TJSTypedArray; aWordSized : Boolean = False) : TJSTypedArray;
-Function JSBigInt(aValue : JSValue) : TJSBigInt;
+Function JSBigInt(aValue : JSValue) : TJSBigInt external name 'BigInt';
 
 Const
   Null : JSValue; external name 'null';
@@ -2187,11 +2187,6 @@ asm
   return Symbol(Description);
 end;
 
-Function JSBigInt(aValue : JSValue) : TJSBigInt; assembler;
-
-asm
-  return BigInt(aValue);
-end;
 
 end.
 
