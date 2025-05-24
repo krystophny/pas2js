@@ -1042,7 +1042,7 @@ end;
 
 function TAlphaColorF.ToAlphaColor: TAlphaColor;
 
-  Function CC(C : Single) : Byte; inline;
+  Function CC(C : double) : Byte; inline;
   
   begin
     Result:=Round(C*255);
@@ -1052,6 +1052,7 @@ var
   CR : TAlphaColorRec absolute Result;
 
 begin
+  Result:=Default(TAlphaColor);
   CR.A:=CC(A);
   CR.R:=CC(R);
   CR.G:=CC(G);
