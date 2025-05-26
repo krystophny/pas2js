@@ -315,6 +315,9 @@ begin
     else
       Written:=ZenFS.writeSync(fd,DS,0,Data.byteLength);
     Result:=resOK;
+    if atPos=-1 then
+      // update position
+      FPositionMap.&set(FD,lPos+Written);
   except
     on E : TJSObject do
       Result:=ExceptToError(E);
