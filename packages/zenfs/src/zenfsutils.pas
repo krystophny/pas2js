@@ -128,13 +128,18 @@ Type
 
 
 function base64ToBytes(str : string) : TJSuint8array;
+function BytesToString(aBuffer: TJSUint8Array) : String;
 function bytesToBase64(bytes : TJSUInt8Array) : String;
 function base64encode(str: string) : string;
+Function ReadFileAsBytes(aFileName : string) : TJSUint8Array;
+Function ReadFileAsString(aFileName : string) : String;
 Function CreateDataURL(aFileName,aMimeType : string) : String;
 Function CreateDownLoadFromFile(const aFileName,aMimeType : string; aParent : TJSHTMLElement; const aLinkText : String) : TJSHTMLAnchorElement;
 Function CreateDownLoadFromFile(const aFileName,aMimeType : string; aParent : TJSHTMLElement; const aLinkContent : TJSNode) : TJSHTMLAnchorElement;
 
 implementation
+
+uses math;
 
 // uses debug.objectinspector.html;
 
@@ -701,42 +706,67 @@ begin
   Result:=decoder.decode(base64ToBytes(str));
 end;
 
-function uint8ArrayToDataURL(aBuffer: TJSUint8Array; aMimeType : String) : String;
-var
-  b2,Base64 : String;
-
+function BytesToString(aBuffer: TJSUint8Array) : String;
 begin
-  asm
-  Base64=btoa(String.fromCharCode.apply(null,aBuffer));
-  end;
-  B2:=bytesToBase64(aBuffer);
-  if Base64<>B2 then
-    Writeln('Differs');
-  Result:='data:'+aMimeType+';base64,' + Base64;
+  Result:=decoder.decode(aBuffer);
 end;
 
-Function CreateDataURL(aFileName : string; aMimeType : String) : String;
+function uint8ArrayToDataURL(aBuffer: TJSUint8Array; aMimeType : String) : String;
+const
+  chunksize = 8192;
+var
+  b2,lBase64 : String;
+  i, len : integer;
+  lChunk: TJSUint8Array;
 
+begin
+  result:='';
+  I:=0;
+  len:=aBuffer.byteLength;
+  Writeln('Len:',len,' bytes');
+  While I<Len do
+    begin
+    lchunk:=aBuffer.subarray(i, min(i + chunkSize, len));
+    asm
+      lBase64=String.fromCharCode.apply(null,lChunk);
+    end;
+    Result:=Result+lBase64;
+    inc(i,ChunkSize);
+    end;
+  Result:=window.btoa(Result);
+  Writeln('Result : ',result);
+  Result:='data:'+aMimeType+';base64,' + Result;
+end;
+
+Function ReadFileAsBytes(aFileName : string) : TJSUint8Array;
 var
   nRead,fd : NativeInt;
   Stat : TZenFSStats;
   aSize : NativeInt;
   V : TJSDataView;
   opts : TZenFSReadSyncOptions;
-  Buf : TJSUint8Array;
-
 
 begin
   fd:=Zenfs.openSync(aFileName,'r');
   Stat:=ZenFS.FStatSync(fd);
   aSize:=Stat.size;
-  Buf:=TJSUint8Array.New(aSize);
-  V:=TJSDataView.new(Buf.buffer);
+  Result:=TJSUint8Array.New(aSize);
+  V:=TJSDataView.new(Result.buffer);
   opts:=TZenFSReadSyncOptions.new;
   opts.offset:=0;
   opts.length:=aSize;
-  nRead:=ZenFS.readSync(FD,V,Opts);
-  Result:=Uint8ArrayToDataURL(Buf,aMimeType);
+  ZenFS.readSync(FD,V,Opts);
+end;
+
+Function ReadFileAsString(aFileName : string) : String;
+begin
+  Result:=BytesToString(ReadFileAsBytes(aFileName));
+end;
+
+Function CreateDataURL(aFileName : string; aMimeType : String) : String;
+
+begin
+  Result:=Uint8ArrayToDataURL(ReadFileAsBytes(aFileName),aMimeType);
 end;
 
 Function CreateDownLoadFromFile(const aFileName,aMimeType : string; aParent : TJSHTMLElement; const aLinkText : String) : TJSHTMLAnchorElement;
