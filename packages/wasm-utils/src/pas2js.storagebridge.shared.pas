@@ -18,7 +18,7 @@ const
   FNRemoveItem = 'remove_item';
   FNKey     = 'key';
 
-  LocalStorageBufferSize = 1024*1024; // 1 mb
+  LocalStorageBufferSize = 4*1024*1024; // 4 mb
 
   {
     Result data:
@@ -34,6 +34,8 @@ const
 
   ESTORAGE_SUCCESS = 0;
   ESTORAGE_KIND    = -1;
+
+  cNULLLength    = -1;
 
 Type
   TStorageKind = (skLocal,skSession);

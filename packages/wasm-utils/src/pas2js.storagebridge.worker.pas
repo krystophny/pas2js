@@ -6,7 +6,7 @@ unit pas2js.storagebridge.worker;
 interface
 
 uses
-  types, js, webworker, rtl.WorkerCommands, pas2js.storagebridge.shared;
+  types, js, weborworker, webworker, rtl.WorkerCommands, pas2js.storagebridge.shared;
 
 Type
   TMainThreadCallFunc = reference to function: Integer;
@@ -19,6 +19,7 @@ Type
   Private
     FCallID : Integer;
     FKind : TStorageKind;
+    FDecoder : TJSTextDecoder;
   Protected
     function DoMainThreadBlockingCall(const aFuncName: String; aArgs: array of JSValue): Integer;
   public
@@ -30,8 +31,8 @@ Type
   public
     constructor create(aKind : TStorageKind);
     class procedure init;
-    function Key(aKey : Integer) : string;
-    function GetItem(aKey : String) : String;
+    function Key(aKey : Integer) : JSValue;
+    function GetItem(aKey : String) : JSValue;
     procedure SetItem(aKey,aValue : String);
     procedure RemoveItem(aKey : String);
     function count : Integer;
@@ -66,6 +67,7 @@ constructor TWorkerStorageBridge.create(aKind: TStorageKind);
 begin
   FKind:=aKind;
   FResultData:=TJSInt32Array.New(_AtomicBuffer);
+  FDecoder:=TJSTextDecoder.New('utf-16');
 end;
 
 procedure TWorkerStorageBridge.clear;
@@ -91,32 +93,43 @@ begin
   DoMainThreadBlockingCall(FNRemoveItem,[aKey]);
 end;
 
-function TWorkerStorageBridge.Key(aKey: Integer): string;
+function TWorkerStorageBridge.Key(aKey: Integer): JSValue;
 var
   lResultLen : integer;
   lStringArray :TJSUint16Array;
 begin
   if DoMainThreadBlockingCall(FNKey,[aKey])<>0 then
-    Exit('');
+    Exit(null);
   lResultLen:=Self.FResultData[CallResultLen];
   if lResultLen<=0 then
+    Exit(null);
+  if lResultLen<=0 then
     Exit('');
+
   lStringArray:=TJSUint16Array.new(_AtomicBuffer, CallResultData*4, lResultLen);
-  Result := String(TJSFunction(@TJSString.fromCharCode).apply(nil, TJSValueDynArray(lStringArray)));
+  Result := FDecoder.Decode(lStringArray);
 end;
 
-function TWorkerStorageBridge.GetItem(aKey: String): String;
+function TWorkerStorageBridge.GetItem(aKey: String): JSValue;
 var
   lResultLen : integer;
-  lStringArray :TJSUint16Array;
+  lNew,lStringArray :TJSUint16Array;
+  lBuf : TJSArrayBuffer;
+
 begin
   if DoMainThreadBlockingCall(FNGetItem,[aKey])<>0 then
-    Exit('');
+    Exit(null);
   lResultLen:=Self.FResultData[CallResultLen];
-  if lResultLen<=0 then
+  if lResultLen=-1 then
+    Exit(null);
+  if lResultLen=0 then
     Exit('');
+
   lStringArray:=TJSUint16Array.new(_AtomicBuffer, CallResultData*4, lResultLen);
-  Result := String(TJSFunction(@TJSString.fromCharCode).apply(nil, TJSValueDynArray(lStringArray)));
+  lBuf:=TJSArrayBuffer.new(lResultLen*2);
+  lNew:=TJSUint16Array.new(lbuf);
+  lnew._set(lStringArray);
+  Result := FDecoder.Decode(lNew);
 end;
 
 class procedure TWorkerStorageBridge.init;

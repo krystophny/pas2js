@@ -64,7 +64,7 @@ begin
         lResult:=lStorage.Key(Integer(aCmd.Args[0]));
         if isNull(lResult) then
           begin
-          lResultLen:=0;
+          lResultLen:=cNULLLength;
           lResult:='';
           end
         else
@@ -77,7 +77,7 @@ begin
         lResult:=lStorage.getItem(String(aCmd.Args[0]));
         if isNull(lResult) then
           begin
-          lResultLen:=0;
+          lResultLen:=cNULLLength;
           lResult:='';
           end
         else
