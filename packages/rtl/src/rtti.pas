@@ -2473,7 +2473,10 @@ end;
 
 function TRttiType.GetDeclaringUnitName: String;
 begin
-  Result := Handle.Module.Name;
+  if Assigned(Handle.Module) then
+    Result := Handle.Module.Name
+  else
+    Result := 'System';
 end;
 
 function TRttiType.GetQualifiedName: String;
