@@ -156,6 +156,7 @@ Type
   TJSAudioContextOptions = class external name 'Object' (TJSObject)
     latencyHint : JSValue;
     sampleRate : Double;
+    sinkId : JSValue;
   end;
   
   { --------------------------------------------------------------------
@@ -451,8 +452,8 @@ Type
     Fstate : AudioContextState; external name 'state'; 
     FaudioWorklet : TJSAudioWorklet; external name 'audioWorklet'; 
   Public
-    
-      onstatechange : TJSEVentHandler;
+    onstatechange : TJSEVentHandler;
+
     function createAnalyser: TJSAnalyserNode;
     function createBiquadFilter: TJSBiquadFilterNode;
     function createBuffer(numberOfChannels : NativeInt; length_ : NativeInt; sampleRate : Double): TJSAudioBuffer;
@@ -482,6 +483,9 @@ Type
     function decodeAudioData(audioData : TJSArrayBuffer): TJSPromise; overload;
     function decodeAudioData(audioData : TJSArrayBuffer; successCallback : DecodeSuccessCallback): TJSPromise; overload;
     function resume: TJSPromise;
+
+    function addModule(moduleURL: String): TJSPromise;
+
     Property destination : TJSAudioDestinationNode Read Fdestination; 
     Property sampleRate : Double Read FsampleRate; 
     Property currentTime : Double Read FcurrentTime; 
@@ -499,6 +503,8 @@ Type
     FbaseLatency : Double; external name 'baseLatency'; 
     FoutputLatency : Double; external name 'outputLatency'; 
   Public
+    constructor new;
+    constructor new(options : TJSAudioContextOptions);
     function getOutputTimestamp: TJSAudioTimestamp;
     function suspend: TJSPromise;
     function close: TJSPromise;
@@ -518,9 +524,14 @@ Type
   Private
     Flength_ : NativeInt; external name 'length'; 
   Public
-      oncomplete : TJSEVentHandler;
+    oncomplete : TJSEVentHandler;
+
+    constructor new(numberOfChannels: NativeInt; length: NativeInt; sampleRate: Double); overload;
+    constructor new(options: TJSOfflineAudioContextOptions); overload;
+
     function startRendering: TJSPromise;
     function suspend(suspendTime : Double): TJSPromise;
+
     Property length_ : NativeInt Read Flength_; 
   end;
   
@@ -546,6 +557,7 @@ Type
     Fduration : Double; external name 'duration'; 
     FnumberOfChannels : NativeInt; external name 'numberOfChannels'; 
   Public
+    constructor new(options: TJSAudioBufferOptions);
     function getChannelData(channel : NativeInt): TJSFloat32Array;
     Procedure copyFromChannel(destination : TJSFloat32Array; channelNumber : NativeInt; startInChannel : NativeInt); overload;
     Procedure copyFromChannel(destination : TJSFloat32Array; channelNumber : NativeInt); overload;
@@ -633,10 +645,14 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   Private
     FfrequencyBinCount : NativeInt; external name 'frequencyBinCount'; 
   Public
-      fftSize : NativeInt;
-      minDecibels : Double;
-      maxDecibels : Double;
-      smoothingTimeConstant : Double;
+    fftSize : NativeInt;
+    minDecibels : Double;
+    maxDecibels : Double;
+    smoothingTimeConstant : Double;
+
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSAnalyserOptions); overload;
+
     Procedure getFloatFrequencyData(array_ : TJSFloat32Array);
     Procedure getByteFrequencyData(array_ : TJSUint8Array);
     Procedure getFloatTimeDomainData(array_ : TJSFloat32Array);
@@ -653,10 +669,12 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
     FplaybackRate : TJSAudioParam; external name 'playbackRate'; 
     Fdetune : TJSAudioParam; external name 'detune'; 
   Public
-      buffer : TJSAudioBuffer;
-      loop : boolean;
-      loopStart : Double;
-      loopEnd : Double;
+    buffer : TJSAudioBuffer;
+    loop : boolean;
+    loopStart : Double;
+    loopEnd : Double;
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSAudioBufferSourceOptions); overload;
     Procedure start(when : Double; offset : Double; duration : Double); overload;
     Procedure start; overload;
     Procedure start(when : Double); overload;
@@ -731,7 +749,11 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
     FQ : TJSAudioParam; external name 'Q'; 
     Fgain : TJSAudioParam; external name 'gain'; 
   Public
-      type_ : BiquadFilterType;external name 'type';
+    type_ : BiquadFilterType;external name 'type';
+
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSBiquadFilterOptions); overload;
+
     Procedure getFrequencyResponse(frequencyHz : TJSFloat32Array; magResponse : TJSFloat32Array; phaseResponse : TJSFloat32Array);
     Property frequency : TJSAudioParam Read Ffrequency; 
     Property detune : TJSAudioParam Read Fdetune; 
@@ -744,8 +766,8 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
     --------------------------------------------------------------------}
   
   TJSChannelMergerNode = class external name 'ChannelMergerNode'  (TJSAudioNode)
-  Private
   Public
+    constructor new(context : TJSAudioContext; options : TJSChannelMergerOptions);
   end;
   
   { --------------------------------------------------------------------
@@ -755,6 +777,8 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   TJSChannelSplitterNode = class external name 'ChannelSplitterNode'  (TJSAudioNode)
   Private
   Public
+    constructor new(context : TJSAudioContext);
+    constructor new(context : TJSAudioContext; options : TJSChannelSplitterOptions);
   end;
   
   { --------------------------------------------------------------------
@@ -765,7 +789,9 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   Private
     Foffset : TJSAudioParam; external name 'offset'; 
   Public
-    Property offset : TJSAudioParam Read Foffset; 
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSConstantSourceOptions); overload;
+    Property offset : TJSAudioParam Read Foffset;
   end;
   
   { --------------------------------------------------------------------
@@ -775,8 +801,10 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   TJSConvolverNode = class external name 'ConvolverNode'  (TJSAudioNode)
   Private
   Public
-      buffer : TJSAudioBuffer;
-      normalize : boolean;
+    buffer : TJSAudioBuffer;
+    normalize : boolean;
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSConvolverOptions); overload;
   end;
   
   { --------------------------------------------------------------------
@@ -787,7 +815,9 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   Private
     FdelayTime : TJSAudioParam; external name 'delayTime'; 
   Public
-    Property delayTime : TJSAudioParam Read FdelayTime; 
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSDelayOptions); overload;
+    Property delayTime : TJSAudioParam Read FdelayTime;
   end;
   
   { --------------------------------------------------------------------
@@ -803,6 +833,8 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
     Fattack : TJSAudioParam; external name 'attack'; 
     Frelease : TJSAudioParam; external name 'release'; 
   Public
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSDynamicsCompressorOptions); overload;
     Property threshold : TJSAudioParam Read Fthreshold; 
     Property knee : TJSAudioParam Read Fknee; 
     Property ratio : TJSAudioParam Read Fratio; 
@@ -819,7 +851,9 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   Private
     Fgain : TJSAudioParam; external name 'gain'; 
   Public
-    Property gain : TJSAudioParam Read Fgain; 
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSGainOptions); overload;
+    Property gain : TJSAudioParam Read Fgain;
   end;
   
   { --------------------------------------------------------------------
@@ -829,6 +863,7 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   TJSIIRFilterNode = class external name 'IIRFilterNode'  (TJSAudioNode)
   Private
   Public
+    constructor new(context: TJSBaseAudioContext; options: TJSIIRFilterOptions);
     Procedure getFrequencyResponse(frequencyHz : TJSFloat32Array; magResponse : TJSFloat32Array; phaseResponse : TJSFloat32Array);
   end;
   
@@ -840,6 +875,7 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   Private
     FmediaElement : TJSElement; external name 'mediaElement'; 
   Public
+    constructor new(context: TJSBaseAudioContext; options: TJSMediaElementAudioSourceOptions);
     Property mediaElement : TJSElement Read FmediaElement; 
   end;
   
@@ -851,9 +887,10 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   Private
     Fstream : JSValue; external name 'stream'; 
   Public
+    constructor new(context: TJSBaseAudioContext; options: TJSObject);
     Property stream : JSValue Read Fstream; 
   end;
-  
+
   { --------------------------------------------------------------------
     TJSMediaStreamAudioSourceNode
     --------------------------------------------------------------------}
@@ -862,6 +899,7 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   Private
     FmediaStream : JSValue; external name 'mediaStream'; 
   Public
+    constructor new(context : TJSAudioContext; options : TJSMediaStreamAudioSourceOptions);
     Property mediaStream : JSValue Read FmediaStream; 
   end;
   
@@ -883,7 +921,9 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
     Ffrequency : TJSAudioParam; external name 'frequency'; 
     Fdetune : TJSAudioParam; external name 'detune'; 
   Public
-      type_ : OscillatorType;external name 'type';
+    type_ : OscillatorType;external name 'type';
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSOscillatorOptions); overload;
     Procedure setPeriodicWave(periodicWave : TJSPeriodicWave);
     Property frequency : TJSAudioParam Read Ffrequency; 
     Property detune : TJSAudioParam Read Fdetune; 
@@ -902,16 +942,21 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
     ForientationY : TJSAudioParam; external name 'orientationY'; 
     ForientationZ : TJSAudioParam; external name 'orientationZ'; 
   Public
-      panningModel : PanningModelType;
-      distanceModel : DistanceModelType;
-      refDistance : Double;
-      maxDistance : Double;
-      rolloffFactor : Double;
-      coneInnerAngle : Double;
-      coneOuterAngle : Double;
-      coneOuterGain : Double;
+    panningModel : PanningModelType;
+    distanceModel : DistanceModelType;
+    refDistance : Double;
+    maxDistance : Double;
+    rolloffFactor : Double;
+    coneInnerAngle : Double;
+    coneOuterAngle : Double;
+    coneOuterGain : Double;
+
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSPannerOptions); overload;
+
     Procedure setPosition(x : Double; y : Double; z : Double);
     Procedure setOrientation(x : Double; y : Double; z : Double);
+
     Property positionX : TJSAudioParam Read FpositionX; 
     Property positionY : TJSAudioParam Read FpositionY; 
     Property positionZ : TJSAudioParam Read FpositionZ; 
@@ -927,6 +972,8 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   TJSPeriodicWave = class external name 'PeriodicWave' 
   Private
   Public
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSPeriodicWaveOptions); overload;
   end;
   
   { --------------------------------------------------------------------
@@ -949,7 +996,9 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   Private
     Fpan : TJSAudioParam; external name 'pan'; 
   Public
-    Property pan : TJSAudioParam Read Fpan; 
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSStereoPannerOptions); overload;
+    Property pan : TJSAudioParam Read Fpan;
   end;
   
   { --------------------------------------------------------------------
@@ -959,8 +1008,10 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   TJSWaveShaperNode = class external name 'WaveShaperNode'  (TJSAudioNode)
   Private
   Public
-      curve : TJSFloat32Array;
-      oversample : OverSampleType;
+    curve : TJSFloat32Array;
+    oversample : OverSampleType;
+    constructor new(context: TJSBaseAudioContext); overload;
+    constructor new(context: TJSBaseAudioContext; options: TJSWaveShaperOptions); overload;
   end;
   
   { --------------------------------------------------------------------
@@ -1006,8 +1057,10 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
     Fparameters : TJSAudioParamMap; external name 'parameters'; 
     Fport : TJSMessagePort; external name 'port'; 
   Public
-      onprocessorerror : TJSEVentHandler;
-    Property parameters : TJSAudioParamMap Read Fparameters; 
+    onprocessorerror : TJSEVentHandler;
+    constructor new(context: TJSAudioContext; name: String); overload;
+    constructor new(context: TJSAudioContext; name: String; options: TJSAudioWorkletNodeOptions); overload;
+    Property parameters : TJSAudioParamMap Read Fparameters;
     Property port : TJSMessagePort Read Fport; 
   end;
   
@@ -1019,6 +1072,7 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
   Private
     Fport : TJSMessagePort; external name 'port'; 
   Public
+    function process(inputs: TJSArray; outputs: TJSArray; parameters: TJSObject): Boolean;
     Property port : TJSMessagePort Read Fport; 
   end;
 
