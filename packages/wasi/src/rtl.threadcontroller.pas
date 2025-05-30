@@ -528,7 +528,6 @@ var
   lCmd : TWorkerReadyCommand absolute aCommand;
   lWorker : TWasmThread;
 begin
-  Writeln('Had ready command');
   lWorker:=TWasmThread(aCommand.Sender);
   HandleReadyCommand(lWorker,lCmd);
 end;
