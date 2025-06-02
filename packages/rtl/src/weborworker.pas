@@ -297,14 +297,20 @@ type
     property locked: Boolean read FLocked;
   end;
 
+  TJSBlobInit = class external name 'Object' (TJSObject)
+    type_ : string; external name 'type';
+    endings : string;
+  end;
 
   TJSBlob = class external name 'Blob' (TJSEventTarget)
   private
     FSize: NativeInt; external name 'size';
     FType: string; external name  'type';
   Public
-    constructor New(AArray: JSValue); overload;
-    constructor New(AArray: JSValue; AOptions: TJSObject); overload;
+    constructor New(aBlobParts: TJSArray); overload;
+    constructor New(aBlobParts: TJSArray; AOptions: TJSBlobInit); overload;
+    constructor New(aBlobParts: TJSValueDynArray); overload;
+    constructor New(aBlobParts: TJSValueDynArray; AOptions: TJSBlobInit); overload;
     procedure close;
     function slice : TJSBlob; overload;
     function slice(aStart : NativeInt) : TJSBlob; overload;
