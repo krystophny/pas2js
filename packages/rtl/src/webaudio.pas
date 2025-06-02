@@ -102,7 +102,7 @@ Type
   TJSScriptProcessorNode = Class;
   TJSStereoPannerNode = Class;
   TJSWaveShaperNode = Class;
-  TJSAudioWorklet = Class;
+  TJSAudioWorklet = {$IFDEF FPC_DOTTEDAPI}BrowserApi.{$ENDIF}WebOrWorker.TJSAudioWorklet;
   TJSAudioWorkletGlobalScope = Class;
   TJSAudioParamMap = Class;
   TJSAudioWorkletNode = Class;
@@ -1018,10 +1018,6 @@ TJSAudioNode = class external name 'AudioNode'  (TJSEventTarget)
     TJSAudioWorklet
     --------------------------------------------------------------------}
   
-  TJSAudioWorklet = class external name 'AudioWorklet'  (TJSOBject)
-  Private
-  Public
-  end;
   
   { --------------------------------------------------------------------
     TJSAudioWorkletGlobalScope
