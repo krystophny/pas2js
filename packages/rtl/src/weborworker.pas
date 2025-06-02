@@ -1850,7 +1850,26 @@ type
     property y : integer read Fy;
   end;
   
+  { --------------------------------------------------------------------
+    TJSWorklet
+    --------------------------------------------------------------------}
+  TJSWorklet = class external name 'Worklet'  (TJSObject)
+  Private
+  Public
+    function addModule(moduleURL: String): TJSPromise; overload;
+    function addModule(moduleURL: String; options: JSValue): TJSPromise; overload;
+  end;
 
+  { --------------------------------------------------------------------
+    TJSAudioWorklet
+    --------------------------------------------------------------------}
+
+  TJSAudioWorklet = class external name 'AudioWorklet' (TJSWorklet)
+  Private
+    Fport : TJSMessagePort; external name 'port';
+  Public
+    property port : TJSMessagePort read Fport;
+  end;
   
   TJSScriptContext = (jscUnknown,jscMainBrowserThread,jscWebWorker,jscServiceWorker);
 
