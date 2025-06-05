@@ -1087,7 +1087,7 @@ type
   private
     Fsubtle: TJSSubtleCrypto; external name 'subtle';
   Public
-    procedure getRandomValues (anArray : TJSTypedArray);
+    function getRandomValues (anArray : TJSTypedArray) : TJSTypedArray;
     property subtle : TJSSubtleCrypto Read Fsubtle;
   end;
 
