@@ -16,6 +16,7 @@
 unit wasm.pas2js.httpapi;
 
 {$mode ObjFPC}
+{$modeswitch externalclass}
 
 { $DEFINE NOLOGAPICALLS}
 
@@ -23,14 +24,28 @@ interface
 
 uses
   {$IFDEF FPC_DOTTEDUNITS}
-  System.SysUtils, JSApi.JS, BrowserApi.WebOrWorker,  {$IFDEF JOB_WORKER} BrowserApi.WebWorker {$ELSE}  BrowserApi.Web {$ENDIF}, Wasi.Env, wasm.http.shared;
+  System.SysUtils, JSApi.JS, BrowserApi.WebOrWorker,  {$IFDEF JOB_WORKER} BrowserApi.WebWorker {$ELSE}  BrowserApi.Web {$ENDIF}, Wasi.Env, wasm.http.shared, Rtl.WorkerCommands;
   {$ELSE}
-  SysUtils, JS, WebOrWorker, {$IFDEF JOB_WORKER} WebWorker {$ELSE} Web {$ENDIF}, WasiEnv, types, wasm.http.shared;
+  SysUtils, JS, WebOrWorker, {$IFDEF JOB_WORKER} WebWorker {$ELSE} Web {$ENDIF}, WasiEnv, types, wasm.http.shared, Rtl.WorkerCommands;
   {$ENDIF}
+
+const
+  cmdOpenURL = 'openUrl';
 
 Type
   TWasmHTTPAPI = Class;
   TWasmHTTPFetch = Class;
+
+  TOpenURLCommand = class external name 'Object' (TCustomWorkerCommand)
+    URL : String;
+    Flags : Integer;
+  end;
+
+  { TOpenURLCommandHelper }
+
+  TOpenURLCommandHelper = class helper (TCustomWorkerCommandHelper) for TOpenURLCommand
+    class function CreateURL(aURL : String; aFlags : Integer) : TOpenURLCommand; static;
+  end;
 
   TWasmHTTPRequest = Record
     Url : String;
@@ -92,6 +107,7 @@ Type
     FRequests : TJSOBject;
     class function ContentTypeIsString(aType: String): boolean;
     function GetLogApiCalls: Boolean;
+    procedure HandleOpenURLMessage(aCommand: TOpenURLCommand);
     function ReadRequest(aRequest :PWasmHTTPRequest) : TWasmHTTPRequest;
     function RequestExecute(aRequestID: TWasmHTTPRequestID): TWasmHTTPResult;
     procedure SetLogApiCalls(AValue: Boolean);
@@ -101,6 +117,8 @@ Type
     Procedure DoneRequest(aFetch : TWasmHTTPFetch);
     Function CreateRequestID : TWasmHTTPRequestID;
     Function FetchByID(aID : TWasmHTTPRequestID) : TWasmHTTPFetch;
+    procedure DoOpenURL(aURL: String; aFlags: integer);
+    function HandleOpenURL(aURL: TWasmPointer; aURLLen: Longint; aFlags: Integer): Integer;
     function RequestAllocate(aRequest : PWasmHTTPRequest; aUserData : TWasmPointer; aRequestID : PWasmHTTPRequestID) : TWasmHTTPResult;
     function RequestDeallocate(aRequestID : TWasmHTTPRequestID) : TWasmHTTPResult;
     function RequestAbort(aRequestID : TWasmHTTPRequestID) : TWasmHTTPResult;
@@ -303,6 +321,15 @@ begin
   // Notify the API
   if assigned(FAPI) then
     FAPI.DoneRequest(Self);
+end;
+
+{ TOpenURLCommandHelper }
+
+class function TOpenURLCommandHelper.CreateURL(aURL: String; aFlags: Integer): TOpenURLCommand;
+begin
+  Result:=TOpenURLCommand(CreateCommand(cmdOpenURL));
+  TOpenURLCommand(Result).URL:=aURL;
+  TOpenURLCommand(Result).Flags:=aFlags;
 end;
 
 { TWasmHTTPAPI }
@@ -725,11 +752,55 @@ begin
   Exit(WASMHTTP_RESULT_SUCCESS);
 end;
 
+
 constructor TWasmHTTPAPI.Create(aEnv: TPas2JSWASIEnvironment);
 begin
   inherited Create(aEnv);
   FRequests:=TJSOBject.new;
+  TCommandDispatcher.Instance.specialize AddCommandHandler<TOpenURLCommand>(cmdOpenURL,@HandleOpenURLMessage);
+end;
 
+procedure TWasmHTTPAPI.DoOpenURL(aURL : String; aFlags : integer);
+{$IFNDEF JOB_WORKER}
+var
+  win: TJSWindow;
+{$ENDIF}
+begin
+{$IFNDEF JOB_WORKER}
+  win:=Window.open(aURL,'_blank');
+{$ENDIF}
+end;
+
+procedure TWasmHTTPAPI.HandleOpenURLMessage(aCommand : TOpenURLCommand);
+
+begin
+  {$IFNDEF JOB_WORKER}
+  Writeln('Handling open url message');
+  DoOpenURL(aCommand.URL,aCommand.Flags);
+  {$ELSE}
+  Writeln('forwarding open url message');
+  aCommand[cFldSender]:=undefined;
+  TCommandDispatcher.Instance.SendCommand(aCommand);
+  {$ENDIF}
+end;
+
+function TWasmHTTPAPI.HandleOpenURL(aURL : TWasmPointer; aURLLen : Longint; aFlags : Integer) : Integer;
+
+var
+  lURL : String;
+begin
+  lURL:=Env.GetUTF8StringFromMem(aURL,aURLLen);
+  Writeln('Handling open url call ',aURL);
+  {$IFNDEF NOLOGAPICALLS}
+  If LogAPICalls then
+    LogCall('HTTP.OpenURL(%s,%d)',[lURL,aFlags]);
+  {$ENDIF}
+  {$IFDEF JOB_WORKER}
+  Writeln('sending openurl command');
+  TCommandDispatcher.Instance.SendCommand(TOpenURLCommand.CreateURL(lURL,aFlags));
+  {$ELSE}
+  DoOpenURL(lURL,aFlags);
+  {$ENDIF}
 end;
 
 procedure TWasmHTTPAPI.FillImportObject(aObject: TJSObject);
@@ -744,7 +815,7 @@ begin
   AObject[httpFN_ResponseGetHeaderCount]:=@ResponseGetHeaderCount;
   AObject[httpFN_ResponseGetHeader]:=@ResponseGetHeader;
   AObject[httpFN_ResponseGetBody]:=@ResponseGetBody;
-
+  AObject[httpFN_OpenURL]:=@HandleOpenURL;
 end;
 
 function TWasmHTTPAPI.ImportName: String;

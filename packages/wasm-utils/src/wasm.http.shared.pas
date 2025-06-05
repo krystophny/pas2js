@@ -86,6 +86,7 @@ const
   httpFN_ResponseGetHeader = 'response_get_header';
   httpFN_ResponseGetBody = 'response_get_body';
   httpFN_ResponseCallback = '__wasmhttp_response_callback';
+  httpFN_OpenURL = 'http_open_url';
 
 implementation
 
