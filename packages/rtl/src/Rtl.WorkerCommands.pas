@@ -125,6 +125,8 @@ Type
     destructor destroy; override;
     // Send command to worker
     procedure SendCommand(aWorker : TJSWorker; aCommand : TCustomWorkerCommand); virtual;
+    // Send command on channel
+    procedure SendCommand(aChannel : TJSBroadcastChannel; aCommand : TCustomWorkerCommand); virtual;
     // Send command to worker
     procedure SendCommand(const aName : string; aCommand : TCustomWorkerCommand);
     // Send command to thread that started this worker. Cannot be used in main thread
@@ -147,6 +149,8 @@ Type
     Procedure UnRegisterWorker(aWorker : TJSWorker);
     // Remove a worker from broadcast list by name
     Procedure UnRegisterWorker(const aName : string);
+    // Listen for commands on this channel
+    Procedure ListenOnChannel(aChannel : TJSBroadcastChannel);
     Property DefaultSenderID : String Read FDefaultSenderID Write FDefaultSenderID;
     Class function SetDispatcherClass(aClass : TCommandDispatcherClass) : TCommandDispatcherClass;
     Class property instance : TCommandDispatcher read GetInstance;
@@ -313,6 +317,15 @@ begin
   aWorker.postMessage(aCommand);
 end;
 
+procedure TCommandDispatcher.SendCommand(aChannel: TJSBroadcastChannel; aCommand: TCustomWorkerCommand);
+begin
+  CheckSenderID(aCommand);
+  {$IFDEF DEBUGCOMMANDDISPATCHER}
+  Writeln('Sending message to channel ',aChannel.Name,': ',TJSJSON.stringify(aCommand));
+  {$ENDIF}
+  aChannel.postMessage(aCommand);
+end;
+
 procedure TCommandDispatcher.SendCommand(const aName: string; aCommand: TCustomWorkerCommand);
 var
   Idx : integer;
@@ -422,7 +435,8 @@ begin
     end;
 end;
 
-generic procedure TCommandDispatcher.AddCommandHandler<T>(const aCommand: string; aHandler: specialize TTypedCommandHandler<T>; IsSingle : Boolean = false);
+generic procedure TCommandDispatcher.AddCommandHandler<T>(const aCommand: string; aHandler: specialize
+  TTypedCommandHandler<T>; IsSingle: boolean);
 begin
   RegisterCommandHandler(aCommand,procedure (aCmd : TCustomWorkerCommand)
     begin
@@ -475,6 +489,11 @@ begin
   Idx:=IndexOfWorker(aName);
   if Idx>=0 then
     Delete(FWorkers,Idx,1);
+end;
+
+procedure TCommandDispatcher.ListenOnChannel(aChannel: TJSBroadcastChannel);
+begin
+  aChannel.addEventListener('message',@HandleIncomingMessage);
 end;
 
 class function TCommandDispatcher.SetDispatcherClass(aClass: TCommandDispatcherClass): TCommandDispatcherClass;
