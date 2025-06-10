@@ -96,6 +96,7 @@ Type
     numberOfChannels : NativeInt;
     timestamp : NativeInt;
     data : TJSArrayBuffer;
+    transfer : TJSArrayBufferDynArray;
   end;
 
   TJSImageDecoderInit = class external name 'Object' (TJSObject)
