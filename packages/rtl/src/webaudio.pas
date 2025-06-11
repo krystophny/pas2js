@@ -502,18 +502,22 @@ Type
   Private
     FbaseLatency : Double; external name 'baseLatency'; 
     FoutputLatency : Double; external name 'outputLatency'; 
+    FsinkId : JSValue; external name 'sinkId';
   Public
     constructor new;
     constructor new(options : TJSAudioContextOptions);
     function getOutputTimestamp: TJSAudioTimestamp;
+    function resume: TJSPromise;
     function suspend: TJSPromise;
     function close: TJSPromise;
     function createMediaElementSource(mediaElement : TJSElement): TJSMediaElementAudioSourceNode;
     function createMediaStreamSource(mediaStream : JSValue): TJSMediaStreamAudioSourceNode;
     function createMediaStreamTrackSource(mediaStreamTrack : JSValue): TJSMediaStreamTrackAudioSourceNode;
     function createMediaStreamDestination: TJSMediaStreamAudioDestinationNode;
+    function setSinkId(sinkId: JSvalue) : TJSPromise;
     Property baseLatency : Double Read FbaseLatency; 
     Property outputLatency : Double Read FoutputLatency; 
+    Property sinkId : JSValue Read FsinkId;
   end;
   
   { --------------------------------------------------------------------
