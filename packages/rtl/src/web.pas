@@ -1648,11 +1648,12 @@ Type
 
   { TJSMediaQueryList }
 
-  TJSMediaQueryList = class external name 'MediaQueryList' (TJSObject)
+  TJSMediaQueryList = class external name 'MediaQueryList' (TJSEventTarget)
   private
     FMatches: Boolean; external name 'matches';
     FMedia: String; external name 'media';
   Public
+    onchange : TJSRawEventHandler;
     Property matches : Boolean Read FMatches;
     Property media : String Read FMedia;
   end;
