@@ -306,6 +306,7 @@ procedure TCommandDispatcher.CheckSenderID(aCommand: TCustomWorkerCommand);
 begin
   if (aCommand.FSenderID='') then
     aCommand.FSenderID:=DefaultSenderID;
+  aCommand[cFldSender]:=undefined;
 end;
 
 procedure TCommandDispatcher.SendCommand(aWorker: TJSWorker; aCommand: TCustomWorkerCommand);
