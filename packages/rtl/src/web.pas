@@ -1392,11 +1392,30 @@ Type
   end;
 
   TJSMediaStreamTrack = class external name 'MediaStreamTrack' (TJSEventTarget)
-       procedure stop;
-       function getCapabilities : TJSObject;
-       function getSettings : TJSObject;
-  end;
+  private
+    FcontentHint : String; external name 'contentHint';
+    Fenabled : Boolean; external name 'enabled';
+    Fkind : String; external name 'kind';
+    Fid : String; external name 'id';
+    Flabel : String; external name 'label';
+    Fmuted : Boolean; external name 'muted';
+    FreadyState : String; external name 'readyState';
+  public
+    property contentHint : String read FcontentHint write FcontentHint;
+    property enabled : Boolean read Fenabled write Fenabled;
+    property id : String read Fid;
+    property kind : String read Fkind;
+    property label_ : String read Flabel;
+    property muted : Boolean read Fmuted;
+    property readyState : String read FreadyState;
 
+    function applyConstraints(constraints : TJSObject) : TJSPromise;
+    function clone : TJSMediaStreamTrack;
+    function getCapabilities : TJSObject;
+    function getConstraints : TJSObject;
+    function getSettings : TJSObject;
+    procedure stop;
+  end;
   TJSMediaStreamTrackProc = reference to procedure (aMediaStreamTrack : TJSMediaStreamTrack);
 
   TJSMediaStreamTracks = class external name 'Array' (TJSArray)
