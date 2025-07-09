@@ -1433,6 +1433,7 @@ Type
     function clone : TJSMediaStream;
     function getTrackById(aID : String) : TJSMediaStreamTrack;
     function getVideoTracks : TJSMediaStreamTracks;
+    function getAudioTracks : TJSMediaStreamTracks;
     function getTracks : TJSMediaStreamTracks;
     procedure removeTrack(aTrack : TJSMediaStreamTrack);
   end;
