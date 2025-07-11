@@ -171,15 +171,19 @@ var
   lMsgProc: TMsgProc absolute lMsgProcExp;
   lMem : TWasmPointer;
   lLen : Longint;
+  sMsg : string absolute aMsg; // Avoid a typecast
   S : string;
 
 begin
   lMsgProcExp:=InstanceExports[MsgChannelFN_OnMessageUtf16];
   if not Assigned(lMsgProcExp) then
     Exit;
-  S:=TJSJSON.stringify(aMsg);
-  lLen:=Length(S)*2;
-  lMem:=InstanceExports.AllocMem(lLen);
+  if isString(aMsg) then
+    s:=sMsg
+  else
+    S:=TJSJSON.stringify(aMsg);
+  lLen:=Length(S);
+  lMem:=InstanceExports.AllocMem(lLen*2);
   try
     Env.SetUTF16StringInMem(lMem,S);
     lMsgproc(aID,lMem,lLen);
