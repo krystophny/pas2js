@@ -1113,7 +1113,7 @@ type
   { TJSBigIntHelper }
 
   TJSBigIntHelper = type helper for TJSBigint
-    class function new(aValue : JSValue) : TJSBigInt; static;
+    class function new(aValue : JSValue) : TJSBigInt; overload; static;
   end;
 
   { TJSAtomicWaitResult }
