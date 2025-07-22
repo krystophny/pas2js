@@ -967,9 +967,6 @@ type
     function finally_(value : TFinallyHandler): TJSPromise; external name 'finally';
   end;
 
-
-
-
   TJSFunctionArguments = class external name 'arguments'
   private
     FLength: NativeInt; external name 'length';
@@ -1037,7 +1034,7 @@ type
   end;
 
   generic TGGenerator<T> = class external name 'Generator' (TJSObject)
-  private type
+  public type
     TGGeneratorValue = class external name 'Generator' (TJSObject)
     public
       done: Boolean;
@@ -1061,9 +1058,9 @@ type
   TJSNumber = class external name 'Number' (TJSFunction)
   private
     class var FEPSILON: Double; external name 'EPSILON';
-    class var {%H-}FMAX_SAFE_INTEGER: Int64; external name 'MAX_SAFE_INTEGER';
+    class var {%H-}FMAX_SAFE_INTEGER: NativeInt; external name 'MAX_SAFE_INTEGER';
     class var FMAX_VALUE: Double; external name 'MAX_VALUE';
-    class var {%H-}FMIN_SAFE_INTEGER: Int64; external name 'MIN_SAFE_INTEGER';
+    class var {%H-}FMIN_SAFE_INTEGER: NativeInt; external name 'MIN_SAFE_INTEGER';
     class var FMIN_VALUE: Double; external name 'MIN_VALUE';
     class var FNaN: Double; external name 'NaN';
     class var FNEGATIVE_INFINITY: TJSNumber; external name 'NEGATIVE_INFINITY';
@@ -1099,9 +1096,9 @@ type
     function valueOf: Double; reintroduce;
 
     class property EPSILON: Double read FEPSILON;
-    class property MAX_SAFE_INTEGER{%H-}: Int64 read FMAX_SAFE_INTEGER;
+    class property MAX_SAFE_INTEGER{%H-}: NativeInt read FMAX_SAFE_INTEGER;
     class property MAX_VALUE: Double read FMAX_VALUE;
-    class property MIN_SAFE_INTEGER{%H-}: Int64 read FMIN_SAFE_INTEGER;
+    class property MIN_SAFE_INTEGER{%H-}: NativeInt read FMIN_SAFE_INTEGER;
     class property MIN_VALUE: Double read FMIN_VALUE;
     class property NaN: Double read FNaN;
     class property NEGATIVE_INFINITY: TJSNumber read FNEGATIVE_INFINITY;

@@ -907,12 +907,12 @@ type
   TResourceStream = class(TCustomMemoryStream)
   private
     procedure Initialize(aInfo : TResourceInfo);
-    procedure Initialize(Instance{%H-}: TFPResourceHMODULE; Name, ResType{%H-}: String);
+    procedure Initialize(Instance: TFPResourceHMODULE; Name, ResType: String);
   public
     constructor Create(aInfo: TResourceInfo);
     constructor Create(Instance: TFPResourceHMODULE; const ResName, ResType : String);
     constructor CreateFromID(Instance: TFPResourceHMODULE; ResID: Integer; ResType: String);
-    function Write(const Buffer{%H-}: TBytes; Offset{%H-}, Count{%H-}: LongInt): LongInt; override;
+    function Write(const Buffer: TBytes; Offset, Count: LongInt): LongInt; override;
     destructor Destroy; override;
   end;
 
@@ -1720,6 +1720,8 @@ begin
   if not GetResourceInfo(Name, aInfo) then
     raise EResNotFound.CreateFmt(SResNotFound,[Name]);
   Initialize(aInfo);
+  if Instance=0 then ;
+  if ResType='' then ;
 end;
 
 constructor TResourceStream.Create(aInfo: TResourceInfo);
@@ -1745,6 +1747,9 @@ function TResourceStream.Write(const Buffer: TBytes; Offset, Count: LongInt
   ): LongInt;
 begin
   Raise ENotSupportedException.Create(SErrResourceStreamNoWrite);
+  if Buffer=nil then ;
+  if Offset=0 then ;
+  if Count=0 then ;
   Result:=0;
 end;
 

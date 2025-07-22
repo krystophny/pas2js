@@ -94,6 +94,7 @@ type
     TimeAMString: string;
     TimePMString: string;
     TimeSeparator: Char;
+    ListSeparator: Char;
     TwoDigitYearCenturyWindow: Word;
   public
     Type
