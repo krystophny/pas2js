@@ -135,6 +135,10 @@ Type
   TJSOffscreenCanvasRenderingContext2D = BrowserApi.WebOrWorker.TJSOffscreenCanvasRenderingContext2D;
   TJSHTMLOffscreenCanvasElement = BrowserApi.WebOrWorker.TJSHTMLOffscreenCanvas;
   TJSHTMLOffscreenCanvas = BrowserApi.WebOrWorker.TJSHTMLOffscreenCanvas;
+  TJSBlobInit = BrowserApi.WebOrWorker.TJSBlobInit;
+  TJSImageBitmapOptions = BrowserApi.WebOrWorker.TJSImageBitmapOptions;
+  TJSDOMException = BrowserApi.WebOrWorker.TJSDOMException;
+  TJSFileReader = BrowserApi.WebOrWorker.TJSFileReader;
 {$ELSE}
   TJSServiceWorker = weborworker.TJSServiceWorker;
   TJSServiceWorkerRegistration = weborworker.TJSServiceWorkerRegistration;
@@ -216,6 +220,10 @@ Type
   TJSOffscreenCanvasRenderingContext2D = weborworker.TJSOffscreenCanvasRenderingContext2D;
   TJSHTMLOffscreenCanvasElement = weborworker.TJSHTMLOffscreenCanvas;
   TJSHTMLOffscreenCanvas = weborworker.TJSHTMLOffscreenCanvas;
+  TJSBlobInit = weborworker.TJSBlobInit;
+  TJSImageBitmapOptions = weborworker.TJSImageBitmapOptions;
+  TJSDOMException = weborworker.TJSDOMException;
+  TJSFileReader = weborworker.TJSFileReader;
 {$ENDIF}
   TJSMessagePortArray = TJSMessagePortDynArray;
   TEventListenerEvent = TJSEvent;
@@ -2659,49 +2667,7 @@ Type
   end;
   Type
 
-  { TJSDOMException }
 
-  TJSDOMException = class external name 'DOMException' (TJSObject)
-  private
-    FCode: Integer; external name 'code';
-    FMessage: String; external name 'message';
-    FName: string; external name 'name';
-  Public
-    Property code : Integer Read FCode;
-    Property Message : String Read FMessage;
-    Property name : string Read FName;
-  end;
-
-  { TJSFileReader }
-
-  TJSFileReader = class external name 'FileReader' (TJSEventTarget)
-  private
-    FError: TJSDOMException; external name 'error';
-    fReadyState: Integer; external name 'readyState';
-    FResult: JSValue; external name 'result';
-  Public
-    Const EMPTY : Integer;
-    Const LOADING : Integer;
-    Const DONE : Integer;
-  Public
-    onabort : TJSEventHandler;
-    onerror : TJSEventHandler;
-    onload : TJSEventHandler;
-    onloadstart : TJSEventHandler;
-    onloadend : TJSEventHandler;
-    onprogress : TJSEventHandler;
-  Public
-    constructor new;
-    Procedure abort;
-    procedure readAsArrayBuffer(Blob: TJSBlob);
-    procedure readAsBinaryString(Blob: TJSBlob);
-    procedure readAsDataURL(Blob: TJSBlob);
-    procedure readAsText(Blob: TJSBlob; encoding : string);
-    procedure readAsText(Blob: TJSBlob);
-    property Error : TJSDOMException read FError;
-    Property readyState : Integer Read fReadyState;
-    property Result : JSValue Read FResult;
-  end;
 
 
   TJSCanvasRenderingContext2D = class external name 'CanvasRenderingContext2D' (TJSBaseCanvasRenderingContext2D)

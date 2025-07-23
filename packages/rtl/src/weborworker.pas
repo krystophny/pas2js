@@ -1793,7 +1793,10 @@ type
     property canvas : TJSHTMLOffscreenCanvas Read FCanvas;
   end;
 
-
+  TJSConvertToBlobOptions = class external name 'Object' (TJSObject)
+    type_ : string; external name 'type';
+    quality : double;
+  end;
 
   TJSHTMLOffscreenCanvas = Class external name 'OffscreenCanvas' (TJSObject)
   Public
@@ -1804,6 +1807,8 @@ type
     Function getContextAs2DContext(contextType : string; contextAttributes : TJSObject) : TJSOffscreenCanvasRenderingContext2D; external name 'getContext'; reintroduce;
     Function getContextAsImageBitmapContext(contextType : string) : TJSImageBitmapCanvasRenderingContext; external name 'getContext'; reintroduce;
     function transferToImageBitmap: TJSImageBitmap;
+    function convertToBlob() : TJSPromise;
+    function convertToBlob(options : TJSConvertToBlobOptions) : TJSPromise;
     height : Integer;
     width : Integer;
   end;
@@ -1872,6 +1877,51 @@ type
   end;
   
   TJSScriptContext = (jscUnknown,jscMainBrowserThread,jscWebWorker,jscServiceWorker);
+
+  { TJSDOMException }
+
+  TJSDOMException = class external name 'DOMException' (TJSObject)
+  private
+    FCode: Integer; external name 'code';
+    FMessage: String; external name 'message';
+    FName: string; external name 'name';
+  Public
+    Property code : Integer Read FCode;
+    Property Message : String Read FMessage;
+    Property name : string Read FName;
+  end;
+
+  { TJSFileReader }
+
+  TJSFileReader = class external name 'FileReader' (TJSEventTarget)
+  private
+    FError: TJSDOMException; external name 'error';
+    fReadyState: Integer; external name 'readyState';
+    FResult: JSValue; external name 'result';
+  Public
+    Const EMPTY : Integer;
+    Const LOADING : Integer;
+    Const DONE : Integer;
+  Public
+    onabort : TJSEventHandler;
+    onerror : TJSEventHandler;
+    onload : TJSEventHandler;
+    onloadstart : TJSEventHandler;
+    onloadend : TJSEventHandler;
+    onprogress : TJSEventHandler;
+  Public
+    constructor new;
+    Procedure abort;
+    procedure readAsArrayBuffer(Blob: TJSBlob);
+    procedure readAsBinaryString(Blob: TJSBlob);
+    procedure readAsDataURL(Blob: TJSBlob);
+    procedure readAsText(Blob: TJSBlob; encoding : string);
+    procedure readAsText(Blob: TJSBlob);
+    property Error : TJSDOMException read FError;
+    Property readyState : Integer Read fReadyState;
+    property Result : JSValue Read FResult;
+  end;
+
 
 
 function isMainBrowserThread: boolean;
