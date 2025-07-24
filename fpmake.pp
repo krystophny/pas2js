@@ -238,7 +238,9 @@ begin
     P.Targets.AddProgram('pas2js.pp');
     {$IF FPC_FULLVERSION>=30301}
     P.Targets.AddProgram('webidl2pas.pp');
-    P.Targets.AddProgram('compileserver.pp');
+    T:=P.Targets.AddProgram('compileserver.pp');
+    T.OSes:=AllUnixOSes+AllWindowsOSES;
+   
     P.Targets.AddProgram('makestub.pp');
     T:=P.Targets.AddLibrary('pas2jslib.pp');
     if Defaults.OS=Linux then
