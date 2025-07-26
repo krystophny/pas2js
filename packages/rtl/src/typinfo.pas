@@ -39,6 +39,7 @@ type
   TTypeInfoModule = class;
 
   { TSectionRTTI }
+
   TSectionRTTI = class external name 'rtl.tSectionRTTI' (TJSObject)
     Module: TTypeInfoModule external name '$module';
   end;
@@ -319,7 +320,7 @@ type
 
   TTypeInfoRecord = class external name 'rtl.tTypeInfoRecord'(TTypeInfoStruct)
   public
-    RecordInfo: TRecordInfo external name '$record';  // only records with class vars, else jsundefined
+    RecordInfo: TRecordInfo external name '$record';  // only records rtti members, else jsundefined
   end;
 
   { TTypeInfoClass - Kind = tkClass }

@@ -245,7 +245,7 @@ type
   public
     constructor Create(const Parent: TRttiObject; const Signature: TProcedureSignature); reintroduce;
 
-    class function Invoke(const Instance: TValue; const Args: array of TValue): TValue;
+    class function Invoke(const Instance: TValue; const Args: array of TValue): TValue; // todo
 
     property Flags: TProcedureFlags read FFlags;
     property Parameters: TRttiParameterArray read FParameters;
@@ -654,9 +654,9 @@ type
 
   TRttiMethodType = class(TRttiInvokableType)
   private
-    FCallConv: TCallConv;
-    FReturnType: TRttiType;
-    FParams, FParamsAll: TRttiParameterArray;
+    //FCallConv: TCallConv;
+    //FReturnType: TRttiType;
+    //FParams, FParamsAll: TRttiParameterArray;
     function GetMethodKind: TMethodKind;
   protected
     function GetMethodTypeInfo : TTypeInfoMethodVar;
@@ -676,7 +676,7 @@ type
 
   TRttiProcedureType = class(TRttiInvokableType)
   private
-    FParams, FParamsAll: TRttiParameterArray;
+    //FParams, FParamsAll: TRttiParameterArray;
     function GetProcTypeInfo: TTypeInfoProcVar;
   protected
     function GetParameters(aWithHidden: Boolean): TRttiParameterArray; override;
@@ -2437,6 +2437,7 @@ end;
 function TRttiType.GetMethods(const aName: String): TRttiMethodArray;
 begin
   Result:=nil;
+  if aName='' then ;
 end;
 
 function TRttiType.GetMethod(const aName: String): TRttiMethod;
@@ -2685,6 +2686,7 @@ begin
   SetLength(Result,Length(MethodTypeInfo.ProcSig.Params));
   For I:=0 to  Length(MethodTypeInfo.ProcSig.Params)-1 do
     Result[i]:=TRttiParameter.Create(Self,MethodTypeInfo.ProcSig.Params[i]);
+  if aWithHidden then ;
 end;
 
 function TRttiMethodType.GetCallingConvention: TCallConv;
@@ -2765,6 +2767,7 @@ begin
   SetLength(Result,Length(ProcTypeInfo.ProcSig.Params));
   For I:=0 to  Length(ProcTypeInfo.ProcSig.Params)-1 do
     Result[i]:=TRttiParameter.Create(Self,ProcTypeInfo.ProcSig.Params[i]);
+  if aWithHidden then ;
 end;
 
 function TRttiProcedureType.GetCallingConvention: TCallConv;
@@ -2939,7 +2942,10 @@ end;
 
 class function TRttiProcedureSignature.Invoke(const Instance: TValue; const Args: array of TValue): TValue;
 begin
-
+  if Instance.IsEmpty then ;
+  if Args=nil then ;
+  Result:=Default(TValue);
+  raise Exception.Create('20250726092613 not yet implement');
 end;
 
 end.
