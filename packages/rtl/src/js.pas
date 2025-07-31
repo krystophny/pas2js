@@ -1790,14 +1790,19 @@ type
     class function DateTimeFormat() : TJSIntlDateTimeFormat;
     class function DateTimeFormat(locales : string) : TJSIntlDateTimeFormat;
     class function DateTimeFormat(locales : string; Options : TJSDateLocaleOptions) : TJSIntlDateTimeFormat;
+    class function UndefinedDateTimeFormat(locales : JSValue; Options : TJSDateLocaleOptions) : TJSIntlDateTimeFormat; external name 'DateTimeFormat';
+    class function UndefinedDateTimeFormat(locales : JSValue) : TJSIntlDateTimeFormat; external name 'DateTimeFormat';
     class function DisplayNames(locales : string; Options : TJSDisplayNamesOptions) : TJSIntlDisplayNames;
     class function NumberFormat() : TJSIntlNumberFormat;
     class function NumberFormat(locales : string) : TJSIntlNumberFormat;
     class function NumberFormat(locales : string; Options : TJSNumberFormatOptions) : TJSIntlNumberFormat;
+    class function UndefinedNumberFormat(locales : JSValue; Options : TJSNumberFormatOptions) : TJSIntlNumberFormat; external name 'NumberFormat';
+    class function UndefinedNumberFormat(locales : JSValue) : TJSIntlNumberFormat; external name 'NumberFormat';
     class function Collator() : TJSIntlCollator;
     class function Collator(locales : string) : TJSIntlCollator;
     class function Collator(locales : string; Options : TJSIntlCollatorOptions) : TJSIntlCollator;
   end;
+
 
 var
   // JSArguments can be used in procedures/functions to provide access to the 'arguments' array.
@@ -2103,6 +2108,7 @@ begin
   Result:=JSBigint(aValue);
 end;
 
+{ TJSIntlHelper }
 
 function GetValueType(JS: JSValue): TJSValueType;
 
