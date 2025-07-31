@@ -789,6 +789,7 @@ function TWasmHTTPAPI.HandleOpenURL(aURL : TWasmPointer; aURLLen : Longint; aFla
 var
   lURL : String;
 begin
+  Result:=WASMHTTP_RESULT_SUCCESS;
   lURL:=Env.GetUTF8StringFromMem(aURL,aURLLen);
   Writeln('Handling open url call ',aURL);
   {$IFNDEF NOLOGAPICALLS}
