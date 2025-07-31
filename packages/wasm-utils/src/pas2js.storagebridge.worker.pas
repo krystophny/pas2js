@@ -6,7 +6,7 @@ unit pas2js.storagebridge.worker;
 interface
 
 uses
-  types, js, weborworker, webworker, rtl.WorkerCommands, pas2js.storagebridge.shared;
+  types, js, webworker, rtl.WorkerCommands, pas2js.storagebridge.shared;
 
 Type
   TMainThreadCallFunc = reference to function: Integer;
@@ -41,7 +41,7 @@ Type
 
 implementation
 
-function Array_prototype_slice(val : JSValue) : TJSValueDynArray; external name 'Array.prototype.slice.call';
+// function Array_prototype_slice(val : JSValue) : TJSValueDynArray; external name 'Array.prototype.slice.call';
 
 function TWorkerStorageBridge.DoMainThreadBlockingCall(const aFuncName: String; aArgs: array of JSValue): Integer;
 
