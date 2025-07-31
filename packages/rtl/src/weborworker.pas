@@ -1922,6 +1922,61 @@ type
     property Result : JSValue Read FResult;
   end;
 
+  TJSFontFaceDescriptors = class external name 'Object' (TJSObject)
+    style: string;
+    weight: string;
+    stretch: string;
+    unicodeRange: string;
+    variant: string;
+    featureSettings: string;
+    display: string;
+    // Add more properties if needed
+  end;
+
+  TJSFontFace = class external name 'FontFace' (TJSObject)
+  private
+    FFamily: String;           external name 'family';
+    FStyle: String;            external name 'style';
+    FWeight: String;           external name 'weight';
+    FStretch: String;          external name 'stretch';
+    FUnicodeRange: String;     external name 'unicodeRange';
+    FDisplay: String;          external name 'display';
+    FLoaded: TJSPromise;       external name 'loaded';
+    FStatus: String;           external name 'status';
+
+  public
+    constructor new(aFamily: String; aFontURL: String); overload;
+    constructor new(family: String; source: JSValue; descriptors: TJSFontFaceDescriptors); overload;
+
+    function Load: TJSPromise; external name 'load';
+
+    // Properties
+    property Family: String read FFamily write FFamily;
+    property Style: String read FStyle write FStyle;
+    property Weight: String read FWeight write FWeight;
+    property Stretch: String read FStretch write FStretch;
+    property UnicodeRange: String read FUnicodeRange write FUnicodeRange;
+    property Display: String read FDisplay write FDisplay;
+    property Loaded: TJSPromise read FLoaded; // readonly
+    property Status: String read FStatus;     // readonly
+  end;
+
+  TJSFontFaceSet = class external name 'FontFaceSet'
+  private
+    FStatus: string;           external name 'status';
+    FReady: TJSPromise;        external name 'ready';
+
+  public
+    function Check(const aFont: string): Boolean; external name 'check';
+    function Load(const aFont: string; const aText: string = ''): TJSPromise; external name 'load';
+
+    procedure Add(aFontFace: TJSFontFace); external name 'add';
+    procedure Delete(aFontFace: TJSFontFace); external name 'delete';
+    function Has(aFontFace: TJSFontFace): Boolean; external name 'has';
+
+    property Status: string read FStatus;       // readonly
+    property Ready: TJSPromise read FReady;     // readonly
+  end;
 
 
 function isMainBrowserThread: boolean;

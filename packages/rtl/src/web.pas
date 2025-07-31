@@ -139,6 +139,9 @@ Type
   TJSImageBitmapOptions = BrowserApi.WebOrWorker.TJSImageBitmapOptions;
   TJSDOMException = BrowserApi.WebOrWorker.TJSDOMException;
   TJSFileReader = BrowserApi.WebOrWorker.TJSFileReader;
+  TJSFontFaceDescriptors = BrowserApi.WebOrWorker.TJSFontFaceDescriptors;
+  TJSFontFace = BrowserApi.WebOrWorker.TJSFontFace;
+  TJSFontFaceSet = BrowserApi.WebOrWorker.TJSFontFaceSet;
 {$ELSE}
   TJSServiceWorker = weborworker.TJSServiceWorker;
   TJSServiceWorkerRegistration = weborworker.TJSServiceWorkerRegistration;
@@ -224,6 +227,9 @@ Type
   TJSImageBitmapOptions = weborworker.TJSImageBitmapOptions;
   TJSDOMException = weborworker.TJSDOMException;
   TJSFileReader = weborworker.TJSFileReader;
+  TJSFontFaceDescriptors = WebOrWorker.TJSFontFaceDescriptors;
+  TJSFontFace = WebOrWorker.TJSFontFace;
+  TJSFontFaceSet = WebOrWorker.TJSFontFaceSet;
 {$ENDIF}
   TJSMessagePortArray = TJSMessagePortDynArray;
   TEventListenerEvent = TJSEvent;
