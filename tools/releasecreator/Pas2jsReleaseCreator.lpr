@@ -541,6 +541,7 @@ begin
 
     // compile webidl2pas using devel fpc
     TheParams.Assign(SharedParams);
+    TheParams.Add('-Fu'+PkgSrcDir+'webidl'+PathDelim+'src');
     TheParams.Add('-o'+BuildDir_Bin+'webidl2pas'+GetExeExt);
     TheParams.Add('webidl2pas.pp');
     RunTool(WorkDir,FPCDevelFilename,TheParams);
