@@ -19,7 +19,7 @@ Official site:
 ## Building
 
 ### Compiler
-You need to install the Free Pascal compiler (fpc), 3.2.0 or better, 32 or 64bit.
+You need to install the Free Pascal compiler (fpc), 3.2.2 or better, 32 or 64bit.
 Either from their website
 ```text
 https://www.freepascal.org/download.html
