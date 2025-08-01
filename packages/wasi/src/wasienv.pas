@@ -2262,7 +2262,6 @@ var
   NameArray : TJSUint8Array;
   NameLen : integer;
   Ptr : TWasmMemoryLocation;
-  Res : Integer;
 
 
 begin
@@ -2274,10 +2273,9 @@ begin
     Result:=WASI_ENOSYS
   else
     try
-      Res:=FS.ReadDir(FD,AsIntNumber(Cookie),Dirent);
-      Result:=WASI_ESUCCESS;
+      Result:=FS.ReadDir(FD,AsIntNumber(Cookie),Dirent);
       Ptr:=BufPtr;
-      While ((Ptr-BufPtr)<BufLen) and (Res=WASI_ESUCCESS) do
+      if ((Ptr-BufPtr)<BufLen) and (Result=WASI_ESUCCESS) then
         begin
         NameArray:=UTF8TextEncoder.encode(Dirent.name);
         NameLen:=NameArray.byteLength;
@@ -2286,13 +2284,9 @@ begin
         Ptr:=SetMemInfoInt32(Ptr,NameLen);
         Ptr:=SetMemInfoInt32(Ptr,DirentMap[Dirent.EntryType]);
         if SetUTF8StringInMem(Ptr,BufLen-18,Dirent.Name)<>-1 then
-          begin
-          Ptr:=Ptr+NameLen;
-          Cookie:=Dirent.Next;
-          Res:=FS.ReadDir(FD,AsIntNumber(Cookie),Dirent)
-          end
+          Ptr:=Ptr+NameLen
         else
-          Res:=WASI_ENOMEM;
+          Result:=WASI_ENOMEM;
         end;
       SetMemInfoInt32(bufusedPtr,Ptr-BufPtr);
     except
