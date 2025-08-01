@@ -19,7 +19,7 @@ unit Math;
 interface
 
 const
-  MinInteger = -$fffffffffffff-1;
+  MinInteger = -$fffffffffffff+1;
   MaxInteger = $fffffffffffff;
   MinDouble  =  5.0e-324;
   MaxDouble  =  1.7e+308;
