@@ -1158,7 +1158,7 @@ type
 
   TJSFormatRangePart = class external name 'Object' (TJSObject)
   private
-    FType : string; external name 'string';
+    FType : string; external name 'type';
     FValue : string; external name 'value';
     FSource : string; external name 'source';
   Public
@@ -1170,7 +1170,7 @@ type
 
   TJSFormatDatePart = class external name 'Object' (TJSObject)
   private
-    FType : string; external name 'string';
+    FType : string; external name 'type';
     FValue : string; external name 'value';
   Public
    property type_ : string read FType;
@@ -1231,7 +1231,7 @@ type
     numberingSystem : string;
     timeZone : string;
     hourCycle : string;
-    hour12 : string;
+    hour12 : boolean;
     weekday : string;
     era : string;
     year : string;
@@ -1259,7 +1259,7 @@ type
     function format(aDate : TJSDate) : string;
     function formatRange(aStartDate, aEndDate : TJSDate) : string;
     function formatRangeToParts(aStartDate, aEndDate : TJSDate) : TJSFormatRangePartArray;
-    function formatToParts(aStartDate, aEndDate : TJSDate) : TJSFormatDatePartArray;
+    function formatToParts(aDate : TJSDate) : TJSFormatDatePartArray;
     function resolvedOptions : TJSDateTimeResolvedOptions;
   end;
 
