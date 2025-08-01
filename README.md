@@ -63,9 +63,9 @@ git pull
 Switching to the fixes branch:
 ```sh
 cd pas2js
-git checkout fixes_3_0
+git checkout fixes_3_2
 cd compiler
-git checkout pas2js/fixes_3_0
+git checkout pas2js/fixes_3_2
 ```
 
 #### Building on Linux/macOS
