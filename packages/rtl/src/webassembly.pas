@@ -111,6 +111,11 @@ Type
     Class Function instantiateStreaming(source : TJSObject; ImportObject :  TJSObject) : TJSPromise; overload;
     Class Function instantiateStreaming(source : TJSObject) : TJSPromise; overload;
     Class Function validate(Buffer : TJSArrayBuffer): Boolean;
+    Class function promising(aFunction : TJSFunction) : TJSFunction;
+  end;
+
+  TJSSuspending = class external name 'WebAssembly.Suspending' (TJSObject)
+    constructor new(aFunc : TJSFunction);
   end;
 
   { TJSWebAssemblyTable }
