@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <title>ACE code editor demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="acedemo.js"></script>
+  <script src="js/ace.js"></script>
+  <link rel="stylesheet" href="css/bulma.min.css">
+  <style type="text/css" media="screen">
+  #editor {
+    min-width: 800px;
+    min-height: 600px;
+    line-height: 1.4em;
+  }
+  </style>
+</head>
+<body>
+  <div class="section">
+    <h1 class="title is-3">Ace Editor demo</h1>
+    <p>
+    Below is a div that has been converted to a highlighting code editor using the Javascript <a HREF="https://ace.c9.io/">Ace editor</a>
+    You can use the download button below the editor to download the text as a file.
+    </p>
+    <div class="box">
+      <div id="editor">
+      </div>
+      <button id="btnDownload" class="button is-link">&#x2B07;&#xFE0F; Download</button>
+    </div>
+  </div>
+  <script>
+    rtl.showUncaughtExceptions=true;
+    window.addEventListener("load", rtl.run);
+  </script>
+</body>
+</html>
