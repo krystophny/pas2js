@@ -48,6 +48,7 @@ Type
     function GetDecimalSeparator(aSeparator: TWasmPointer; aSeparatorLen: TWasmPointer): TLocaleError;
     function GetThousandSeparator(aSeparator: TWasmPointer; aSeparatorLen: TWasmPointer): TLocaleError;
     function GetCurrencySymbol(aSymbol: TWasmPointer; aSymbolLen: TWasmPointer): TLocaleError;
+    // Follows Javascript getTimezonOffset convention (UTC+3 is -180)
     function GetTimeZoneOffset : Integer;
     procedure InitAll;
     procedure InitTimeSeparator;
@@ -117,7 +118,7 @@ end;
 
 function TWasmLocaleAPI.GetTimeZoneOffset: Integer;
 begin
-  Result:=TJSDate.New.getTimezoneOffset();
+  Result:=-TJSDate.New.getTimezoneOffset();
 end;
 
 procedure TWasmLocaleAPI.InitAll;
@@ -378,9 +379,9 @@ begin
   offsetMinutes := absOffsetMinutes mod 60;
 
   if (timezoneOffsetMinutes < 0) then
-    posixOffsetString := '-'
+    posixOffsetString := '+'
   else
-    posixOffsetString := '+';
+    posixOffsetString := '-';
   posixOffsetString := posixOffsetString + IntToStr(offsetHours);
   if (offsetMinutes > 0) then
     posixOffsetString := ':' + posixOffsetString +Format('%.2d',[offsetMinutes]);
