@@ -39,6 +39,7 @@ Type
     FThousandSeparator : string;
     FCurrencySymbol : string;
   private
+    FCurrency: String;
     // exported calls
     procedure SetWasmLocale(aLocale : TWasmPointer; aLocaleLen: Longint);
     function GetNameOfDay(aDay: Integer; aLong: Integer; aName: TWasmPointer; aNameLen: TWasmPointer): TLocaleError;
@@ -48,7 +49,8 @@ Type
     function GetDecimalSeparator(aSeparator: TWasmPointer; aSeparatorLen: TWasmPointer): TLocaleError;
     function GetThousandSeparator(aSeparator: TWasmPointer; aSeparatorLen: TWasmPointer): TLocaleError;
     function GetCurrencySymbol(aSymbol: TWasmPointer; aSymbolLen: TWasmPointer): TLocaleError;
-    // Follows Javascript getTimezonOffset convention (UTC+3 is -180)
+    // Follows Javascript getTimezoneOffset convention (UTC+2 is -120, corresponding to TZ=UTC-2 )
+    // Not corrected for DST
     function GetTimeZoneOffset : Integer;
     procedure InitAll;
     procedure InitTimeSeparator;
@@ -64,6 +66,9 @@ Type
     procedure FillImportObject(aObject: TJSObject); override;
     function GetTimeZoneVar(aDate: TJSDate): string;
     function ImportName: String; override;
+    // There is no API to get the currency associated with the locale.
+    // So the currency to use must be set. Set to EUR by default.
+    Property DefaultCurrency : String read FCurrency Write FCurrency;
   end;
 
 
@@ -113,6 +118,7 @@ constructor TWasmLocaleAPI.Create(aEnv: TPas2JSWASIEnvironment);
 begin
   inherited Create(aEnv);
   FLocale:=Undefined;
+  FCurrency:='EUR';
   InitAll;
 end;
 
@@ -251,7 +257,7 @@ begin
   try
     lOptions:=TJSNumberFormatOptions.New;
     lOptions.Style:='currency';
-    lOptions.currency_:='currencyCode';
+    lOptions.currency_:=FCurrency;
     lOptions.minimumFractionDigits:=0;
     lOptions.maximumFractionDigits:=0;
     lformatter:=TJSIntl.UndefinedNumberFormat(Flocale, lOptions);
@@ -379,9 +385,9 @@ begin
   offsetMinutes := absOffsetMinutes mod 60;
 
   if (timezoneOffsetMinutes < 0) then
-    posixOffsetString := '+'
+    posixOffsetString := '-'
   else
-    posixOffsetString := '-';
+    posixOffsetString := '+';
   posixOffsetString := posixOffsetString + IntToStr(offsetHours);
   if (offsetMinutes > 0) then
     posixOffsetString := ':' + posixOffsetString +Format('%.2d',[offsetMinutes]);
