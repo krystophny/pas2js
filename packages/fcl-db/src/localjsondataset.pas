@@ -193,22 +193,39 @@ begin
 end;
 
 procedure TCustomLocalJSONDataset.SaveDataToStorage;
-
-Var
-  S : String;
-  J : TJSObject;
+  var CleanRows: TJSArray;
+      i: Integer;
+      CurrentRow: JSValue;
+      S: String;
+      J: TJSObject;
 begin
-  if (DataElement<>'') then
-    begin
-    J:=TJSObject.New;
-    J[DataElement]:=Rows;
-    S:=TJSJSON.Stringify(J);
-    end
-  else
-    S:=TJSJSON.Stringify(Rows);
-  Storage.setItem(StorageKey,S);
-end;
+   // 1. Let's create a new temporary array that will contain only valid records.
+   CleanRows := TJSArray.New;
 
+   // 2. We iterate through the original 'Rows' array of the dataset.
+   //    The 'Rows' property exposes the internal array which also contains null records.
+   for i := 0 to Rows.Length - 1 do begin
+      CurrentRow := Rows[i];
+
+      // 3. We check if the current record is valid (neither 'undefined' nor 'null').
+      //    Deleted records are set to 'undefined' by the InternalDelete procedure.
+      if not (isUndefined(CurrentRow) or isNull(CurrentRow)) then begin
+         // 4. If the record is valid, we add it to our new "clean" array.
+         CleanRows.Push(CurrentRow);
+      end;
+   end;
+
+   // 5. At this point, we use the 'CleanRows' array (instead of 'Rows') for serialization.
+   if (DataElement <> '') then begin
+      J := TJSObject.New;
+      J[DataElement] := CleanRows; // We use the clean array
+      S := TJSJSON.Stringify(J);
+   end else
+      S := TJSJSON.Stringify(CleanRows); // We use the clean array
+
+   // 6. We save the compressed JSON string to storage.
+   Storage.setItem(StorageKey, S);
+end;  
 
 end.
 
