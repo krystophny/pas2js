@@ -148,6 +148,7 @@ Type
   TJSMessageEvent = weborworker.TJSMessageEvent;
   TJSEvent = weborworker.TJSEvent;
   TJSBlob = weborworker.TJSBlob;
+  TJSFile = weborworker.TJSFIle;
   TJSEventTarget = weborworker.TJSEventTarget;
   TJSEventInit = weborworker.TJSEventInit;
   TJSConsole = weborworker.TJSConsole;
@@ -923,7 +924,7 @@ Type
   end;
   TJSNameSpaceMapperCallback = function (aNameSpace : string ) : String;
 
-  TJSHTMLFile = class;
+  TJSHTMLFile = weborworker.TJSFile;
   TJSHTMLFileList = Class;
 
   { TJSDataTransferItem }
@@ -2124,21 +2125,6 @@ Type
     property valueMissing : Boolean read FValueMissing;
   end;
 
-
-  { TJSHTMLFile }
-
-  TJSHTMLFile = class external name 'File' (TJSBlob)
-  private
-    FLastModified: NativeInt; external name 'lastModified';
-    FLastModifiedDate: TJSDate; external name 'lastModifiedDate';
-    FName: string; external name 'name';
-  public
-    constructor New(ABits: JSValue; AName: string); overload;
-    constructor New(ABits: JSValue; AName: string; AOptions: TJSObject); overload;
-    property lastModified: NativeInt read FLastModified;
-    property lastModifiedDate : TJSDate read FLastModifiedDate; deprecated;
-    property name: String read FName;
-  end;
 
   { TJSHTMLFileList }
 
