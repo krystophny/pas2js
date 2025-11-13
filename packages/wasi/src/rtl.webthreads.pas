@@ -470,7 +470,6 @@ begin
       FOnLog(Msg)
     else
       Writeln(msg);
-
 end;
 
 procedure TWasmThreadController.DoLog(const Fmt: string; const args: array of const);
