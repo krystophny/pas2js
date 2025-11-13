@@ -297,6 +297,39 @@ type
     property locked: Boolean read FLocked;
   end;
 
+  TJSTransformStreamDefaultController = class external name 'TransformStreamDefaultController' (TJSObject)
+    desiredSize : NativeInt;
+    procedure enqueue(aChunk : JSValue);
+    procedure error(aReason : string);
+    procedure terminate;
+  end;
+
+  TJSWritableStrategySizeHandler = Reference to Function (aChunk :  JSValue) : integer;
+
+  TJSTranformStreamWritableStrategy = class external name 'Object' (TJSObject)
+    highWaterMark : Cardinal;
+    size : TJSWritableStrategySizeHandler;
+  end;
+
+  TJSTransformStreamControllerProc = reference to procedure(aController : TJSTransformStreamDefaultController);
+  TJSTransformStreamControllerTransformProc = reference to procedure(aChunk : JSValue; aController : TJSTransformStreamDefaultController);
+  TJSTransformStreamControllerTransformFunc = reference to function(aChunk : JSValue; aController : TJSTransformStreamDefaultController) : TJSPromise;
+
+  TJSTransformStreamController = class external name 'Object' (TJSObject)
+    start : TJSTransformStreamControllerProc;
+    transform : TJSTransformStreamControllerTransformProc;
+    transformFunc : TJSTransformStreamControllerTransformFunc; external name 'transform';
+    flush : TJSTransformStreamControllerProc;
+  end;
+
+  TJSTransformStream = class external name 'TransformStream' (TJSObject)
+    constructor new;
+    constructor new(controller : TJSTransformStreamController);
+    constructor new(controller : TJSTransformStreamController; WritableStrategy : TJSTranformStreamWritableStrategy);
+    readable : TJSReadableStream;
+    writable : TJSWritableStream;
+  end;
+
   TJSBlobInit = class external name 'Object' (TJSObject)
     type_ : string; external name 'type';
     endings : string;
@@ -335,7 +368,8 @@ type
   TJSFile = class external name 'File' (TJSBlob)
   private
     fLastModified: NativeInt; external name 'lastModified';
-    fname: String; external name 'fname';
+    fLastModifiedDate: TJSDate; external name 'lastModifiedDate';
+    fname: String; external name 'name';
   public
     constructor new(Bits : TJSArray; const aName: string);
     constructor new(Bits: TJSDataView; const aName : string);
@@ -343,6 +377,7 @@ type
     constructor new(Bits: TJSDataView; const aName : string; aOptions : TJSFileNewOptions);
     property Name : String  read fname;
     property lastModified : NativeInt Read fLastModified;
+    property lastModifiedDate : TJSDate Read fLastModifiedDate;
   end;
 
   TJSBody = class external name 'Body' (TJSObject)
@@ -1978,6 +2013,33 @@ type
     property Ready: TJSPromise read FReady;     // readonly
   end;
 
+  TJSPressureRecord = class external name 'Object' (TJSObject)
+    source : String;
+    state : String;
+    time : Double;
+  end;
+  TJSPressureRecordArray = Array of TJSPressureRecord;
+
+  TPressureUpdateCallback = reference to procedure(aRecords : TJSPressureRecordArray; aObserver : TJSObject);
+
+  TJSPressureObserverOptions = class external name 'Object' (TJSObject)
+    sampleInterval : Double;
+  end;
+
+  TJSPressureObserver = class external name 'PressureObserver' (TJSObject)
+  private
+    class var FKnownSources : TJSStringDynArray; external name 'knownSources';
+  public
+    constructor new(aCallback : TPressureUpdateCallback);
+    procedure observe(aSource : String); overload;
+    procedure observe(aSource : String; aOptions : TJSPressureObserverOptions); overload;
+    procedure unobserve(aSource : String);
+    procedure disconnect;
+    function takeRecords : TJSPressureRecordArray;
+    class property knownSources : TJSStringDynArray read FKnownSources;
+  end;
+
+
 
 function isMainBrowserThread: boolean;
 function isWebWorker : boolean;
@@ -1994,6 +2056,7 @@ var
   function fetch(resource: String; init: TJSObject): TJSPromise; overload; external name 'fetch';
   //function fetch(resource: String): TJSPromise; overload; external name 'fetch';
   function fetch(resource: String): TJSResponse; {$IFNDEF SkipAsync}async;{$ENDIF} overload; external name 'fetch';
+  function fetchAsync(resource: String; init: TJSObject): TJSResponse; {$IFNDEF SkipAsync}async;{$ENDIF} external name 'fetch';
   function fetch(resource: TJSObject; init: TJSObject): TJSPromise; overload; external name 'fetch';
   function fetch(resource: TJSObject): TJSPromise; overload; external name 'fetch';
 
