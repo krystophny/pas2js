@@ -253,7 +253,7 @@ Var
   WLC: TWorkerLoadCommand;
 
 begin
-  Writeln('Sending load command to worker.');
+  // Writeln('Sending load command to worker.');
   WLC:=TWorkerLoadCommand.Create(WasmModule, WasmMemory);
   aThreadWorker.SendCommand(WLC);
   aThreadWorker.WorkerState:=twsLoadSent;
@@ -319,7 +319,7 @@ Var
   WT : TWasmThread;
 
 begin
-  Writeln('Send load commands');
+  // Writeln('Send load commands');
   {$IFNDEF NOLOGAPICALLS}
   DoLog('Sending load command to all workers');
   {$ENDIF}
@@ -493,7 +493,7 @@ var
   lCmd : TWorkerLoadedCommand absolute aCommand;
   lWorker : TWasmThread;
 begin
-  Writeln('Receiving loaded command');
+  // Writeln('Receiving loaded command');
   lWorker:=TWasmThread(aCommand.Sender);
   HandleLoadedCommand(lWorker,lCmd);
 end;
