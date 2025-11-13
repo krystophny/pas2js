@@ -333,7 +333,7 @@ end;
 
 procedure TRunnerWorkerWebSocketAPI.HandleWebSocketMemMessage(aCommand :TWebsocketSetMemCommand);
 begin
-  Writeln('Worker, accepting websocket shared memory');
+  // Writeln('Worker, accepting websocket shared memory');
   SharedMem:=aCommand.Buffer;
 end;
 
