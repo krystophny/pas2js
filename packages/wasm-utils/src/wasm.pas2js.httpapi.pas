@@ -288,7 +288,7 @@ begin
     else if BodyIsString and (BodyAsText<>'') then
       lRequestInit['body']:=BodyAsText;
     if KeepAlive then
-    lRequestInit['keepalive']:=KeepAlive;
+      lRequestInit['keepalive']:=KeepAlive;
     MaybeInit('redirect',Redirect);
     MaybeInit('priority',Priority);
     MaybeInit('referrer',Referrer);
@@ -478,6 +478,8 @@ begin
   Exp:=InstanceExports[httpFN_ResponseCallback];
   if aFetch.FRequestError<>'' then
     Stat:=-1
+  else if not Assigned(aFetch.Response) then
+    Stat:=-1
   else
     Stat:=aFetch.Response.status;
   if isFunction(Exp) then
@@ -575,6 +577,9 @@ begin
   lfetch:=FetchByID(aRequestID);
   if not Assigned(lFetch) then
     Exit(WASMHTTP_RESULT_INVALIDID);
+  if lFetch.InProgress and assigned(lFetch.FAbortController) then
+    lFetch.FAbortController.abort;
+  FRequests[IntToStr(aRequestID)]:=undefined;
 end;
 
 function TWasmHTTPAPI.RequestAbort(aRequestID: TWasmHTTPRequestID): TWasmHTTPResult;
@@ -590,6 +595,9 @@ begin
   lfetch:=FetchByID(aRequestID);
   if not Assigned(lFetch) then
     Exit(WASMHTTP_RESULT_INVALIDID);
+  if not Assigned(lFetch.FAbortController) then
+    Exit(WASMHTTP_RESULT_ERROR);
+  lFetch.FAbortController.abort;
 end;
 
 function TWasmHTTPAPI.ResponseGetStatus(aRequestID: TWasmHTTPRequestID; aStatus: PLongint): TWasmHTTPResult;
@@ -598,7 +606,7 @@ var
 
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If LogAPICalls then
+  if LogAPICalls then
     LogCall('HTTP.ResponseGetStatus(%d,[%x])',[aRequestID,aStatus]);
   {$ENDIF}
   lfetch:=FetchByID(aRequestID);
@@ -606,6 +614,8 @@ begin
     Exit(WASMHTTP_RESULT_INVALIDID);
   if lFetch.InProgress then
     Exit(WASMHTTP_RESULT_INPROGRESS);
+  if not Assigned(lFetch.Response) then
+    Exit(WASMHTTP_RESULT_ERROR);
   Env.SetMemInfoInt32(aStatus,lFetch.Response.status);
   Result:=WASMHTTP_RESULT_SUCCESS;
 end;
@@ -620,7 +630,7 @@ var
 
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If LogAPICalls then
+  if LogAPICalls then
     LogCall('HTTP.ResponseGetStatusText(%d,[%x],[%x])',[aRequestID,aStatusText,aMaxTextlen]);
   {$ENDIF}
   lfetch:=FetchByID(aRequestID);
@@ -628,6 +638,8 @@ begin
     Exit(WASMHTTP_RESULT_INVALIDID);
   if lFetch.InProgress then
     Exit(WASMHTTP_RESULT_INPROGRESS);
+  if not Assigned(lFetch.Response) then
+    Exit(WASMHTTP_RESULT_ERROR);
   v:=getModuleMemoryDataView;
   MaxLen:=v.getInt32(aMaxTextLen,Env.IsLittleEndian);
   S:=lFetch.Response.statusText;
@@ -647,7 +659,7 @@ var
 
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If LogAPICalls then
+  if LogAPICalls then
     LogCall('HTTP.ResponseGetHeaderCount(%d,[%x])',[aRequestID,aHeaderCount]);
   {$ENDIF}
   lfetch:=FetchByID(aRequestID);
@@ -671,7 +683,7 @@ var
 
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If LogAPICalls then
+  if LogAPICalls then
     LogCall('HTTP.RequestGetHeaderName(%d,%d,[%x],[%x])',[aRequestID,aHeaderIdx,aHeader,aMaxHeaderLen]);
   {$ENDIF}
   lfetch:=FetchByID(aRequestID);
@@ -702,7 +714,7 @@ begin
   lName:=Env.GetUTF8StringFromMem(aHeaderName,aHeaderLen);
   MaxLen:=v.getInt32(aMaxHeaderLen,Env.IsLittleEndian);
   {$IFNDEF NOLOGAPICALLS}
-  If LogAPICalls then
+  if LogAPICalls then
     LogCall('HTTP.ResponseGetHeader(%d,"%s",[%x])',[aRequestID,lName,aHeader,aMaxHeaderLen]);
   {$ENDIF}
   lfetch:=FetchByID(aRequestID);
@@ -710,6 +722,8 @@ begin
     Exit(WASMHTTP_RESULT_INVALIDID);
   if lFetch.InProgress then
     Exit(WASMHTTP_RESULT_INPROGRESS);
+  if not Assigned(lFetch.Response) then
+    Exit(WASMHTTP_RESULT_ERROR);
   lHeader:=lfetch.Response.headers[lName];
   Written:=Env.SetUTF8StringInMem(aHeader,MaxLen,lheader);
   Env.SetMemInfoInt32(aMaxheaderLen,Abs(Written));
@@ -727,7 +741,7 @@ var
   bodyLen,maxLen : longint;
 begin
   {$IFNDEF NOLOGAPICALLS}
-  If LogAPICalls then
+  if LogAPICalls then
     LogCall('HTTP.ResponseGetBody([%x],[%x],[%x])',[aRequestID,aBody,aMaxBodyLen]);
   {$ENDIF}
   lfetch:=FetchByID(aRequestID);
@@ -793,7 +807,7 @@ begin
   lURL:=Env.GetUTF8StringFromMem(aURL,aURLLen);
   Writeln('Handling open url call ',aURL);
   {$IFNDEF NOLOGAPICALLS}
-  If LogAPICalls then
+  if LogAPICalls then
     LogCall('HTTP.OpenURL(%s,%d)',[lURL,aFlags]);
   {$ENDIF}
   {$IFDEF JOB_WORKER}
