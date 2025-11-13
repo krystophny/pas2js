@@ -566,8 +566,10 @@ procedure TWasmWebsocket.Close(aCode: Integer; aReason: String);
 begin
   if (aReason<>'') then
     FWS.Close(aCode,aReason)
-  else
+  else if aCode<>1000 then
     FWS.Close(aCode)
+  else
+    FWS.close;
 end;
 
 
