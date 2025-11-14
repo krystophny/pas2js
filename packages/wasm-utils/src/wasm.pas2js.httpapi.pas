@@ -126,7 +126,7 @@ Type
     function ResponseGetStatusText(aRequestID: TWasmHTTPRequestID; aStatusText: PByte; aMaxTextLen: PLongint): TWasmHTTPResult;
     function ResponseGetHeaderCount(aRequestID : TWasmHTTPRequestID; aHeaderCount : PLongint) : TWasmHTTPResult;
     function ResponseGetHeaderName(aRequestID : TWasmHTTPRequestID; aHeaderIdx: Longint; aHeader : PByte; aMaxHeaderLen : PLongint) : TWasmHTTPResult;
-    function ResponseGetHeader(aRequestID : TWasmHTTPRequestID; aHeaderName: PByte; aHeaderLen : PLongint; aHeader : PByte; aMaxHeaderLen : Longint) : TWasmHTTPResult;
+    function ResponseGetHeader(aRequestID : TWasmHTTPRequestID; aHeaderName: PByte; aHeaderLen : Longint; aHeader : PByte; aMaxHeaderLen : Longint) : TWasmHTTPResult;
     function ResponseGetBody(aRequestID : TWasmHTTPRequestID; aBody : PByte; aMaxBodyLen : PLongint) : TWasmHTTPResult;
   Public
     Constructor Create(aEnv: TPas2JSWASIEnvironment); override;
@@ -579,7 +579,8 @@ begin
     Exit(WASMHTTP_RESULT_INVALIDID);
   if lFetch.InProgress and assigned(lFetch.FAbortController) then
     lFetch.FAbortController.abort;
-  FRequests[IntToStr(aRequestID)]:=undefined;
+  FRequests[IntToStr(aRequestID)] := undefined;
+  Result := WASMHTTP_RESULT_SUCCESS;
 end;
 
 function TWasmHTTPAPI.RequestAbort(aRequestID: TWasmHTTPRequestID): TWasmHTTPResult;
@@ -598,6 +599,7 @@ begin
   if not Assigned(lFetch.FAbortController) then
     Exit(WASMHTTP_RESULT_ERROR);
   lFetch.FAbortController.abort;
+  Result := WASMHTTP_RESULT_SUCCESS;
 end;
 
 function TWasmHTTPAPI.ResponseGetStatus(aRequestID: TWasmHTTPRequestID; aStatus: PLongint): TWasmHTTPResult;
@@ -702,17 +704,17 @@ begin
     Result:=WASMHTTP_RESULT_SUCCESS;
 end;
 
-function TWasmHTTPAPI.ResponseGetHeader(aRequestID: TWasmHTTPRequestID; aHeaderName: PByte; aHeaderLen: PLongint; aHeader: PByte;
+function TWasmHTTPAPI.ResponseGetHeader(aRequestID: TWasmHTTPRequestID; aHeaderName: PByte; aHeaderLen: Longint; aHeader: PByte;
   aMaxHeaderLen: Longint): TWasmHTTPResult;
 var
   lFetch : TWasmHTTPFetch;
   lHeader, lName : String;
   Written,Maxlen : Longint;
-  v : TJSDataView;
+  lDataView : TJSDataView;
 begin
-  v:=getModuleMemoryDataView;
+  lDataView:=getModuleMemoryDataView;
   lName:=Env.GetUTF8StringFromMem(aHeaderName,aHeaderLen);
-  MaxLen:=v.getInt32(aMaxHeaderLen,Env.IsLittleEndian);
+  MaxLen:=lDataView.getInt32(aMaxHeaderLen,Env.IsLittleEndian);
   {$IFNDEF NOLOGAPICALLS}
   if LogAPICalls then
     LogCall('HTTP.ResponseGetHeader(%d,"%s",[%x])',[aRequestID,lName,aHeader,aMaxHeaderLen]);
@@ -737,8 +739,8 @@ function TWasmHTTPAPI.ResponseGetBody(aRequestID: TWasmHTTPRequestID; aBody: PBy
 var
   lFetch : TWasmHTTPFetch;
   lwasmMem,lUint8Array : TJSUint8Array;
-  v : TJSDataView;
-  bodyLen,maxLen : longint;
+  lDataView : TJSDataView;
+  lBodyLen,lMaxLen : longint;
 begin
   {$IFNDEF NOLOGAPICALLS}
   if LogAPICalls then
@@ -749,19 +751,19 @@ begin
     Exit(WASMHTTP_RESULT_INVALIDID);
   if lFetch.InProgress then
     Exit(WASMHTTP_RESULT_INPROGRESS);
-  if Not Assigned(lFetch.FResultBody) then
+  if not Assigned(lFetch.FResultBody) then
     begin
     Env.SetMemInfoInt32(aMaxBodyLen,0);
-    exit;
+    Exit;
     end;
-  v:=getModuleMemoryDataView;
-  MaxLen:=v.getInt32(aMaxBodyLen,Env.IsLittleEndian);
-  bodyLen:=lFetch.FResultBody.byteLength;
-  Env.SetMemInfoInt32(aMaxBodyLen,bodyLen);
-  if (MaxLen<bodyLen) then
+  lDataView:=getModuleMemoryDataView;
+  lMaxLen:=lDataView.getInt32(aMaxBodyLen,Env.IsLittleEndian);
+  lBodyLen:=lFetch.FResultBody.byteLength;
+  Env.SetMemInfoInt32(aMaxBodyLen,lBodyLen);
+  if (lMaxLen<lBodyLen) then
     Exit(WASMHTTP_RESULT_INSUFFICIENTMEM);
   lUint8Array:=TJSUint8Array.new(lFetch.FResultBody);
-  lwasmMem:=TJSUint8Array.New(v.buffer);
+  lwasmMem:=TJSUint8Array.New(lDataView.buffer);
   lWasmMem._set(lUint8Array,aBody);
   Exit(WASMHTTP_RESULT_SUCCESS);
 end;
