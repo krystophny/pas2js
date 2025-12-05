@@ -203,6 +203,7 @@ var
   Callback : TWasmWebsocketAllocateBuffer absolute aValue;
 
 begin
+  Result:=0;
   aValue:=InstanceExports['__wasm_websocket_allocate_buffer'];
   if Assigned(CallBack) then
     With aSocket do
