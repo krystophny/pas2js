@@ -1084,7 +1084,7 @@ type
   { TJSCryptoKey }
 
   TJSCryptoKeyUsageDynArray = Array of TJSCryptoKeyUsage;
-  TJSCryptoKey = class external name 'CryptoKey'
+  TJSCryptoKey = class external name 'CryptoKey' (TJSObject)
   Private
     Ftype_ : TJSCryptoKeyType; external name 'type';
     Fextractable : boolean; external name 'extractable';
@@ -1468,6 +1468,8 @@ type
     fcaches : TJSCacheStorage; external name 'caches';
     FPerformance : TJSPerformance; external name 'performance';
   Public
+    Function atob(Const aValue : string) : string;
+    Function btoa(Const aValue : string) : string;
     Function setInterval(ahandler : TJSTimerCallBack; aInterval : NativeUInt) : NativeInt; varargs;
     Function setTimeout(ahandler : TJSTimerCallBack; aTimeout : NativeUInt) : NativeInt; varargs;
     Function setTimeout(ahandler : TJSTimerCallBack) : NativeInt;

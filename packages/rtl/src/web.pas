@@ -1823,9 +1823,7 @@ Type
     touchmove : TJSTouchEventHandler;
     touchcancel : TJSTouchEventHandler;
     Procedure alert(Const Msg : String);
-    Function atob(Const aValue : string) : string;
     procedure blur;
-    Function btoa(Const aValue : string) : string;
     procedure cancelAnimationFrame(aHandle: Integer);
     Procedure close;
     Function confirm(Const aMsg : String) :  boolean;
