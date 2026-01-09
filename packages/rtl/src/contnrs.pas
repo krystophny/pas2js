@@ -275,6 +275,7 @@ Type
   Public
     Function Iterate(aMethod: TDataIteratorMethod): JSValue; virtual;
     Function Iterate(aMethod: TDataIteratorCallBack): JSValue; virtual;
+    Function Find(const aKey: string): JSValue; reintroduce;
     Procedure Add(const aKey: string; AItem: JSValue); virtual;
     property Items[const index: string]: JSValue read GetData write SetData; default;
   end;
@@ -1354,7 +1355,7 @@ end;
 
 { TFPDataHashTable }
 
-Procedure TFPDataHashTable.Add(const aKey: string; aItem: JSValue);
+procedure TFPDataHashTable.Add(const aKey: string; AItem: JSValue);
 var
   chn: TFPObjectList;
   NewNode: THtDataNode;
@@ -1365,7 +1366,7 @@ begin
   chn.Add(NewNode);
 end;
 
-Function TFPDataHashTable.GetData(const Index: string): JSValue;
+function TFPDataHashTable.GetData(const index: string): JSValue;
 var
   node: THTDataNode;
 begin
@@ -1376,18 +1377,18 @@ begin
     Result:=nil;
 end;
 
-Procedure TFPDataHashTable.SetData(const index: string; const AValue: JSValue);
+procedure TFPDataHashTable.SetData(const index: string; const AValue: JSValue);
 begin
   THTDataNode(FindOrCreateNew(index)).Data:=AValue;
 end;
 
-Function TFPDataHashTable.CreateNewNode(const aKey : string) : THTCustomNode;
+function TFPDataHashTable.CreateNewNode(const aKey: String): THTCustomNode;
 
 begin
   Result:=THTDataNode.CreateWith(aKey);
 end;
 
-Function TFPDataHashTable.Iterate(aMethod: TDataIteratorMethod): JSValue;
+function TFPDataHashTable.Iterate(aMethod: TDataIteratorMethod): JSValue;
 var
   N : THTDataNode;
 begin
@@ -1398,18 +1399,23 @@ begin
     Result:=nil;
 end;
 
-Procedure TFPDataHashTable.CallbackIterator(Item: JSValue; const Key: string; var Continue: Boolean);
+procedure TFPDataHashTable.CallbackIterator(Item: JSValue; const Key: string; var Continue: Boolean);
 begin
   FIteratorCallBack(Item, Key, Continue);
 end;
 
-Function TFPDataHashTable.Iterate(aMethod: TDataIteratorCallBack): JSValue;
+function TFPDataHashTable.Iterate(aMethod: TDataIteratorCallBack): JSValue;
 begin
   FIteratorCallBack := aMethod;
   Result := Iterate(@CallbackIterator);
 end;
 
-Function TFPDataHashTable.ForEachCall(aMethod: TDataIteratorMethod): THTDataNode;
+function TFPDataHashTable.Find(const aKey: string): JSValue;
+begin
+  Result:=Items[aKey];
+end;
+
+function TFPDataHashTable.ForEachCall(aMethod: TDataIteratorMethod): THTDataNode;
 var
   i, j: Longword;
   continue: Boolean;
@@ -1431,7 +1437,7 @@ begin
            end;
 end;
 
-Procedure TFPDataHashTable.AddNode(ANode : THTCustomNode);
+procedure TFPDataHashTable.AddNode(ANode: THTCustomNode);
 begin
   with THTDataNode(ANode) do
     Add(Key,Data);
