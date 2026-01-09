@@ -89,7 +89,9 @@ function TWASIZenFS.PrependFD(FD: Integer; aPath: String) : string;
 begin
   if FD<>3 then
     Writeln('Warning, unknown CWD ID',FD);
-  Result:='/'+aPath;
+  Result:=aPath;
+  if (aPath<>'') and (aPath[1]<>'/') then
+    Result:='/'+Result
 end;
 
 class function TWASIZenFS.ExceptToError(E: TJSObject): Integer;
