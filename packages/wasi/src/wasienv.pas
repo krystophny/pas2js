@@ -2712,6 +2712,8 @@ var
   tmpBuf : TJSArrayBuffer;
 
 begin
+  if (aLoc=0) or (aLen=0) then
+    exit('');
   tmpBuf:=SharedToNonShared(getModuleMemoryDataView.buffer.slice(aLoc,aLoc+alen));
   Result:=UTF8TextDecoder.Decode(tmpBuf);
 end;
