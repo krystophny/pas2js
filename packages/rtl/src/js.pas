@@ -646,6 +646,8 @@ type
   public
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
+    constructor new (aArray : TJSValueDynArray);
+    constructor new (aArray : TJSArray);
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
@@ -668,6 +670,8 @@ type
   public
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
+    constructor new (aArray : TJSValueDynArray);
+    constructor new (aArray : TJSArray);
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
@@ -690,6 +694,8 @@ type
   public
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
+    constructor new (aArray : TJSValueDynArray);
+    constructor new (aArray : TJSArray);
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
@@ -712,6 +718,8 @@ type
   public
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
+    constructor new (aArray : TJSValueDynArray);
+    constructor new (aArray : TJSArray);
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
@@ -734,6 +742,8 @@ type
   public
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
+    constructor new (aArray : TJSValueDynArray);
+    constructor new (aArray : TJSArray);
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
@@ -756,6 +766,8 @@ type
   public
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
+    constructor new (aArray : TJSValueDynArray);
+    constructor new (aArray : TJSArray);
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
@@ -778,6 +790,8 @@ type
   public
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
+    constructor new (aArray : TJSValueDynArray);
+    constructor new (aArray : TJSArray);
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
@@ -800,6 +814,8 @@ type
   public
     constructor new (length : NativeInt);
     constructor new (atypedArray : TJSTypedArray);
+    constructor new (aArray : TJSValueDynArray);
+    constructor new (aArray : TJSArray);
     constructor new (aObject : TJSObject);
     constructor new (buffer : TJSAbstractArrayBuffer);
     constructor new (buffer : TJSAbstractArrayBuffer; aByteOffset: NativeInt);
