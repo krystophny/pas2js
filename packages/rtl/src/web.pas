@@ -142,6 +142,7 @@ Type
   TJSFontFaceDescriptors = BrowserApi.WebOrWorker.TJSFontFaceDescriptors;
   TJSFontFace = BrowserApi.WebOrWorker.TJSFontFace;
   TJSFontFaceSet = BrowserApi.WebOrWorker.TJSFontFaceSet;
+  TJSHTMLFile = BrowserApi.WebOrWorker.TJSFile;
 {$ELSE}
   TJSServiceWorker = weborworker.TJSServiceWorker;
   TJSServiceWorkerRegistration = weborworker.TJSServiceWorkerRegistration;
@@ -231,6 +232,7 @@ Type
   TJSFontFaceDescriptors = WebOrWorker.TJSFontFaceDescriptors;
   TJSFontFace = WebOrWorker.TJSFontFace;
   TJSFontFaceSet = WebOrWorker.TJSFontFaceSet;
+  TJSHTMLFile = WebOrWorker.TJSFile;
 {$ENDIF}
   TJSMessagePortArray = TJSMessagePortDynArray;
   TEventListenerEvent = TJSEvent;
@@ -924,7 +926,6 @@ Type
   end;
   TJSNameSpaceMapperCallback = function (aNameSpace : string ) : String;
 
-  TJSHTMLFile = weborworker.TJSFile;
   TJSHTMLFileList = Class;
 
   { TJSDataTransferItem }
