@@ -414,8 +414,8 @@ Type
       doc : TDocument;
   end;
 
-  TEditor_on_callback = Function (e : JSValue): JSValue;
-  TEditor_addEventListener_callback = Function (ev : TEditorChangeEvent): JSValue;
+  TEditor_on_callback = reference to Function (e : JSValue): JSValue;
+  TEditor_addEventListener_callback = reference to Function (ev : TEditorChangeEvent): JSValue;
   TEditor = class external name 'Object' (TOptionProvider)
       class  Function &new(renderer : TVirtualRenderer; session : TIEditSession): TEditor; overload;
       class  Function &new(renderer : TVirtualRenderer): TEditor; overload;
