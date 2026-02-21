@@ -453,6 +453,8 @@ type
     // If aBeforeStart is specified, then it is called prior to calling run, and can disable running.
     // If aAfterStart is specified, then it is called after calling run. It is not called if running was disabled.
     function StartWebAssembly(aPath: string; DoRun: Boolean;  aBeforeStart: TBeforeStartCallback; aAfterStart: TAfterStartCallback) : TJSPromise;
+    // Re-instantiate the WASM module with fresh memory and table, keeping the existing Module.
+    Procedure ReinstantiateModule;
     // Run the prepared descriptor
     Procedure RunPreparedDescriptor;
     // Initial memory descriptor
@@ -1008,8 +1010,42 @@ begin
   Result:=CreateWebAssembly(aPath,WASD.Imports)._then(@initEnv,@DoFail);
 end;
 
+procedure TWASIHost.ReinstantiateModule;
+
+var
+  WASD : TWebAssemblyStartDescriptor;
+  lModule : TJSWebAssemblyModule;
+
+begin
+  lModule:=FPreparedStartDescriptor.Module;
+  if not Assigned(lModule) then
+    exit;
+  WASD:=InitStartDescriptor(GetMemory,GetTable,Nil);
+  WASD.Module:=lModule;
+  WASD.Instance:=TJSWebAssemblyInstance.New(lModule,WASD.Imports);
+  WASD.Exported:=TWASIExports(TJSObject(WASD.Instance.exports_));
+  WASD.CallRun:=Procedure(aExports : TWASIExports)
+    begin
+    if FRunEntryFunction='' then
+      if Assigned(aExports['_initialize']) then
+        aExports.initialize
+      else
+        aExports.Start
+    else
+      TProcedure(aExports[RunEntryFunction])();
+    end;
+  if ConvertNativeExceptions then
+    WASD.Exported:=WrapExports(WASD.Exported);
+  FPreparedStartDescriptor:=WASD;
+  FExported:=WASD.Exported;
+  WasiEnvironment.Instance:=WASD.Instance;
+  WasiEnvironment.SetMemory(WASD.Memory);
+  WasiEnvironment.SetExports(FExported);
+end;
+
 procedure TWASIHost.RunPreparedDescriptor;
 begin
+  ReinstantiateModule;
   RunWebAssemblyInstance(Nil,Nil,Nil)
 end;
 
