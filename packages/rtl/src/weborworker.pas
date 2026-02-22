@@ -198,10 +198,12 @@ type
     FLastEventID: String; external name 'lastEventID';
     FOrigin: String;  external name 'origin';
     FPorts: TJSMessagePortDynArray; external name 'ports';
+    FSource: TJSObject; external name 'source';
   Public
     Property Data : JSValue Read FData;
     Property LastEventID : String Read FLastEventID;
     Property Origin : String Read FOrigin;
+    Property Source : TJSObject Read FSource;
     Property Ports : TJSMessagePortDynArray Read FPorts;
   end;
 
@@ -1163,6 +1165,7 @@ type
   TJSWorker = class external name 'Worker' (TJSEventTarget)
   public
     constructor new(aURL : string);
+    procedure terminate;
     procedure postMessage(aValue : JSValue);
     procedure postMessage(aValue : JSValue; aList : TJSValueDynArray);
   end;
