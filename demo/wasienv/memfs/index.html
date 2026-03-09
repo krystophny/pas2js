@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TWASIMemFS Test Suite</title>
+  <script src="testmemfshost.js"></script>
+  <style>
+    body { font-family: monospace; margin: 2em; background: #1a1a2e; color: #e0e0e0; }
+    h1 { color: #00d4ff; }
+    #pasjsconsole { white-space: pre-wrap; background: #0f0f23; padding: 1em; border: 1px solid #333; border-radius: 4px; max-height: 80vh; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <h1>TWASIMemFS Test Suite</h1>
+  <p>Testing in-memory WASI filesystem using standard Pascal file I/O routines.</p>
+  <div id="pasjsconsole"></div>
+  <script>
+    rtl.showUncaughtExceptions=true;
+    rtl.run();
+  </script>
+</body>
+</html>
