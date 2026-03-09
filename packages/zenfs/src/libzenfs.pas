@@ -151,6 +151,7 @@ Type
   TZenFSDirent = Class external name 'ZenFS.Dirent' (TJSObject)
   private
     FPath: string; external name 'path';
+    FName: string; external name 'name';
   Public
     constructor new (aPath: string; aStats : TZenFSStats);
     function isFile() : Boolean;
@@ -161,6 +162,7 @@ Type
     function isFIFO() : Boolean;
     function isSocket() : Boolean;
     property path : string read FPath;
+    property name : string read FName;
   end;
   TZenFSDirentArray = Array of TZenFSDirent;
 
