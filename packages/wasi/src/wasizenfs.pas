@@ -439,7 +439,11 @@ begin
   if (Cookie<0) or (Cookie>=Length(Dirents)) then
     Exit(WASI_ENOENT);
   ZDirEntry:=Dirents[Cookie];
-  DirEnt.name:=ZDirEntry.path;
+  Writeln(TJSJSON.Stringify(ZDirEntry));
+  if ZDirEntry.HasOwnProperty('name') then
+    DirEnt.name:=ZDirEntry.name 
+  else  
+    DirEnt.name:=ZDirEntry.path;
   if ZDirEntry.isFile() then
     Dirent.EntryType:=dtFile
   else if ZDirEntry.isDirectory() then
