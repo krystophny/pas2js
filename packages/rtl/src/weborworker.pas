@@ -1838,7 +1838,7 @@ type
     quality : double;
   end;
 
-  TJSHTMLOffscreenCanvas = Class external name 'OffscreenCanvas' (TJSObject)
+  TJSHTMLOffscreenCanvas = Class external name 'OffscreenCanvas' (TJSEventTarget)
   Public
     constructor New(x,y : Cardinal); overload;
     Function getContext(contextType : string; contextAttributes : TJSObject) : JSValue;
