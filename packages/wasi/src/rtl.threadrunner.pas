@@ -343,9 +343,7 @@ Var
 begin
   try
     FState:=wsRunning;
-    // Writeln('About to run webassembly entry point (',Host.ThreadEntryPoint,') for thread ID ',aCommand.ThreadID);
     aResult:=TThreadEntryPointFunction(aExports[ThreadEntryPoint])(FCurrentThreadInfo.ThreadID,FCurrentThreadInfo.Arguments);
-    FState:=wsLoaded;
     if aResult>0 then
       SendConsoleMessage('Thread run function result= %d ',[aResult]);
     TCommandDispatcher.Instance.SendCommand(TWorkerCleanupCommand.Create(Self.FCurrentThreadInfo.ThreadID,aResult));
@@ -357,6 +355,7 @@ begin
     on JE : TJSError do
       SendException(JE)
   end;
+  FState:=wsLoaded;
 end;
 
 procedure TWorkerThreadRunner.RunWasmModule(aCommand : TWorkerRunCommand);
