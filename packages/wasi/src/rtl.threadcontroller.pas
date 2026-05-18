@@ -28,9 +28,11 @@ Type
                         );
   TWasmThreadHelper = Class helper for TWasmThread
   private
+    function GetRunSent: Boolean;
     function GetThreadID: Integer;
     function GetThreadInfo: TThreadinfo;
     function GetWorkerState: TThreadWorkerState;
+    procedure SetRunSent(AValue: Boolean);
     procedure SetThreadID(AValue: Integer);
     procedure SetThreadInfo(AValue: TThreadinfo);
     procedure SetWorkerState(AValue: TThreadWorkerState);
@@ -40,6 +42,7 @@ Type
     Property WorkerState : TThreadWorkerState read GetWorkerState Write SetWorkerState;
     Property ThreadInfo : TThreadinfo Read GetThreadInfo Write SetThreadInfo;
     Property ThreadID : Integer Read GetThreadID Write SetThreadID;
+    Property RunSent : Boolean Read GetRunSent Write SetRunSent;
   end;
 
 
@@ -171,6 +174,11 @@ begin
   Result.ThreadInfo:=Default(TThreadInfo);
 end;
 
+function TWasmThreadHelper.GetRunSent: Boolean;
+begin
+  Result:=boolean(Properties['FRunSent']);
+end;
+
 function TWasmThreadHelper.GetThreadID: Integer;
 begin
   Result:=ThreadInfo.ThreadID;
@@ -197,6 +205,11 @@ begin
     Result:=TThreadWorkerState(Integer(S))
   else
     Result:=twsInit;
+end;
+
+procedure TWasmThreadHelper.SetRunSent(AValue: Boolean);
+begin
+  Properties['FRunSent']:=aValue;
 end;
 
 procedure TWasmThreadHelper.SetThreadID(AValue: Integer);
@@ -292,6 +305,7 @@ begin
   With aThreadWorker.ThreadInfo do
     WRC:=TWorkerRunCommand.Create(ThreadID,Arguments);
   aThreadWorker.SendCommand(Wrc);
+  aThreadWorker.RunSent:=True;
 end;
 
 
@@ -397,7 +411,8 @@ begin
     end;
   WT.ThreadInfo:=aInfo;
   FThreads[aInfo.ThreadID]:=WT;
-  SendRunCommand(WT);
+//  if Wt.WorkerState=twsIdle then
+    SendRunCommand(WT);
   Result:=aInfo.ThreadID;
   {$IFNDEF NOLOGAPICALLS}
   DoLog('Exit: SpawnThread for ID %d',[WT.ThreadID]);
@@ -506,7 +521,7 @@ begin
   {$ENDIF}
   aWorker.WorkerState:=twsIdle;
   // if a thread is scheduled to run in this thread, run it.
-  if aWorker.ThreadID>0 then
+  if (aWorker.ThreadID>0) and not aWorker.RunSent then
     SendRunCommand(aWorker);
   {$IFNDEF NOLOGAPICALLS}
   DoLog('Host: exiting TThreadController.HandleLoadedCommand');
