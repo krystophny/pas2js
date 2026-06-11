@@ -120,6 +120,9 @@ Type
     function IndexOfWorker(const aName: String): Integer;
     Procedure HandleIncomingMessage(aEvent : TJSEvent); virtual;
     procedure HandleCommand(aCommand: TCustomWorkerCommand); virtual;
+    // Lazily create the console broadcast channel. It is only created the first
+    // time console output is actually sent (worker) or received (main thread).
+    function GetConsoleChannel : TJSBroadcastChannel;
   Public
     constructor create; virtual;
     destructor destroy; override;
@@ -135,6 +138,10 @@ Type
     procedure SendCommand(aCommand : TCustomWorkerCommand; aTransfer : Array of JSValue); virtual;
     // Send command to thread that started this worker. Cannot be used in main thread
     procedure SendConsoleCommand(aCommand : TConsoleOutputCommand); virtual;
+    // Start receiving forwarded console output on the main thread.
+    // Creates the console broadcast channel on demand; call only when console
+    // forwarding is wanted (see TWorkerThreadRunner.ForwardOutputToMain).
+    Procedure ListenForConsoleOutput;
     // Send command to all registered workers
     procedure BroadcastCommand(aCommand : TCustomWorkerCommand);
     // Register a command handler for command aCommand
@@ -254,7 +261,9 @@ begin
   {$ENDIF}
   lCmd:=aCommand.Command;
   lValue:=FMap.get(lCmd);
-  if assigned(lValue) then
+  if not assigned(lValue) then
+    Writeln('No handler for message: '+lCmd)
+  else
     For lHandler in lReg.Handlers do
       begin
       {$IFDEF DEBUGCOMMANDDISPATCHER}
@@ -280,6 +289,8 @@ begin
   if IsCommandEvent(aEvent) then
     begin
     lCommand:=TCustomWorkerCommand(lMessageEvent.data);
+    if SameText(lCommand.Command,'uploadstart') then
+      Writeln('Handling command : ',lCommand.Command);
     lCommand.FSender:=aEvent.target;
     HandleCommand(lCommand);
     end;
@@ -288,16 +299,19 @@ end;
 constructor TCommandDispatcher.create;
 begin
   FMap:=TJSMap.new();
-  FConsoleChannel:=TJSBroadcastChannel.new(channelConsole);
-  if isMainBrowserThread then
-    FConsoleChannel.addEventListener('message',@HandleIncomingMessage)
-  else
+  // Worker contexts receive commands on their own message port.
+  // The main browser thread receives commands per registered worker (RegisterWorker)
+  // and on explicitly registered channels (ListenOnChannel). The console broadcast
+  // channel is no longer created here: it is set up lazily, only when console
+  // output is actually forwarded (see GetConsoleChannel / ListenForConsoleOutput).
+  if not isMainBrowserThread then
     Self_.addEventListener('message',@HandleIncomingMessage)
 end;
 
 destructor TCommandDispatcher.destroy;
 begin
-  FConsoleChannel.close;
+  if Assigned(FConsoleChannel) then
+    FConsoleChannel.close;
   FConsoleChannel:=nil;
   inherited destroy;
 end;
@@ -372,6 +386,18 @@ begin
   if length(aTransfer)=0 then ;
 end;
 
+function TCommandDispatcher.GetConsoleChannel: TJSBroadcastChannel;
+begin
+  if not Assigned(FConsoleChannel) then
+    FConsoleChannel:=TJSBroadcastChannel.new(channelConsole);
+  Result:=FConsoleChannel;
+end;
+
+procedure TCommandDispatcher.ListenForConsoleOutput;
+begin
+  GetConsoleChannel.addEventListener('message',@HandleIncomingMessage);
+end;
+
 procedure TCommandDispatcher.SendConsoleCommand(aCommand: TConsoleOutputCommand);
 
 begin
@@ -381,7 +407,7 @@ begin
   Writeln('Sending console message on console channel: ',TJSJSON.stringify(aCommand));
   {$ENDIF}
   CheckSenderID(aCommand);
-  FConsoleChannel.postMessage(aCommand);
+  GetConsoleChannel.postMessage(aCommand);
 end;
 
 procedure TCommandDispatcher.BroadcastCommand(aCommand: TCustomWorkerCommand);

@@ -34,6 +34,7 @@ Type
     FCurrentThreadInfo : TThreadinfo;
     FThreadEntryPoint: String;
     FLastSenderID : string;
+    FForwardOutputToMain : Boolean;
     procedure RawRunWasmModule(aCommand : TCustomWorkerCommand);
     procedure RawCancelWasmModule(aCommand: TCustomWorkerCommand);
   Protected
@@ -60,6 +61,9 @@ Type
     // Current thread info.
     Property CurrentThreadInfo : TThreadInfo Read FCurrentThreadInfo;
     Property OnRunThread : TRunThreadCallback Read FOnRunThread Write FOnRunThread;
+    // If True, console output is forwarded to the main thread over the console broadcast channel.
+    // If False (the default), output is written directly to this worker's own console.
+    Property ForwardOutputToMain : Boolean Read FForwardOutputToMain Write FForwardOutputToMain;
   end;
 
 
@@ -205,6 +209,8 @@ end;
 
 procedure TWASIThreadRunnerHost.DoStdWrite(Sender: TObject; const aOutput: String);
 begin
+  // SendConsoleMessage honors ForwardOutputToMain: it either forwards over the
+  // console broadcast channel or writes directly to this worker's own console.
   ThreadSupport.SendConsoleMessage(aOutput);
 end;
 
@@ -255,6 +261,7 @@ constructor TWorkerThreadRunner.create;
 begin
   inherited create;
   FThreadEntryPoint:=DefaultThreadEntryPoint;
+  FForwardOutputToMain:=False;
   RegisterCommands;
 end;
 
@@ -274,6 +281,13 @@ Var
   L : TConsoleOutputCommand;
 
 begin
+  if not FForwardOutputToMain then
+    begin
+    // Write directly to this worker's own console.
+    // The console broadcast channel is never touched (and so never created).
+    Writeln(aMessage);
+    Exit;
+    end;
   L:=TConsoleOutputCommand.Create(aMessage);
   TCommandDispatcher.Instance.SendConsoleCommand(L);
 end;

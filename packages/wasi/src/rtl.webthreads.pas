@@ -346,12 +346,17 @@ Type
     FEnabled: boolean;
     FOnOutput: TThreadConsoleOutputEvent;
     procedure HandleConsoleMessage(aCommand: TCustomWorkerCommand); virtual;
+    procedure SetEnabled(aValue: Boolean);
   Public
     class constructor done;
     class procedure init;
     constructor Create; virtual;
     class property Instance : TThreadConsoleOutput Read _Instance;
-    property Enabled : boolean Read FEnabled Write FEnabled;
+    // When set to True, the main thread starts receiving console output forwarded
+    // by workers (this creates the console broadcast channel on demand). Disabled
+    // by default: each worker writes to its own console unless it sets
+    // ForwardOutputToMain. Note: once enabled, the listener stays for the dispatcher's lifetime.
+    property Enabled : boolean Read FEnabled Write SetEnabled;
     property OnOutput : TThreadConsoleOutputEvent Read FOnOutput Write FOnOutput;
   end;
 
@@ -721,10 +726,23 @@ begin
   _Instance:=TThreadConsoleOutput.Create;
 end;
 
+procedure TThreadConsoleOutput.SetEnabled(aValue: Boolean);
+begin
+  if aValue=FEnabled then
+    Exit;
+  FEnabled:=aValue;
+  if FEnabled then
+    // Begin receiving console output forwarded by workers.
+    // Creates the console broadcast channel on demand.
+    TCommandDispatcher.Instance.ListenForConsoleOutput;
+end;
+
 constructor TThreadConsoleOutput.Create;
 begin
   TCommandDispatcher.Instance.RegisterCommandHandler(cmdConsole,@HandleConsoleMessage);
-  FEnabled:=True;
+  // Disabled by default: do not create the console broadcast channel and do not
+  // listen for forwarded output. Set Enabled := True to opt in.
+  FEnabled:=False;
 end;
 
 
