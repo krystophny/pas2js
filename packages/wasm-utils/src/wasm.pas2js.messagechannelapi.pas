@@ -18,6 +18,16 @@ interface
 
 uses js, sysutils, wasienv, wasm.messagechannel.shared, weborworker, contnrs;
 
+const
+  // A named broadcast channel registered as "direct" (see TWorkerMessageChannelAPI
+  // .RegisterDirectChannel) is backed by a private MessagePort instead of a
+  // BroadcastChannel. The worker hands the far port to its parent via
+  // postMessage, tagged with this shape so the parent can route it to the
+  // matching consumer.
+  MsgChannelDirectPortMarker = '__msgchannel_direct_port';  // boolean: true
+  MsgChannelDirectPortName   = 'name';                      // the channel name
+  MsgChannelDirectPortPort   = 'port';                      // the transferred MessagePort
+
 Type
 
   { TWasmChannel }

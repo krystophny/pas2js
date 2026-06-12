@@ -130,6 +130,8 @@ Type
     procedure SendCommand(aWorker : TJSWorker; aCommand : TCustomWorkerCommand); virtual;
     // Send command on channel
     procedure SendCommand(aChannel : TJSBroadcastChannel; aCommand : TCustomWorkerCommand); virtual;
+    // Send command on a (direct) message port
+    procedure SendCommand(aPort : TJSMessagePort; aCommand : TCustomWorkerCommand); virtual;
     // Send command to worker
     procedure SendCommand(const aName : string; aCommand : TCustomWorkerCommand);
     // Send command to thread that started this worker. Cannot be used in main thread
@@ -158,6 +160,8 @@ Type
     Procedure UnRegisterWorker(const aName : string);
     // Listen for commands on this channel
     Procedure ListenOnChannel(aChannel : TJSBroadcastChannel);
+    // Listen for commands on a (direct) message port
+    Procedure ListenOnPort(aPort : TJSMessagePort);
     Property DefaultSenderID : String Read FDefaultSenderID Write FDefaultSenderID;
     Class function SetDispatcherClass(aClass : TCommandDispatcherClass) : TCommandDispatcherClass;
     Class property instance : TCommandDispatcher read GetInstance;
@@ -341,6 +345,15 @@ begin
   aChannel.postMessage(aCommand);
 end;
 
+procedure TCommandDispatcher.SendCommand(aPort: TJSMessagePort; aCommand: TCustomWorkerCommand);
+begin
+  CheckSenderID(aCommand);
+  {$IFDEF DEBUGCOMMANDDISPATCHER}
+  Writeln('Sending message to port: ',TJSJSON.stringify(aCommand));
+  {$ENDIF}
+  aPort.postMessage(aCommand);
+end;
+
 procedure TCommandDispatcher.SendCommand(const aName: string; aCommand: TCustomWorkerCommand);
 var
   Idx : integer;
@@ -521,6 +534,13 @@ end;
 procedure TCommandDispatcher.ListenOnChannel(aChannel: TJSBroadcastChannel);
 begin
   aChannel.addEventListener('message',@HandleIncomingMessage);
+end;
+
+procedure TCommandDispatcher.ListenOnPort(aPort: TJSMessagePort);
+begin
+  aPort.addEventListener('message',@HandleIncomingMessage);
+  // A port received via transfer is not yet started; start delivery explicitly.
+  aPort.start;
 end;
 
 class function TCommandDispatcher.SetDispatcherClass(aClass: TCommandDispatcherClass): TCommandDispatcherClass;
