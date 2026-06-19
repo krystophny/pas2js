@@ -75,6 +75,12 @@ Type
   protected
     function GetThreadSupport: TWorkerThreadRunner; virtual;
     procedure LoadWasmModule(aCommand: TWorkerLoadCommand); virtual;
+    // When True (the default) this worker registers the cmdLoad handler and
+    // announces readiness, so the controller ships it the wasm module+memory to
+    // instantiate. Workers that only need the shared memory (received via
+    // cmdSendSharedMemory) and must NOT instantiate the module override this to
+    // return False.
+    function NeedsWasmInstance: Boolean; virtual;
   Public
     constructor Create(aOwner : TComponent); override;
     Property ThreadSupport : TWorkerThreadRunner Read GetThreadSupport;
@@ -156,11 +162,21 @@ Var
 
   var
     E: Exception;
+    lReason: String;
 
   begin
     ThreadSupport.Reset;
     Result:=True;
-    E:=Exception.Create('Failed to create webassembly. Reason: '+TJSJSON.Stringify(aValue));
+    // A rejected WebAssembly.instantiate yields an Error (e.g. LinkError naming
+    // the missing import). JSON.Stringify collapses Error objects to "{}" because
+    // their properties are non-enumerable, so prefer .message / toString.
+    if isObject(aValue) and not isUndefined(TJSObject(aValue)['message']) then
+      lReason:=String(TJSObject(aValue)['message'])
+    else if isObject(aValue) then
+      lReason:=TJSObject(aValue).toString
+    else
+      lReason:=TJSJSON.Stringify(aValue);
+    E:=Exception.Create('Failed to create webassembly. Reason: '+lReason);
     ThreadSupport.SendException(E);
     E.Free;
   end;
@@ -188,11 +204,19 @@ end;
 
 //procedure TWorkerThreadRunnerApplication.LoadWasmModule(aCommand: TWorkerLoadCommand);
 
+function TWorkerThreadRunnerApplication.NeedsWasmInstance: Boolean;
+begin
+  Result:=True;
+end;
+
 constructor TWorkerThreadRunnerApplication.Create(aOwner: TComponent);
 begin
   inherited Create(aOwner);
-  TCommandDispatcher.Instance.RegisterCommandHandler(cmdLoad,@RawLoadWasmModule);
-  TCommandDispatcher.Instance.SendCommand(TWorkerReadyCommand.Create());
+  if NeedsWasmInstance then
+  begin
+    TCommandDispatcher.Instance.RegisterCommandHandler(cmdLoad,@RawLoadWasmModule);
+    TCommandDispatcher.Instance.SendCommand(TWorkerReadyCommand.Create());
+  end;
 end;
 
 { TWASIThreadRunnerHost }
