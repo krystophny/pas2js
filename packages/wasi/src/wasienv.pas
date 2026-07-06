@@ -121,6 +121,7 @@ type
     FEnvironment: TStrings;
     FExitCode: Nativeint;
     FImportObject : TJSObject;
+    FFpcImportObject : TJSObject;
     Finstance: TJSWebAssemblyInstance;
     FLogAPI: Boolean;
     FModuleInstanceExports : TJSModulesExports;
@@ -133,11 +134,13 @@ type
     FWASIImportName : string;
     FMemory : TJSWebAssemblyMemory;
     function DoRead(fd: NativeInt; iovs: TWasmMemoryLocation; iovsLen, atPos: NativeInt; nread: TWasmMemoryLocation): NativeInt;
-    procedure fpc_console_log_utf16(aData: TWasmPointer; aCharLen: Integer);
-    procedure fpc_console_log_utf8(aData: TWasmPointer; aCharLen: Integer);
+    procedure fpc_console_log_utf16(aLevel: longint; aData: TWasmPointer; aCharLen: Integer);
+    procedure fpc_console_log_utf8(aLevel: longint; aData: TWasmPointer; aCharLen: Integer);
     function GetConsoleInputBuffer(aMaxSize : Integer): TJSUint8Array;
     function GetFileBuffer(FD,aMaxLen: NativeInt): TJSUint8Array;
+    procedure GetFPCImports(aImports: TJSObject);
     function GetImportObject: TJSObject;
+    function GetFpcImportObject: TJSObject;
     function getiovs(view: TJSDataView; iovs, iovsLen: NativeInt): TMemBufferArray;
     function GetTotalIOVsLen(iovs: TMemBufferArray): Integer;
     function GetIOVsAsBytes(iovs, iovsLen: NativeInt): TJSUInt8array;
@@ -256,6 +259,7 @@ type
     Procedure AddImports(aObject: TJSObject);
     procedure SetExports(aExports : TWasiExports);
     Property ImportObject : TJSObject Read GetImportObject;
+    Property FpcImportObject : TJSObject Read GetFpcImportObject;
 //    Property IsLittleEndian : Boolean Read FIsLittleEndian Write FIsLittleEndian;
     // Filesystem
     function PreLoadFiles(aFiles: array of string): TPreLoadFilesResult; async;
@@ -1229,6 +1233,7 @@ Var
   
 begin
   aObject[WASIImportName]:=ImportObject;
+  aObject['fpc']:=FpcImportObject;
   if Assigned(FImportExtensions) then
     For I:=0 to FImportExtensions.Count-1 do
       begin
@@ -1864,6 +1869,18 @@ begin
   Result:=FImportObject;
 end;
 
+function TPas2JSWASIEnvironment.GetFpcImportObject: TJSObject;
+begin
+  // We need this trick to be able to access self or this.
+  // The webassembly callbacks get called without a this.
+  if Not Assigned(FFpcImportObject) then
+    begin
+    FFpcImportObject:=TJSObject.New;
+    GetFPCImports(FFpcImportObject);
+    end;
+  Result:=FFpcImportObject;
+end;
+
 
 function TPas2JSWASIEnvironment.poll_oneoff(sin, sout, nsubscriptions,
   nevents: NativeInt): NativeInt;
@@ -1942,28 +1959,35 @@ begin
   Result:=WASI_ENOSYS;
 end;
 
-procedure TPas2JSWASIEnvironment.fpc_console_log_utf8(aData : TWasmPointer; aCharLen : Integer);
+const
+  LogLevels : Array[0..5] of string = ('Trace', 'Debug', 'Info', 'Warning', 'Error', 'Critical');
+
+procedure TPas2JSWASIEnvironment.fpc_console_log_utf8(aLevel: longint; aData : TWasmPointer; aCharLen : Integer);
 var
   S : String;
 begin
   S:=GetUTF8StringFromMem(aData,aCharLen);
-  Console.Log('[WASM] '+S);
+  Console.Log('[WASM:'+LogLevels[aLevel]+'] '+S);
 end;
 
-procedure TPas2JSWASIEnvironment.fpc_console_log_utf16(aData : TWasmPointer; aCharLen : Integer);
+procedure TPas2JSWASIEnvironment.fpc_console_log_utf16(aLevel: longint; aData : TWasmPointer; aCharLen : Integer);
 var
   S : String;
 begin
   S:=GetUTF16StringFromMem(aData,aCharLen);
-  Console.Log('[WASM] '+S);
+  Console.Log('[WASM:'+LogLevels[aLevel]+'] '+S);
 end;
 
+
+procedure TPas2JSWASIEnvironment.GetFPCImports(aImports: TJSObject);
+begin
+  aImports['console_log_utf8']:=@fpc_console_log_utf8;
+  aImports['console_log_utf16']:=@fpc_console_log_utf16;
+end;
 
 procedure TPas2JSWASIEnvironment.GetImports(aImports: TJSObject);
 
 begin
-  aImports['console_log_utf8']:=@fpc_console_log_utf8;
-  aImports['console_log_utf16']:=@fpc_console_log_utf16;
   aImports['args_get']:=@args_get;
   aImports['args_sizes_get']:=@args_sizes_get;
   aImports['clock_res_get']:=@clock_res_get;
