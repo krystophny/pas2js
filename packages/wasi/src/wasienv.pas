@@ -133,6 +133,8 @@ type
     FWASIImportName : string;
     FMemory : TJSWebAssemblyMemory;
     function DoRead(fd: NativeInt; iovs: TWasmMemoryLocation; iovsLen, atPos: NativeInt; nread: TWasmMemoryLocation): NativeInt;
+    procedure fpc_console_log_utf16(aData: TWasmPointer; aCharLen: Integer);
+    procedure fpc_console_log_utf8(aData: TWasmPointer; aCharLen: Integer);
     function GetConsoleInputBuffer(aMaxSize : Integer): TJSUint8Array;
     function GetFileBuffer(FD,aMaxLen: NativeInt): TJSUint8Array;
     function GetImportObject: TJSObject;
@@ -1940,10 +1942,28 @@ begin
   Result:=WASI_ENOSYS;
 end;
 
+procedure TPas2JSWASIEnvironment.fpc_console_log_utf8(aData : TWasmPointer; aCharLen : Integer);
+var
+  S : String;
+begin
+  S:=GetUTF8StringFromMem(aData,aCharLen);
+  Console.Log('[WASM] '+S);
+end;
+
+procedure TPas2JSWASIEnvironment.fpc_console_log_utf16(aData : TWasmPointer; aCharLen : Integer);
+var
+  S : String;
+begin
+  S:=GetUTF16StringFromMem(aData,aCharLen);
+  Console.Log('[WASM] '+S);
+end;
+
 
 procedure TPas2JSWASIEnvironment.GetImports(aImports: TJSObject);
 
 begin
+  aImports['console_log_utf8']:=@fpc_console_log_utf8;
+  aImports['console_log_utf16']:=@fpc_console_log_utf16;
   aImports['args_get']:=@args_get;
   aImports['args_sizes_get']:=@args_sizes_get;
   aImports['clock_res_get']:=@clock_res_get;
