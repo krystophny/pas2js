@@ -18,7 +18,6 @@ unit System.UITypes;
 {$mode delphi}
 
 // LCL defined all sets with SizeOf()=4
-{$PACKSET FIXED}
 
 interface
 
