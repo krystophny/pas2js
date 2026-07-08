@@ -1967,6 +1967,8 @@ var
   S : String;
 begin
   S:=GetUTF8StringFromMem(aData,aCharLen);
+  if (aLevel<0) or (aLevel>5) then
+    aLevel:=0;
   Console.Log('[WASM:'+LogLevels[aLevel]+'] '+S);
 end;
 
@@ -1975,6 +1977,8 @@ var
   S : String;
 begin
   S:=GetUTF16StringFromMem(aData,aCharLen);
+  if (aLevel<0) or (aLevel>5) then
+    aLevel:=0;
   Console.Log('[WASM:'+LogLevels[aLevel]+'] '+S);
 end;
 
