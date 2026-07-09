@@ -411,7 +411,7 @@ begin
     end;
   WT.ThreadInfo:=aInfo;
   FThreads[aInfo.ThreadID]:=WT;
-//  if Wt.WorkerState=twsIdle then
+  if Wt.WorkerState=twsIdle then
     SendRunCommand(WT);
   Result:=aInfo.ThreadID;
   {$IFNDEF NOLOGAPICALLS}
