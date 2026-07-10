@@ -176,7 +176,7 @@ end;
 
 function TWasmThreadHelper.GetRunSent: Boolean;
 begin
-  Result:=boolean(Properties['FRunSent']);
+  Result:=(Properties['FRunSent']=true);
 end;
 
 function TWasmThreadHelper.GetThreadID: Integer;
@@ -412,7 +412,9 @@ begin
   WT.ThreadInfo:=aInfo;
   FThreads[aInfo.ThreadID]:=WT;
   if Wt.WorkerState=twsIdle then
-    SendRunCommand(WT);
+    SendRunCommand(WT)
+  else
+    Wt.RunSent:=False;
   Result:=aInfo.ThreadID;
   {$IFNDEF NOLOGAPICALLS}
   DoLog('Exit: SpawnThread for ID %d',[WT.ThreadID]);
