@@ -37,7 +37,7 @@ Type
   { TBulmaModal }
   TOnModalHideEvent = Procedure (Sender : TObject; CloseEl : TJSHTMLElement; Values : TStrings) of object;
 
-  TModalItemKind = (mikValue,mikClose);
+  TModalItemKind = (mikValue,mikClose,mikReference);
 
   { TModalReferenceItem }
 
@@ -438,6 +438,8 @@ function TBulmaModal.DoRenderHTML(aParent, aElement: TJSHTMLElement): TJSHTMLEle
 begin
   FHideEl:=Nil;
   Result:=inherited DoRenderHTML(aParent, aElement);
+  If Assigned(OnRender) then
+    OnRender(Self);
 end;
 
 procedure TBulmaModal.Notification(AComponent: TComponent; Operation: TOperation
@@ -493,7 +495,7 @@ begin
         end
     else if (MR.Kind=mikValue) then
       begin
-      if (MR.element<>Nil) and (MR.InitialValue<>'') then
+      if Not MR.IsArray and (MR.Element<>Nil) and (MR.InitialValue<>'') then
         MR.Value:=MR.InitialValue;
       end;
     end;
