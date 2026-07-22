@@ -8415,7 +8415,7 @@ procedure TStringBuilder.SetLength(AValue: Integer);
 begin
   CheckNegative(AValue,'AValue');
   CheckRange(AValue,0,MaxCapacity);
-  SetLength(FData,aValue);
+  System.SetLength(FData,aValue);
 end;
 
 { Check functions }
