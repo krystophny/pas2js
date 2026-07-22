@@ -776,28 +776,26 @@ begin
   TCommandDispatcher.Instance.specialize AddCommandHandler<TOpenURLCommand>(cmdOpenURL,@HandleOpenURLMessage);
 end;
 
+// declared here because the Web unit (typed Window) is not in uses when compiled with JOB_WORKER
+function WindowOpen(const aURL, aTarget : String) : JSValue; external name 'window.open';
+
 procedure TWasmHTTPAPI.DoOpenURL(aURL : String; aFlags : integer);
-{$IFNDEF JOB_WORKER}
-var
-  win: TJSWindow;
-{$ENDIF}
 begin
-{$IFNDEF JOB_WORKER}
-  win:=Window.open(aURL,'_blank');
-{$ENDIF}
+  WindowOpen(aURL,'_blank');
 end;
 
 procedure TWasmHTTPAPI.HandleOpenURLMessage(aCommand : TOpenURLCommand);
 
 begin
-  {$IFNDEF JOB_WORKER}
-  Writeln('Handling open url message');
-  DoOpenURL(aCommand.URL,aCommand.Flags);
-  {$ELSE}
-  Writeln('forwarding open url message');
-  aCommand[cFldSender]:=undefined;
-  TCommandDispatcher.Instance.SendCommand(aCommand);
-  {$ENDIF}
+  if isMainBrowserThread then
+    begin
+    DoOpenURL(aCommand.URL,aCommand.Flags);
+    end
+  else
+    begin
+    aCommand[cFldSender]:=undefined;
+    TCommandDispatcher.Instance.SendCommand(aCommand);
+    end;
 end;
 
 function TWasmHTTPAPI.HandleOpenURL(aURL : TWasmPointer; aURLLen : Longint; aFlags : Integer) : Integer;
@@ -807,17 +805,16 @@ var
 begin
   Result:=WASMHTTP_RESULT_SUCCESS;
   lURL:=Env.GetUTF8StringFromMem(aURL,aURLLen);
-  Writeln('Handling open url call ',aURL);
   {$IFNDEF NOLOGAPICALLS}
   if LogAPICalls then
     LogCall('HTTP.OpenURL(%s,%d)',[lURL,aFlags]);
   {$ENDIF}
-  {$IFDEF JOB_WORKER}
-  Writeln('sending openurl command');
-  TCommandDispatcher.Instance.SendCommand(TOpenURLCommand.CreateURL(lURL,aFlags));
-  {$ELSE}
-  DoOpenURL(lURL,aFlags);
-  {$ENDIF}
+  if isMainBrowserThread then
+    DoOpenURL(lURL,aFlags)
+  else
+    begin
+    TCommandDispatcher.Instance.SendCommand(TOpenURLCommand.CreateURL(lURL,aFlags));
+    end;
 end;
 
 procedure TWasmHTTPAPI.FillImportObject(aObject: TJSObject);
