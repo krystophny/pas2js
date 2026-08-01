@@ -684,10 +684,22 @@ begin
     begin
     if (EI._type='checkbox') then
       F.AsBoolean:=EI.Checked
-    else if SameText(EI._type,'date')then
-      Field.AsDateTime:=ExtractDate(EI.value)
-    else if SameText(EI._type,'time')then
-      Field.AsDateTime:=ExtractTime(EI.value)
+    // An empty date or time input clears the field: ExtractDate and ExtractTime
+    // return 0 for an empty string, which would be stored as 30 december 1899.
+    else if SameText(EI._type,'date') then
+      begin
+      if (EI.value='') then
+        F.Clear
+      else
+        F.AsDateTime:=ExtractDate(EI.value);
+      end
+    else if SameText(EI._type,'time') then
+      begin
+      if (EI.value='') then
+        F.Clear
+      else
+        F.AsDateTime:=ExtractTime(EI.value);
+      end
     else
       F.AsString:=Value;
     end
