@@ -109,6 +109,7 @@ procedure SetCommandLineParams(aExe : String; Pars : Array of string);
 var
   I : integer;
 begin
+  if aExe='' then ;
   Params[0]:=Window.location.pathname;
   For I:=0 to Length(Pars)-1 do
     Params[1+I]:=Pars[I];
