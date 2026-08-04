@@ -16,6 +16,7 @@ unit RTTI;
 
 {$mode objfpc}
 {$ModeSwitch advancedrecords}
+{$WARN 3148 off : Case statement does not handle all possible cases}
 
 interface
 
