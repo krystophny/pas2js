@@ -635,7 +635,7 @@ var
   lProc : TReleaseObjectIDProc;
 
 begin
-  lProc:=TReleaseObjectIDProc(InstanceExports.functions['AllocateJobObjectID']);
+  lProc:=TReleaseObjectIDProc(InstanceExports.functions['ReleaseJobObjectID']);
   if Not assigned(lProc) then
     Raise EJOBBridge.Create('No function to release job ID');
   lProc(aID);
