@@ -90,6 +90,7 @@ Type
     function GetObjectID: TJOBObjectID;
     procedure ReleaseJobID(aID: TJOBObjectID);
     function DecodeUTF16Buffer(Arr : TJSUint16Array) : String;
+    function DecodeUTF16Memory(View: TJSDataView; Offset, Count: NativeInt): String;
     function DecodeUTF8Buffer(Arr : TJSUint8Array) : String;
     function Invoke_JSResult(ObjId: TJOBObjectID; NameP, NameLen, Invoke, ArgsP: NativeInt; out JSResult: JSValue): TJOBResult; virtual;
     function GetInvokeArguments(View: TJSDataView; ArgsP: NativeInt): TJSValueDynArray; virtual;
@@ -368,6 +369,21 @@ begin
     FDecoderUTF16:=TJSTextDecoder.New(enc);
     end;
   Result:=FDecoderUTF16.decode(SharedToNonShared(Arr,True));
+end;
+
+function TJSObjectBridge.DecodeUTF16Memory(View: TJSDataView; Offset, Count: NativeInt): String;
+var
+  Bytes: TJSUint8Array;
+begin
+  if (Offset mod 2) = 0 then
+    Result:=DecodeUTF16Buffer(TJSUint16Array.New(View.buffer, Offset, Count))
+  else
+    begin
+    // Inline arguments are packed after byte-sized values. Copy only this
+    // string to an aligned buffer; viewing the entire memory loses its bounds.
+    Bytes:=TJSUint8Array.New(TJSUint8Array.New(View.buffer, Offset, Count*2));
+    Result:=DecodeUTF16Buffer(TJSUint16Array.New(Bytes.buffer));
+    end;
 end;
 
 function TJSObjectBridge.DecodeUTF8Buffer(Arr: TJSUint8Array): String;
@@ -672,13 +688,10 @@ var
   fn: TJSFunction;
   JSResult : JSValue;
   View: TJSDataView;
-  aWords: TJSUint16Array;
 
 begin
   View:=getModuleMemoryDataView();
-  aWords:=TJSUint16Array.New(View.buffer, NameP, NameLen);
-  //writeln('TJSObjectBridge.Invoke_JSResult aBytes=',aBytes);
-  ObjName:=DecodeUTF16Buffer(aWords);
+  ObjName:=DecodeUTF16Memory(View, NameP, NameLen);
   {$IFDEF VerboseJOB}
   writeln('Create_JSObject ObjName="',ObjName,'"');
   {$ENDIF}
@@ -928,12 +941,10 @@ var
   function ReadString: String;
   var
     Len: TWasmNativeInt;
-    aWords: TJSUint16Array;
   begin
     Len:=ReadWasmNativeInt;
-    aWords:=TJSUint16Array.New(View.buffer, p,Len);
+    Result:=DecodeUTF16Memory(View, p, Len);
     inc(p,Len*2);
-    Result:=DecodeUTF16Buffer(aWords);
     {$IFDEF VERBOSEJOB}
     Writeln('ReadString : ',Result);
     {$ENDIF}
@@ -942,28 +953,10 @@ var
   function ReadUnicodeString: String;
   var
     Len, Ptr: TWasmNativeInt;
-    aWords: TJSUint16Array;
-    aRawBytes,
-    aBytes: TJSUint8Array;
   begin
     Len:=ReadWasmNativeInt;
     Ptr:=ReadWasmNativeInt;
-    if (Ptr mod 2)=0 then
-      begin
-      // Aligned, we can directly use the memory
-      aWords:=TJSUint16Array.New(View.buffer, Ptr,Len);
-      end
-    else
-      begin
-      // Unaligned, We cannot directly use the memory
-      // So create a uint8 buffer and copy using from.
-     aRawBytes:=TJSUint8Array.new(View.buffer, Ptr,Len*2);
-      // Hopefully aligned
-      aBytes:=TJSUint8Array.New(aRawBytes.Buffer);
-      // Reinterpret
-      aWords:=TJSUint16Array.New(aBytes.buffer);
-      end;
-     Result:=DecodeUTF16Buffer(aWords);
+    Result:=DecodeUTF16Memory(View, Ptr, Len);
     {$IFDEF VERBOSEJOB}
     Writeln('ReadUnicodeString : ',Result);
     {$ENDIF}
@@ -1269,12 +1262,10 @@ function TJSObjectBridge.Get_GlobalID(NameP, NameLen: NativeInt
   ): TJOBObjectID;
 var
   View: TJSDataView;
-  aWords: TJSUint16Array;
   aName: String;
 begin
   View:=getModuleMemoryDataView();
-  aWords:=TJSUint16Array.New(View.buffer, NameP, NameLen);
-  aName:=DecodeUTF16Buffer(aWords);
+  aName:=DecodeUTF16Memory(View, NameP, NameLen);
   Result:=FindGlobalObject(aName);
   {$IFDEF VERBOSEJOB}
   Writeln('Get_GlobalID (',aName,'): ', Result);
