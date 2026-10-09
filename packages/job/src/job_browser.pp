@@ -205,7 +205,9 @@ begin
   RegisterGlobalObject(document,'document');
   RegisterGlobalObject(window,'window');
   RegisterGlobalObject(CSS,'CSS');
-  RegisterGlobalObject(caches,'caches');
+  { CacheStorage is optional and absent on non-local plain HTTP origins. }
+  if jsTypeOf(caches) <> 'undefined' then
+    RegisterGlobalObject(caches,'caches');
   {$ELSE}
   RegisterGlobalObject(Self_,'self');
   {$ENDIF}
